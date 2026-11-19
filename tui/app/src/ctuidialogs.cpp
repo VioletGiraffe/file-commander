@@ -494,11 +494,13 @@ namespace {
 class CTuiProgressDialog final : public TDialog
 {
 public:
-	CTuiProgressDialog(const QString& dialogTitle, std::function<bool()> finished, std::function<QStringList(int width)> progressLines) :
+	CTuiProgressDialog(const QString& dialogTitle, std::function<bool()> finished, std::function<QStringList(int width)> progressLines,
+		std::function<bool()> confirmCancel) :
 		TWindowInit(&TDialog::initFrame),
 		TDialog({ 0, 0, std::min(72, TProgram::deskTop->size.x - 2), 8 }, stringView(dialogTitle.toUtf8())),
 		_finished(std::move(finished)),
-		_progressLines(std::move(progressLines))
+		_progressLines(std::move(progressLines)),
+		_confirmCancel(std::move(confirmCancel))
 	{
 		options |= ofCentered;
 
@@ -516,6 +518,9 @@ public:
 	{
 		// Enter does nothing: the focused Cancel would take it
 		if (event.what == evKeyDown && event.keyDown.keyCode == kbEnter)
+			clearEvent(event);
+		// Esc, the Cancel button and the close box all arrive as cmCancel
+		else if (event.what == evCommand && event.message.command == cmCancel && _confirmCancel && !_confirmCancel())
 			clearEvent(event);
 		TDialog::handleEvent(event);
 	}
@@ -538,12 +543,14 @@ private:
 private:
 	const std::function<bool()> _finished;
 	const std::function<QStringList(int width)> _progressLines;
+	const std::function<bool()> _confirmCancel;
 	CTuiTextView* _text; // Owned by this dialog
 };
 
 } // namespace
 
-bool waitWithProgressDialog(const QString& title, const std::function<bool()>& finished, const std::function<QStringList(int width)>& progressLines)
+bool waitWithProgressDialog(const QString& title, const std::function<bool()>& finished, const std::function<QStringList(int width)>& progressLines,
+	const std::function<bool()>& confirmCancel)
 {
 	using namespace std::chrono_literals;
 
@@ -555,7 +562,7 @@ bool waitWithProgressDialog(const QString& title, const std::function<bool()>& f
 	if (finished())
 		return true;
 
-	auto* dialog = new CTuiProgressDialog(title, finished, progressLines);
+	auto* dialog = new CTuiProgressDialog(title, finished, progressLines, confirmCancel);
 	const ushort command = TProgram::deskTop->execView(dialog);
 	TObject::destroy(dialog);
 	return command == cmOK;

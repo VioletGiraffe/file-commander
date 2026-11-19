@@ -15,6 +15,9 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
+#include <condition_variable>
+#include <functional>
+#include <mutex>
 #include <optional>
 #include <stddef.h>
 #include <utility>
@@ -125,12 +128,18 @@ class CBatchRenameRun
 {
 public:
 	explicit CBatchRenameRun(std::vector<BatchRenameItem> items);
+	~CBatchRenameRun(); // Cancels, also a paused run
 
 	// Of the items, by rename attempts made: approximate, since an item retried once another frees its new name counts twice
 	[[nodiscard]] int percent() const noexcept;
 	[[nodiscard]] bool finished() { return _task.finished(); }
-	// Returns once the item being renamed is done; the rest stay unattempted
-	void cancelAndWait() { _task.cancelAndWait(); }
+	// The renaming stops before the next item until resume(); the item being renamed completes
+	void pause();
+	void resume();
+	// Paused while confirm() runs, then resumed unless it returns true; cancelAndWait() is then the caller's
+	[[nodiscard]] bool confirmCancelWhilePaused(const std::function<bool()>& confirm);
+	// Returns once the item being renamed is done, also when paused; the rest stay unattempted
+	void cancelAndWait();
 	// Requires finished(). batchRename()'s results: an item never attempted is nullopt.
 	[[nodiscard]] std::vector<std::optional<InlineRenameResult>> results() const;
 
@@ -139,6 +148,9 @@ private:
 
 	const size_t _itemCount;
 	std::atomic<size_t> _attempts{ 0 };
+	std::mutex _pauseMutex;
+	std::condition_variable _resumed;
+	bool _paused = false; // Guarded by _pauseMutex
 	// Last: destroyed first, joining the renaming before the fields it writes are gone
 	CBackgroundTask<Results> _task{ "Batch rename" };
 };

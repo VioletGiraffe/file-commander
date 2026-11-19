@@ -14,7 +14,9 @@ RESTORE_COMPILER_WARNINGS
 
 #include <chrono>
 #include <functional>
+#include <initializer_list>
 #include <thread>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -44,6 +46,19 @@ std::vector<std::pair<QString, QString>> runStep(Session& session, const Session
 {
 	const std::vector<BatchRenameItem> items = session.startStep(step);
 	return session.finishStep(batchRename(items, shouldContinue));
+}
+
+// Polls the run as the UI does. A timeout here means the renaming never ended.
+[[nodiscard]] bool finishesInTime(CBatchRenameRun& renaming)
+{
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{ 10 };
+	while (!renaming.finished())
+	{
+		if (std::chrono::steady_clock::now() > deadline)
+			return false;
+		std::this_thread::yield();
+	}
+	return true;
 }
 
 } // namespace
@@ -209,10 +224,7 @@ TEST_CASE("Batch rename run - renames a step's items on its thread, and the sess
 	session.setRules(nameMask(QSL("[N]_x")));
 
 	CBatchRenameRun renaming{ session.startStep(Session::Step::Apply) };
-	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{ 10 };
-	while (!renaming.finished() && std::chrono::steady_clock::now() < deadline)
-		std::this_thread::yield();
-	REQUIRE(renaming.finished());
+	REQUIRE(finishesInTime(renaming));
 	CHECK(renaming.percent() == 100);
 
 	CHECK(session.finishStep(renaming.results()).size() == 2);
@@ -220,6 +232,62 @@ TEST_CASE("Batch rename run - renames a step's items on its thread, and the sess
 	CHECK(QFile::exists(tree.path(QSL("b_x.txt"))));
 	for (const Session::Row& row : session.rows())
 		CHECK(row.outcome == Session::Outcome::Renamed);
+}
+
+TEST_CASE("Batch rename run - a cancellation the user declines resumes the renaming, which finishes", "[batchrename]")
+{
+	TempTree tree;
+	const QString a = tree.makeFile(QSL("a.txt"));
+	const QString b = tree.makeFile(QSL("b.txt"));
+	Session session{ itemsAt({ a, b }) };
+	session.setRules(nameMask(QSL("[N]_x")));
+
+	CBatchRenameRun renaming{ session.startStep(Session::Step::Apply) };
+	CHECK_FALSE(renaming.confirmCancelWhilePaused([] { return false; }));
+	REQUIRE(finishesInTime(renaming));
+
+	session.finishStep(renaming.results());
+	for (const Session::Row& row : session.rows())
+		CHECK(row.outcome == Session::Outcome::Renamed);
+}
+
+TEST_CASE("Batch rename run - a confirmed cancellation leaves it paused, cancelAndWait() then returns, and the items it did not reach stay as they were", "[batchrename]")
+{
+	TempTree tree;
+	const QString a = tree.makeFile(QSL("a.txt"));
+	const QString b = tree.makeFile(QSL("b.txt"));
+	Session session{ itemsAt({ a, b }) };
+	session.setRules(nameMask(QSL("[N]_x")));
+
+	CBatchRenameRun renaming{ session.startStep(Session::Step::Apply) };
+	CHECK(renaming.confirmCancelWhilePaused([] { return true; }));
+	renaming.cancelAndWait();
+	REQUIRE(renaming.finished());
+
+	// The pause may come after some items: each one is renamed or untouched, as its outcome says
+	session.finishStep(renaming.results());
+	for (const auto& [row, oldName, newName] : { std::tuple{ 0, QSL("a.txt"), QSL("a_x.txt") }, std::tuple{ 1, QSL("b.txt"), QSL("b_x.txt") } })
+	{
+		const Session::Outcome outcome = session.rows()[row].outcome;
+		CHECK((outcome == Session::Outcome::Renamed || outcome == Session::Outcome::Cancelled));
+		CHECK(QFile::exists(tree.path(newName)) == (outcome == Session::Outcome::Renamed));
+		CHECK(QFile::exists(tree.path(oldName)) == (outcome == Session::Outcome::Cancelled));
+	}
+}
+
+TEST_CASE("Batch rename run - destroying a paused run returns", "[batchrename]")
+{
+	TempTree tree;
+	const QString a = tree.makeFile(QSL("a.txt"));
+	Session session{ itemsAt({ a }) };
+	session.setRules(nameMask(QSL("[N]_x")));
+
+	{
+		CBatchRenameRun renaming{ session.startStep(Session::Step::Apply) };
+		renaming.pause();
+	}
+
+	SUCCEED("The destructor woke the paused renaming and joined it");
 }
 
 TEST_CASE("Batch rename session - an item whose new name is taken outside the batch fails, and says why", "[batchrename]")

@@ -24,6 +24,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
+#include <QMessageBox>
 #include <QPalette>
 #include <QPushButton>
 #include <QSpinBox>
@@ -248,8 +249,13 @@ void CBatchRenameDialog::runStep(const CBatchRenameSession::Step step)
 	mainWindow->closeViewedFilesWithin(_session.pathsRenamedBy(step));
 
 	CBatchRenameRun renaming{ _session.startStep(step) };
+	const auto confirmCancel = [&renaming](QWidget* dialog) {
+		return renaming.confirmCancelWhilePaused([dialog] {
+			return QMessageBox::question(dialog, tr("Batch rename"), tr("Cancel renaming?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes;
+		});
+	};
 	if (!waitWithProgressDialog(this, tr("Batch rename"), tr("Renaming..."), [&renaming] { return renaming.finished(); },
-			[&renaming](CSimpleProgressDialog& dialog) { dialog.setValue(renaming.percent()); }))
+			[&renaming](CSimpleProgressDialog& dialog) { dialog.setValue(renaming.percent()); }, confirmCancel))
 		renaming.cancelAndWait();
 
 	CController::get().itemsRenamed(_session.finishStep(renaming.results()));

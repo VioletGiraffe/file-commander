@@ -191,10 +191,55 @@ CBatchRenameRun::CBatchRenameRun(std::vector<BatchRenameItem> items) :
 {
 	_task.start([this, items{ std::move(items) }](const std::atomic<bool>& cancelled) -> std::optional<Results> {
 		return batchRename(items, [this, &cancelled] {
+			{
+				std::unique_lock locker{ _pauseMutex };
+				_resumed.wait(locker, [this, &cancelled] { return !_paused || cancelled; });
+			}
+
+			if (cancelled)
+				return false;
+
 			++_attempts;
-			return !cancelled;
+			return true;
 		});
 	});
+}
+
+CBatchRenameRun::~CBatchRenameRun()
+{
+	cancelAndWait();
+}
+
+void CBatchRenameRun::pause()
+{
+	std::lock_guard locker{ _pauseMutex };
+	_paused = true;
+}
+
+void CBatchRenameRun::resume()
+{
+	{
+		std::lock_guard locker{ _pauseMutex };
+		_paused = false;
+	}
+	_resumed.notify_all();
+}
+
+bool CBatchRenameRun::confirmCancelWhilePaused(const std::function<bool()>& confirm)
+{
+	pause();
+	const bool cancel = confirm();
+	if (!cancel)
+		resume();
+	return cancel;
+}
+
+void CBatchRenameRun::cancelAndWait()
+{
+	// Cancelled before the wake-up: the woken thread must not rename another item
+	_task.cancel();
+	resume();
+	_task.cancelAndWait();
 }
 
 int CBatchRenameRun::percent() const noexcept

@@ -137,4 +137,6 @@ void showUserMessage(const UserMessage& message);
 
 // Polls `finished` until it returns true; false: cancelled.
 // Work still running after 500 ms gets a dialog showing two lines of progressLines(width in cells), with a Cancel button that Esc presses too.
-[[nodiscard]] bool waitWithProgressDialog(const QString& title, const std::function<bool()>& finished, const std::function<QStringList(int width)>& progressLines);
+// confirmCancel, if set, decides whether a cancel request cancels.
+[[nodiscard]] bool waitWithProgressDialog(const QString& title, const std::function<bool()>& finished, const std::function<QStringList(int width)>& progressLines,
+	const std::function<bool()>& confirmCancel = {});

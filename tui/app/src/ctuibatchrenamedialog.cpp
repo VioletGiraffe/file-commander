@@ -291,9 +291,14 @@ void CTuiBatchRenameDialog::runStep(const Step step)
 	}
 
 	CBatchRenameRun renaming{ _session.startStep(step) };
+	const auto confirmCancel = [&renaming] {
+		return renaming.confirmCancelWhilePaused([] {
+			return confirmed(QStringLiteral("Batch rename"), QStringLiteral("Cancel renaming?"), QStringLiteral("Yes"), QStringLiteral("No"));
+		});
+	};
 	if (!waitWithProgressDialog(QStringLiteral("Batch rename"), [&renaming] { return renaming.finished(); }, [&renaming](const int width) {
 			return QStringList{ QStringLiteral("Renaming..."), progressBar(renaming.percent(), width) };
-		}))
+		}, confirmCancel))
 		renaming.cancelAndWait();
 
 	CController::get().itemsRenamed(_session.finishStep(renaming.results()));

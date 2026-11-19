@@ -78,6 +78,8 @@ tab ID. See [core-engine.md](core-engine.md) for the complete publication bounda
 - Destroying a `CFileStatisticsScan`, `CFolderComparison` or `CFileComparator`, or cancelling a `CBatchRenameRun`, joins
   its thread on the UI thread: closing the Statistics window or cancelling a progress dialog waits until the work
   notices the cancellation. A statistics scan notices it between directory listings, a batch rename between items.
+- A paused `CBatchRenameRun` waits on a condition variable before its next item. Cancelling and destruction set the
+  cancellation flag before waking it, so it renames nothing more.
 
 Structural lifetime constraints belong beside the relevant member declarations; preserve those comments when
 changing declaration order.
