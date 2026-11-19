@@ -78,6 +78,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
+#include <QCursor>
 #include <QMenu>
 #include <QMessageBox>
 #include <QProcess>
@@ -307,7 +308,7 @@ void CMainWindow::initButtons()
 	new QShortcut(QKeySequence(QSL("Shift+F7")), this, this, &CMainWindow::createFile, Qt::WidgetWithChildrenShortcut);
 
 	connect(ui->btnDelete, &QPushButton::clicked, this, [this] { shiftKeyHeld() ? deleteFilesIrrevocably() : deleteFiles(); });
-	connect(ui->btnDelete, &QPushButton::customContextMenuRequested, this, &CMainWindow::showRecycleBInContextMenu);
+	connect(ui->btnDelete, &QPushButton::customContextMenuRequested, this, &CMainWindow::showTrashContextMenu);
 	new QShortcut(QKeySequence(QSL("F8")),     this, this, &CMainWindow::deleteFiles, Qt::WidgetWithChildrenShortcut);
 	new QShortcut(QKeySequence(QSL("Delete")), this, this, &CMainWindow::deleteFiles, Qt::WidgetWithChildrenShortcut);
 #ifdef __APPLE__
@@ -1064,9 +1065,27 @@ void CMainWindow::openTerminalInCurrentFolder(bool admin)
 		showLaunchError(this, tr("Failed to open a terminal"), opened.error());
 }
 
-void CMainWindow::showRecycleBInContextMenu()
+void CMainWindow::showTrashContextMenu()
 {
+#ifdef _WIN32
 	OsShell::recycleBinContextMenu(WidgetUtils::nativeOwnerWinId(this));
+#elif defined __linux__ || defined __FreeBSD__
+	QStringList volumeRoots;
+	for (const VolumeInfo& volume : _controller->volumes())
+		volumeRoots.push_back(volume.rootObjectInfo.fullAbsolutePath());
+	const OsShell::TrashContents contents = OsShell::trashContents(OsShell::trashFolders(volumeRoots));
+
+	QMenu menu{ this };
+	QAction* emptyTrash = menu.addAction(tr("Empty Trash"), [&] {
+		const QString question = contents.items.size() == 1
+			? tr("Permanently delete the item in the trash?")
+			: tr("Permanently delete the %1 items in the trash?").arg(contents.items.size());
+		if (QMessageBox::question(this, tr("Empty Trash"), question, QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+			startPermanentDeletion(contents.items + contents.records);
+	});
+	emptyTrash->setEnabled(!contents.items.isEmpty());
+	menu.exec(QCursor::pos());
+#endif
 }
 
 void CMainWindow::toggleQuickView()

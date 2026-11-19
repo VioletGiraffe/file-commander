@@ -20,6 +20,11 @@ DISABLE_COMPILER_WARNINGS
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
+#if defined __linux__ || defined __FreeBSD__
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 #include <functional>
 #include <vector>
 
@@ -336,5 +341,85 @@ TEST_CASE("applicationsToOpen lists the application bundles that open a text fil
 		CHECK(!application.name.isEmpty());
 		CHECK(application.path.endsWith(QStringLiteral(".app")));
 	}
+}
+#endif
+
+#if defined __linux__ || defined __FreeBSD__
+static void makeFolder(const QString& path)
+{
+	REQUIRE(QDir{}.mkpath(path));
+}
+
+TEST_CASE("trashFolders finds the user's trash folders on a volume, and only those the spec lets the user use", "[trash]")
+{
+	QTemporaryDir volume;
+	REQUIRE(volume.isValid());
+	const QString root = volume.path() % '/';
+	const QString uid = QString::number(::getuid());
+
+	SECTION("a .Trash-<uid> folder")
+	{
+		makeFolder(root % QStringLiteral(".Trash-") % uid);
+		CHECK(OsShell::trashFolders({ root }).contains(root % QStringLiteral(".Trash-") % uid));
+	}
+
+	SECTION("a .Trash folder with the sticky bit, holding a <uid> folder")
+	{
+		makeFolder(root % QStringLiteral(".Trash/") % uid);
+		struct stat status{};
+		if (::chmod(QFile::encodeName(root % QStringLiteral(".Trash")).constData(), 01777) != 0
+			|| ::lstat(QFile::encodeName(root % QStringLiteral(".Trash")).constData(), &status) != 0 || !(status.st_mode & S_ISVTX))
+		{
+			WARN("This filesystem has no sticky bit: section skipped");
+			return;
+		}
+
+		CHECK(OsShell::trashFolders({ root }).contains(root % QStringLiteral(".Trash/") % uid));
+	}
+
+	SECTION("not a .Trash folder without the sticky bit")
+	{
+		makeFolder(root % QStringLiteral(".Trash/") % uid); // mkpath never sets the sticky bit
+		CHECK(!OsShell::trashFolders({ root }).contains(root % QStringLiteral(".Trash/") % uid));
+	}
+
+	SECTION("not a link to a folder")
+	{
+		makeFolder(root % QStringLiteral("elsewhere"));
+		if (!QFile::link(root % QStringLiteral("elsewhere"), root % QStringLiteral(".Trash-") % uid))
+		{
+			WARN("This filesystem has no links: section skipped");
+			return;
+		}
+
+		CHECK(!OsShell::trashFolders({ root }).contains(root % QStringLiteral(".Trash-") % uid));
+	}
+}
+
+TEST_CASE("trashContents lists every trashed item, and the records to delete with them", "[trash]")
+{
+	QTemporaryDir trash;
+	REQUIRE(trash.isValid());
+	const QString files = trash.path() % QStringLiteral("/files/");
+	const QString info = trash.path() % QStringLiteral("/info/");
+	makeFolder(files % QStringLiteral("folder"));
+	makeFolder(info);
+	writeFile(files % QStringLiteral("file"), "file");
+	writeFile(files % QStringLiteral(".hidden"), "hidden");
+	writeFile(info % QStringLiteral("file.trashinfo"), "[Trash Info]\n");
+	writeFile(info % QStringLiteral("unrelated.txt"), "not a record");
+	writeFile(trash.path() % QStringLiteral("/directorysizes"), "");
+
+	QStringList expectedItems{ files % QStringLiteral("file"), files % QStringLiteral(".hidden"), files % QStringLiteral("folder") };
+	if (QFile::link(trash.path() % QStringLiteral("/missing"), files % QStringLiteral("broken link")))
+		expectedItems.push_back(files % QStringLiteral("broken link"));
+
+	OsShell::TrashContents contents = OsShell::trashContents({ trash.path() });
+	contents.items.sort();
+	contents.records.sort();
+	expectedItems.sort();
+	CHECK(contents.items == expectedItems);
+	CHECK(contents.records == QStringList{ trash.path() % QStringLiteral("/directorysizes"), info % QStringLiteral("file.trashinfo") });
+	CHECK(OsShell::trashContents({ trash.path() % QStringLiteral("/no-such-trash") }).items.isEmpty());
 }
 #endif

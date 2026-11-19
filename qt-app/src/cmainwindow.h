@@ -105,7 +105,8 @@ private:
 	void viewFileInTextViewer();
 	void editFile();
 	void openTerminalInCurrentFolder(bool admin);
-	void showRecycleBInContextMenu();
+	// Windows: the Recycle Bin's own menu. Linux and FreeBSD: Empty Trash.
+	void showTrashContextMenu();
 	// Swaps the bottom command buttons' captions between their normal and Shift-modified variants
 	void setShiftCaptions(bool shifted);
 	[[nodiscard]] static bool shiftKeyHeld();

@@ -50,11 +50,15 @@ namespace OsShell
 	void openInApplication(const QStringList& paths, const QString& applicationPath, std::function<void(const QString& reason)> onFailure);
 #endif
 
-	// Opens at the mouse cursor; `objects` must all be in one folder
+#ifdef _WIN32
+	// Explorer's menus open at the mouse cursor.
+	// `objects` must all be in one folder.
 	void openShellContextMenuForObjects(const std::vector<std::wstring>& objects, void * parentWindow);
+	bool recycleBinContextMenu(void * parentWindow);
 
 	bool copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
 	bool cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
+#endif
 
 	std::wstring toolTip(std::wstring itemPath);
 
@@ -75,8 +79,18 @@ namespace OsShell
 	// Shows no UI. Moves each item to the trash, continuing past failures. Empty when every item was moved.
 	[[nodiscard]] std::vector<TrashFailure> moveItemsToTrashThroughQt(const QStringList& paths);
 
-	// Opens at the mouse cursor
-	bool recycleBinContextMenu(void * parentWindow);
+#if defined __linux__ || defined __FreeBSD__
+	// The user's freedesktop.org trash folders that exist: the home trash, and those on `volumeRoots` that the spec lets this user use
+	[[nodiscard]] QStringList trashFolders(const QStringList& volumeRoots);
+
+	struct TrashContents
+	{
+		QStringList items; // The trashed files and folders
+		QStringList records; // The .trashinfo files, and each trash's cache of folder sizes
+	};
+	// What emptying `trashFolders` deletes
+	[[nodiscard]] TrashContents trashContents(const QStringList& trashFolders);
+#endif
 
 	struct ProgramInvocation
 	{

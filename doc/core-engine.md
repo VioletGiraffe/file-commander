@@ -92,7 +92,8 @@ Copy, move, permanent delete, inline and batch rename, directory scanning and fo
 deletion backend. It decides `DestinationIntent` before path parsing, because a trailing separator is user intent
 even when the directory does not yet exist. A front end that may run over SSH, the terminal UI, never deletes through
 the desktop shell: it trashes through Qt and deletes permanently with the internal job. `CController::moveToTrash`
-runs Qt's trash, or macOS's shell trash, off the UI thread and reports the items it refused.
+runs Qt's trash, or macOS's shell trash, off the UI thread and reports the items it refused. On Linux and FreeBSD,
+emptying the trash deletes what `OsShell::trashContents` lists with the internal job.
 
 The panel commands a front end runs on user input (new folder or file, rename, go to a typed path, switch volume) are
 `CController` methods. They check the input, act, and return the engine's `UserMessage` to show; creation and rename

@@ -733,36 +733,11 @@ bool OsShell::recycleBinContextMenu(void *parentWindow)
 	return true;
 }
 
-#elif defined __linux__ || defined __FreeBSD__
-
-void OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, void * /*parentWindow*/)
-{
-}
+#elif defined __linux__ || defined __FreeBSD__ || defined __APPLE__
 
 std::wstring OsShell::toolTip(std::wstring /*itemPath*/)
 {
 	return std::wstring();
-}
-
-bool OsShell::recycleBinContextMenu(void * /*parentWindow*/)
-{
-	return true;
-}
-
-#elif defined __APPLE__
-
-void OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, void * /*parentWindow*/)
-{
-}
-
-std::wstring OsShell::toolTip(std::wstring /*itemPath*/)
-{
-	return std::wstring();
-}
-
-bool OsShell::recycleBinContextMenu(void */*parentWindow*/)
-{
-	return true;
 }
 
 #else
@@ -792,6 +767,62 @@ bool OsShell::recycleBinContextMenu(void */*parentWindow*/)
 	const QFileInfo trashedItem{ pathInTrash };
 	QFile::remove(QDir::cleanPath(trashedItem.absolutePath() + QStringLiteral("/../info/") + trashedItem.fileName() + QStringLiteral(".trashinfo")));
 	return reason;
+}
+
+// A folder, not a link to one, that belongs to this user
+static bool isOwnFolder(const QString& path)
+{
+	struct stat status{};
+	return ::lstat(QFile::encodeName(path).constData(), &status) == 0 && S_ISDIR(status.st_mode) && status.st_uid == ::getuid();
+}
+
+QStringList OsShell::trashFolders(const QStringList& volumeRoots)
+{
+	QStringList folders;
+	// Where QFile::moveToTrash puts the items of the home folder's volume
+	if (const QString homeTrash = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) % QStringLiteral("/Trash"); QFileInfo{ homeTrash }.isDir())
+		folders.push_back(homeTrash);
+
+	const QString uid = QString::number(::getuid());
+	for (const QString& volumeRoot : volumeRoots)
+	{
+		const QString root = volumeRoot.endsWith('/') ? volumeRoot : volumeRoot + '/';
+
+		// A shared .Trash counts only as a folder with the sticky bit, not a link: anyone could have made it
+		struct stat sharedTrash{};
+		if (::lstat(QFile::encodeName(root % QStringLiteral(".Trash")).constData(), &sharedTrash) == 0 && S_ISDIR(sharedTrash.st_mode) && (sharedTrash.st_mode & S_ISVTX))
+		{
+			if (const QString userTrash = root % QStringLiteral(".Trash/") % uid; isOwnFolder(userTrash))
+				folders.push_back(userTrash);
+		}
+
+		if (const QString userTrash = root % QStringLiteral(".Trash-") % uid; isOwnFolder(userTrash))
+			folders.push_back(userTrash);
+	}
+
+	folders.removeDuplicates();
+	return folders;
+}
+
+OsShell::TrashContents OsShell::trashContents(const QStringList& trashFolders)
+{
+	TrashContents contents;
+	for (const QString& folder : trashFolders)
+	{
+		// QDir::System lists broken links too
+		const QDir files{ folder % QStringLiteral("/files") };
+		for (const QString& name : files.entryList(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot))
+			contents.items.push_back(files.filePath(name));
+
+		const QDir info{ folder % QStringLiteral("/info") };
+		for (const QString& name : info.entryList({ QStringLiteral("*.trashinfo") }, QDir::Files | QDir::Hidden))
+			contents.records.push_back(info.filePath(name));
+
+		if (const QString folderSizes = folder % QStringLiteral("/directorysizes"); QFileInfo::exists(folderSizes))
+			contents.records.push_back(folderSizes);
+	}
+
+	return contents;
 }
 #endif
 
