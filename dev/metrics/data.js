@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795099446560,
+  "lastUpdate": 1795099582574,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -39456,6 +39456,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 1151.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 484,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 55,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "9ea584383acfed498f2b569715b40579acad998f",
+          "message": "The terminal UI compares files by contents like the GUI does: the core picks the two files and words the messages for both",
+          "timestamp": "2026-11-19T16:37:16+02:00",
+          "tree_id": "ba5dc4ac82e0fd9d46230c02d4b3ad15298dd8a6",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/9ea584383acfed498f2b569715b40579acad998f"
+        },
+        "date": 1795099576540,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 25293,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36813,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1814.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1098.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1152.5,
             "unit": "KB"
           },
           {
