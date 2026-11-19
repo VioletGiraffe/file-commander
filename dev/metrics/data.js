@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795095260314,
+  "lastUpdate": 1795096030355,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -39209,6 +39209,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 31,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "09cb948adee0fa5b3a2e1bb57ea89d6c22a925f0",
+          "message": "File comparison by contents is built into the app instead of a plugin, with a working Cancel: CFileComparator runs on CBackgroundTask and both comparisons wait in a shared modal progress dialog",
+          "timestamp": "2026-11-19T15:40:06+02:00",
+          "tree_id": "53ab79b86140b0f05dceaadc1e9c086eca8adbc8",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/09cb948adee0fa5b3a2e1bb57ea89d6c22a925f0"
+        },
+        "date": 1795096027996,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 25124,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36813,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1791,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1060.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1132,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 483,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 54.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 32.5,
             "unit": "KB"
           },
           {
