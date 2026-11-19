@@ -3,6 +3,7 @@
 #include "cterminalscreen.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QByteArray>
 #include <QProcessEnvironment>
 #include <QString>
 #include <QStringDecoder>
@@ -10,9 +11,12 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <chrono>
+#include <condition_variable>
 #include <functional>
+#include <mutex>
 #include <optional>
 #include <string_view>
+#include <thread>
 
 // Keys as a VT terminal sends them
 namespace TerminalKeys {
@@ -62,6 +66,10 @@ private:
 	bool readOutput(std::chrono::milliseconds wait);
 	void write(const char* data, size_t size);
 	[[nodiscard]] bool hasExited();
+#ifdef _WIN32
+	// Runs on _outputReader
+	void collectOutputUntilClosed();
+#endif
 
 private:
 	CTerminalScreen _screen;
@@ -74,6 +82,13 @@ private:
 	void* _input = nullptr;
 	void* _output = nullptr;
 	void* _process = nullptr;
+
+	// Reads _output from the pseudo console's creation until it closes: ConPTY blocks while its output is unread
+	std::thread _outputReader;
+	std::mutex _outputMutex;
+	std::condition_variable _outputArrived;
+	QByteArray _unreadOutput; // Guarded by _outputMutex
+	bool _outputClosed = false; // Guarded by _outputMutex
 #else
 	int _terminal = -1;
 	int _pid = -1;

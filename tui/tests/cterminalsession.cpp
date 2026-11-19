@@ -62,8 +62,7 @@ CTerminalSession::CTerminalSession(const Program& program, int rows, int columns
 	_screen(rows, columns)
 {
 	HANDLE inputRead = nullptr, inputWrite = nullptr, outputRead = nullptr, outputWrite = nullptr;
-	// The large buffer keeps ConPTY from blocking between two reads
-	if (!CreatePipe(&inputRead, &inputWrite, nullptr, 0) || !CreatePipe(&outputRead, &outputWrite, nullptr, 1 << 20))
+	if (!CreatePipe(&inputRead, &inputWrite, nullptr, 0) || !CreatePipe(&outputRead, &outputWrite, nullptr, 0))
 	{
 		_startError = QStringLiteral("CreatePipe failed: %1").arg(GetLastError());
 		return;
@@ -82,6 +81,7 @@ CTerminalSession::CTerminalSession(const Program& program, int rows, int columns
 		return;
 	}
 	_pseudoConsole = pseudoConsole;
+	_outputReader = std::thread{ [this] { collectOutputUntilClosed(); } };
 
 	SIZE_T attributeListSize = 0;
 	InitializeProcThreadAttributeList(nullptr, 1, 0, &attributeListSize);
@@ -135,46 +135,45 @@ CTerminalSession::~CTerminalSession()
 
 	if (_input)
 		CloseHandle(_input);
+	// ClosePseudoConsole ends _outputReader's read. Before Windows 11 24H2, it also blocks until the last output is read.
 	if (_pseudoConsole)
-	{
-		// Before Windows 11 24H2, ClosePseudoConsole blocks until its last output is read
-		std::thread drainOutput{ [output = _output] {
-			char buffer[4096];
-			DWORD bytesRead = 0;
-			while (ReadFile(output, buffer, sizeof(buffer), &bytesRead, nullptr) && bytesRead > 0) {}
-		} };
 		ClosePseudoConsole((HPCON)_pseudoConsole);
-		drainOutput.join();
-	}
+	if (_outputReader.joinable())
+		_outputReader.join();
 	if (_output)
 		CloseHandle(_output);
 }
 
+void CTerminalSession::collectOutputUntilClosed()
+{
+	char buffer[65536];
+	DWORD bytesRead = 0;
+	// Fails with ERROR_BROKEN_PIPE once the pseudo console closes
+	while (ReadFile(_output, buffer, sizeof(buffer), &bytesRead, nullptr))
+	{
+		const std::lock_guard lock{ _outputMutex };
+		_unreadOutput.append(buffer, (qsizetype)bytesRead);
+		_outputArrived.notify_one();
+	}
+
+	const std::lock_guard lock{ _outputMutex };
+	_outputClosed = true;
+	_outputArrived.notify_one();
+}
+
 bool CTerminalSession::readOutput(std::chrono::milliseconds wait)
 {
-	const auto deadline = Clock::now() + wait;
-	DWORD available = 0;
-	for (;;)
+	QByteArray output;
 	{
-		if (!PeekNamedPipe(_output, nullptr, 0, nullptr, &available, nullptr))
-			return false;
-		if (available > 0)
-			break;
-		if (Clock::now() >= deadline)
+		std::unique_lock lock{ _outputMutex };
+		if (!_outputArrived.wait_for(lock, wait, [this] { return !_unreadOutput.isEmpty() || _outputClosed; }))
 			return true;
-		std::this_thread::sleep_for(5ms);
-	}
-
-	char buffer[65536];
-	while (available > 0)
-	{
-		DWORD bytesRead = 0;
-		if (!ReadFile(_output, buffer, std::min<DWORD>(available, sizeof(buffer)), &bytesRead, nullptr) || bytesRead == 0)
+		if (_unreadOutput.isEmpty())
 			return false;
-		_screen.feed(QString(_decoder.decode(QByteArrayView{ buffer, (qsizetype)bytesRead })));
-		available -= bytesRead;
+		output.swap(_unreadOutput);
 	}
 
+	_screen.feed(QString(_decoder.decode(output)));
 	if (const QByteArray replies = _screen.takeReplies(); !replies.isEmpty())
 		write(replies.constData(), (size_t)replies.size());
 	return true;
