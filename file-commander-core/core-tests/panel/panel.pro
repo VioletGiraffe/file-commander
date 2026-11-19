@@ -40,9 +40,11 @@ SOURCES += \
 	searchresultstests.cpp \
 	selectiontests.cpp \
 	filelistrulestests.cpp \
+	sortedfilelisttests.cpp \
 	lifetimetests.cpp \
 	snapshotpollertests.cpp
 
 HEADERS += \
 	paneltesthelpers.h \
+	../common/filelisttestitems.h \
 	../common/temptree.h

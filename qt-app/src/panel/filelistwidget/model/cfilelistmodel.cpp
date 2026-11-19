@@ -19,7 +19,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
-#include <functional>
 #include <utility>
 #include <variant>
 
@@ -61,10 +60,10 @@ static QVariant textAlignment(int column)
 	return column == SizeColumn ? QVariant::fromValue(Qt::Alignment{ Qt::AlignRight | Qt::AlignVCenter }) : QVariant{};
 }
 
-// updateRows() resets past this many changed displayed rows: from there on a reset is cheaper, per the timing case in the filelist suite.
-// A count, not a share of the rows: an update's cost per change grows with the row count as a reset's does.
-// At the high end of the measured break-evens: an update keeps the scroll position and an open editor, a reset does not.
-static constexpr size_t MaxChangesForUpdate = 5000;
+static QAbstractItemModel::LayoutChangeHint layoutChangeHint(SortedFileListReorderCause cause)
+{
+	return cause == SortedFileListReorderCause::Sort ? QAbstractItemModel::VerticalSortHint : QAbstractItemModel::NoLayoutChangeHint;
+}
 
 CFileListModel::CFileListModel(CIconProvider* iconProvider, QObject* parent) :
 	QAbstractItemModel(parent),
@@ -79,198 +78,17 @@ void CFileListModel::setDropHandler(DropHandler handler)
 
 void CFileListModel::setRows(std::vector<CFileSystemObject> rows, QString listedFolder)
 {
-	beginResetModel();
-
-	_rows = std::move(rows);
-	_sortKeys.clear();
-	_sorter.clearExtensionKeyCache();
-	_sorter.setListedFolder(std::move(listedFolder));
-	_sortKeys.reserve(_rows.size());
-	for (const CFileSystemObject& row : _rows)
-		_sortKeys.push_back(_sorter.sortKeysFor(row));
-
-	updateContentsSummary();
-	_displayedRows = displayedRowsInOrder();
-	_displayRowByHashIsStale = true;
-
-	endResetModel();
+	_list.setRows(std::move(rows), std::move(listedFolder));
 }
 
 bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 {
-	const auto oldRowCount = (uint32_t)_rows.size();
-
-	ankerl::unordered_dense::map<qulonglong, uint32_t, identity_hash> oldRowByHash;
-	oldRowByHash.reserve(oldRowCount);
-	for (uint32_t i = 0; i < oldRowCount; ++i)
-		oldRowByHash.emplace(_rows[i].hash(), i);
-
-	std::vector<int> displayRowOfOldRow(oldRowCount, -1);
-	for (int displayRow = 0, numDisplayed = (int)_displayedRows.size(); displayRow < numDisplayed; ++displayRow)
-		displayRowOfOldRow[_displayedRows[(size_t)displayRow]] = displayRow;
-
-	// Indices into rows
-	std::vector<uint32_t> addedRows;
-	// Old row index, new row index
-	std::vector<std::pair<uint32_t, uint32_t>> changedRows;
-	std::vector<bool> oldRowKept(oldRowCount);
-	size_t numDisplayedChanges = 0;
-	for (uint32_t i = 0, numRows = (uint32_t)rows.size(); i < numRows; ++i)
-	{
-		const CFileSystemObject& row = rows[i];
-		const auto old = oldRowByHash.find(row.hash());
-		// A hash collision is a different item
-		if (old == oldRowByHash.end() || _rows[old->second].fullAbsolutePath() != row.fullAbsolutePath() || _rows[old->second].isCdUp() != row.isCdUp())
-		{
-			addedRows.push_back(i);
-			numDisplayedChanges += _nameFilter.matches(row.fullName()) ? 1 : 0;
-			continue;
-		}
-
-		oldRowKept[old->second] = true;
-		const CFileSystemObject& oldRow = _rows[old->second];
-		if (oldRow.size() != row.size() || oldRow.modificationTime() != row.modificationTime() || oldRow.type() != row.type())
-		{
-			changedRows.emplace_back(old->second, i);
-			numDisplayedChanges += displayRowOfOldRow[old->second] >= 0 ? 1 : 0;
-		}
-	}
-
-	for (uint32_t i = 0; i < oldRowCount; ++i)
-		numDisplayedChanges += !oldRowKept[i] && displayRowOfOldRow[i] >= 0 ? 1 : 0;
-
-	if (numDisplayedChanges > MaxChangesForUpdate)
-	{
-		setRows(std::move(rows), _sorter.listedFolder());
-		return false;
-	}
-
-	for (const auto& [oldRowIndex, newRowIndex] : changedRows)
-	{
-		// A type change can change the name and extension the row sorts by
-		_rows[oldRowIndex] = std::move(rows[newRowIndex]);
-		_sortKeys[oldRowIndex] = _sorter.sortKeysFor(_rows[oldRowIndex]);
-
-		int displayRow = displayRowOfOldRow[oldRowIndex];
-		if (displayRow < 0)
-			continue;
-
-		// A move, unlike a removal and an insertion, keeps the row's selection and open editor
-		const int destination = moveDestination(oldRowIndex, displayRow);
-		if (destination != displayRow && destination != displayRow + 1)
-		{
-			const auto first = _displayedRows.begin();
-			beginMoveRows({}, displayRow, displayRow, {}, destination);
-			if (destination < displayRow)
-				std::rotate(first + destination, first + displayRow, first + displayRow + 1);
-			else
-				std::rotate(first + displayRow, first + displayRow + 1, first + destination);
-
-			for (int row = std::min(displayRow, destination), end = std::max(displayRow + 1, destination); row < end; ++row)
-				displayRowOfOldRow[_displayedRows[(size_t)row]] = row;
-
-			_displayRowByHashIsStale = true;
-			endMoveRows();
-			displayRow = displayRowOfOldRow[oldRowIndex];
-		}
-
-		emit dataChanged(index(displayRow, 0), index(displayRow, NumberOfColumns - 1));
-	}
-
-	std::vector<int> removedDisplayRows;
-	for (uint32_t i = 0; i < oldRowCount; ++i)
-	{
-		if (!oldRowKept[i] && displayRowOfOldRow[i] >= 0)
-			removedDisplayRows.push_back(displayRowOfOldRow[i]);
-	}
-
-	// Bottom up, so the rows of the runs still to remove keep their numbers
-	std::sort(removedDisplayRows.begin(), removedDisplayRows.end(), std::greater{});
-	for (size_t runBegin = 0, numRemoved = removedDisplayRows.size(); runBegin < numRemoved;)
-	{
-		size_t runEnd = runBegin + 1;
-		while (runEnd < numRemoved && removedDisplayRows[runEnd] == removedDisplayRows[runEnd - 1] - 1)
-			++runEnd;
-
-		const int firstRow = removedDisplayRows[runEnd - 1], lastRow = removedDisplayRows[runBegin];
-		beginRemoveRows({}, firstRow, lastRow);
-		_displayedRows.erase(_displayedRows.begin() + firstRow, _displayedRows.begin() + lastRow + 1);
-		_displayRowByHashIsStale = true;
-		endRemoveRows();
-
-		runBegin = runEnd;
-	}
-
-	std::vector<uint32_t> insertedRows;
-	for (const uint32_t addedRow : addedRows)
-	{
-		if (_nameFilter.matches(rows[addedRow].fullName()))
-			insertedRows.push_back((uint32_t)_rows.size());
-
-		_sortKeys.push_back(_sorter.sortKeysFor(rows[addedRow]));
-		_rows.push_back(std::move(rows[addedRow]));
-	}
-
-	std::sort(insertedRows.begin(), insertedRows.end(), [this](uint32_t l, uint32_t r) {
-		return rowLessThan(l, r);
-	});
-
-	for (size_t runBegin = 0, numInserted = insertedRows.size(); runBegin < numInserted;)
-	{
-		const uint32_t firstInRun = insertedRows[runBegin];
-		const auto position = std::partition_point(_displayedRows.cbegin(), _displayedRows.cend(), [&](uint32_t rowIndex) {
-			return rowLessThan(rowIndex, firstInRun);
-		});
-
-		// The run takes in every next row that also sorts above the row at position
-		size_t runEnd = runBegin + 1;
-		while (runEnd < numInserted && (position == _displayedRows.cend() || rowLessThan(insertedRows[runEnd], *position)))
-			++runEnd;
-
-		const auto firstRow = (int)(position - _displayedRows.cbegin());
-		beginInsertRows({}, firstRow, firstRow + (int)(runEnd - runBegin) - 1);
-		_displayedRows.insert(position, insertedRows.cbegin() + (ptrdiff_t)runBegin, insertedRows.cbegin() + (ptrdiff_t)runEnd);
-		_displayRowByHashIsStale = true;
-		endInsertRows();
-
-		runBegin = runEnd;
-	}
-
-	// Drops the removed rows from _rows; indices, not display rows, change
-	std::vector<uint32_t> compactedIndex(_rows.size());
-	uint32_t numKept = 0;
-	for (uint32_t i = 0, numRows = (uint32_t)_rows.size(); i < numRows; ++i)
-	{
-		if (i < oldRowCount && !oldRowKept[i])
-			continue;
-
-		compactedIndex[i] = numKept;
-		if (numKept != i)
-		{
-			_rows[numKept] = std::move(_rows[i]);
-			_sortKeys[numKept] = std::move(_sortKeys[i]);
-		}
-		++numKept;
-	}
-
-	_rows.resize(numKept);
-	// Not resize(): the keys have no default constructor
-	_sortKeys.erase(_sortKeys.begin() + numKept, _sortKeys.end());
-	for (uint32_t& rowIndex : _displayedRows)
-		rowIndex = compactedIndex[rowIndex];
-
-	updateContentsSummary();
-	return true;
+	return _list.updateRows(std::move(rows));
 }
 
 void CFileListModel::setNameFilter(const QString& filterText)
 {
-	if (filterText == _nameFilterText)
-		return;
-
-	_nameFilterText = filterText;
-	_nameFilter = FileNameFilter{ splitNameFilterField(filterText), Qt::CaseInsensitive };
-	relayout(QAbstractItemModel::NoLayoutChangeHint);
+	_list.setNameFilter(filterText);
 }
 
 void CFileListModel::sort(int column, Qt::SortOrder order)
@@ -278,29 +96,25 @@ void CFileListModel::sort(int column, Qt::SortOrder order)
 	assert_and_return_r(column < NumberOfColumns, );
 
 	// A negative column is QTreeView asking for no sort column: the rows keep their order
-	if (column >= 0 && (column != sortColumn() || order != sortOrder()))
-	{
-		_sorter.setSorting(sortFieldOf(column), order);
-		relayout(QAbstractItemModel::VerticalSortHint);
-	}
+	if (column >= 0)
+		_list.setSorting(sortFieldOf(column), order);
 
 	emit sorted();
 }
 
 int CFileListModel::sortColumn() const noexcept
 {
-	return columnOf(_sorter.sortField());
+	return columnOf(_list.sortField());
 }
 
 Qt::SortOrder CFileListModel::sortOrder() const noexcept
 {
-	return _sorter.sortOrder();
+	return _list.sortOrder();
 }
 
 const CFileSystemObject& CFileListModel::rowAt(int row) const
 {
-	assert_debug_only(row >= 0 && row < (int)_displayedRows.size());
-	return _rows[_displayedRows[(size_t)row]];
+	return _list.rowAt(row);
 }
 
 const CFileSystemObject& CFileListModel::rowAt(const QModelIndex& index) const
@@ -316,25 +130,18 @@ qulonglong CFileListModel::itemHash(const QModelIndex& index) const
 
 QModelIndex CFileListModel::indexByHash(qulonglong hash) const
 {
-	if (_displayRowByHashIsStale)
-		rebuildDisplayRowByHash();
-
-	const auto row = _displayRowByHash.find(hash);
-	return row != _displayRowByHash.end() ? createIndex(row->second, 0) : QModelIndex{};
+	const int row = _list.rowOf(hash);
+	return row >= 0 ? createIndex(row, 0) : QModelIndex{};
 }
 
 int CFileListModel::firstFileRow() const
 {
-	const auto firstFile = std::partition_point(_displayedRows.cbegin(), _displayedRows.cend(), [this](uint32_t rowIndex) {
-		return !isFileOrBundle(_rows[rowIndex]);
-	});
-
-	return firstFile != _displayedRows.cend() ? (int)(firstFile - _displayedRows.cbegin()) : -1;
+	return _list.firstFileRow();
 }
 
 const FolderContentsSummary& CFileListModel::contentsSummary() const noexcept
 {
-	return _contentsSummary;
+	return _list.contentsSummary();
 }
 
 void CFileListModel::onIconsChanged(const std::vector<qulonglong>& objectHashes)
@@ -349,10 +156,10 @@ void CFileListModel::onIconsChanged(const std::vector<qulonglong>& objectHashes)
 
 void CFileListModel::onAllIconsChanged()
 {
-	if (_displayedRows.empty())
+	if (_list.rowCount() == 0)
 		return;
 
-	emit dataChanged(index(0, NameColumn), index((int)_displayedRows.size() - 1, NameColumn), {Qt::DecorationRole, FileGlyphRole});
+	emit dataChanged(index(0, NameColumn), index(_list.rowCount() - 1, NameColumn), {Qt::DecorationRole, FileGlyphRole});
 }
 
 QModelIndex CFileListModel::index(int row, int column, const QModelIndex& parent) const
@@ -371,7 +178,7 @@ QModelIndex CFileListModel::parent(const QModelIndex& /*child*/) const
 int CFileListModel::rowCount(const QModelIndex& parent) const
 {
 	if (!parent.isValid()) [[likely]]
-		return (int)_displayedRows.size();
+		return _list.rowCount();
 	else
 		return 0; // All items are top-level
 }
@@ -397,7 +204,7 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 	case FullNameRole:
 		return row.fullName().toString();
 	case Qt::DisplayRole:
-		return displayText(row, index.column(), _sorter.listedFolder());
+		return displayText(row, index.column(), _list.listedFolder());
 	case Qt::TextAlignmentRole:
 		return textAlignment(index.column());
 	case Qt::DecorationRole:
@@ -507,76 +314,75 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 	return mime;
 }
 
-bool CFileListModel::rowLessThan(uint32_t l, uint32_t r) const
+void CFileListModel::beforeReset()
 {
-	return _sorter.lessThan(_rows[l], _sortKeys[l], _rows[r], _sortKeys[r]);
+	beginResetModel();
 }
 
-std::vector<uint32_t> CFileListModel::displayedRowsInOrder() const
+void CFileListModel::afterReset()
 {
-	std::vector<uint32_t> displayedRows;
-	displayedRows.reserve(_rows.size());
-	for (uint32_t i = 0, numRows = (uint32_t)_rows.size(); i < numRows; ++i)
-	{
-		if (_nameFilter.matches(_rows[i].fullName()))
-			displayedRows.push_back(i);
-	}
-
-	std::sort(displayedRows.begin(), displayedRows.end(), [this](uint32_t l, uint32_t r) {
-		return rowLessThan(l, r);
-	});
-
-	return displayedRows;
+	endResetModel();
 }
 
-int CFileListModel::moveDestination(uint32_t rowIndex, int displayRow) const
+void CFileListModel::beforeInsert(int first, int last)
 {
-	const auto sortsAboveRow = [&](uint32_t otherRowIndex) { return rowLessThan(otherRowIndex, rowIndex); };
-	const auto first = _displayedRows.cbegin(), moved = first + displayRow;
-	if (const auto above = std::partition_point(first, moved, sortsAboveRow); above != moved)
-		return (int)(above - first);
-
-	return (int)(std::partition_point(moved + 1, _displayedRows.cend(), sortsAboveRow) - first);
+	beginInsertRows({}, first, last);
 }
 
-void CFileListModel::rebuildDisplayRowByHash() const
+void CFileListModel::afterInsert()
 {
-	_displayRowByHash.clear();
-	_displayRowByHash.reserve(_displayedRows.size());
-	for (int row = 0, numRows = (int)_displayedRows.size(); row < numRows; ++row)
-		_displayRowByHash.emplace(_rows[_displayedRows[(size_t)row]].hash(), row);
-
-	_displayRowByHashIsStale = false;
+	endInsertRows();
 }
 
-void CFileListModel::updateContentsSummary()
+void CFileListModel::beforeRemove(int first, int last)
 {
-	_contentsSummary = {};
-	for (const CFileSystemObject& row : _rows)
-		_contentsSummary.add(row);
+	beginRemoveRows({}, first, last);
 }
 
-void CFileListModel::relayout(QAbstractItemModel::LayoutChangeHint hint)
+void CFileListModel::afterRemove()
 {
-	emit layoutAboutToBeChanged({}, hint);
+	endRemoveRows();
+}
 
-	const QModelIndexList oldIndexes = persistentIndexList();
-	std::vector<qulonglong> oldHashes;
-	oldHashes.reserve((size_t)oldIndexes.size());
-	for (const QModelIndex& oldIndex : oldIndexes)
-		oldHashes.push_back(itemHash(oldIndex));
+void CFileListModel::beforeMove(int row, int destination)
+{
+	beginMoveRows({}, row, row, {}, destination);
+}
 
-	_displayedRows = displayedRowsInOrder();
-	_displayRowByHashIsStale = true;
+void CFileListModel::afterMove()
+{
+	endMoveRows();
+}
 
+void CFileListModel::rowChanged(int row)
+{
+	emit dataChanged(index(row, 0), index(row, NumberOfColumns - 1));
+}
+
+void CFileListModel::beforeReorder(SortedFileListReorderCause cause)
+{
+	emit layoutAboutToBeChanged({}, layoutChangeHint(cause));
+
+	_indexesBeforeReorder = persistentIndexList();
+	_hashesBeforeReorder.clear();
+	_hashesBeforeReorder.reserve((size_t)_indexesBeforeReorder.size());
+	for (const QModelIndex& oldIndex : _indexesBeforeReorder)
+		_hashesBeforeReorder.push_back(itemHash(oldIndex));
+}
+
+void CFileListModel::afterReorder(SortedFileListReorderCause cause)
+{
 	QModelIndexList newIndexes;
-	newIndexes.reserve(oldIndexes.size());
-	for (qsizetype i = 0; i < oldIndexes.size(); ++i)
+	newIndexes.reserve(_indexesBeforeReorder.size());
+	for (qsizetype i = 0; i < _indexesBeforeReorder.size(); ++i)
 	{
-		const QModelIndex newRow = indexByHash(oldHashes[(size_t)i]);
-		newIndexes.push_back(newRow.isValid() ? createIndex(newRow.row(), oldIndexes[i].column()) : QModelIndex{});
+		const QModelIndex newRow = indexByHash(_hashesBeforeReorder[(size_t)i]);
+		newIndexes.push_back(newRow.isValid() ? createIndex(newRow.row(), _indexesBeforeReorder[i].column()) : QModelIndex{});
 	}
 
-	changePersistentIndexList(oldIndexes, newIndexes);
-	emit layoutChanged({}, hint);
+	changePersistentIndexList(_indexesBeforeReorder, newIndexes);
+	_indexesBeforeReorder.clear();
+	_hashesBeforeReorder.clear();
+	emit layoutChanged({}, layoutChangeHint(cause));
 }
+

@@ -3,19 +3,15 @@
 #include "panel/columns.h"
 
 #include "cfilesystemobject.h"
-#include "filelist/filelistsorter.h"
-#include "filelist/filenamefilter.h"
 #include "filelist/foldercontentssummary.h"
+#include "filelist/sortedfilelist.h"
 
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
-#include "hash/hash_functors.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
-#include <3rdparty/ankerl/unordered_dense.h>
-
 #include <QAbstractItemModel>
 #include <QList>
 #include <QString>
@@ -23,7 +19,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <functional>
-#include <stdint.h>
 #include <vector>
 
 enum Role {
@@ -33,8 +28,8 @@ enum Role {
 
 class CIconProvider;
 
-// The file list of one tab: owns its rows, and sorts and filters them
-class CFileListModel final : public QAbstractItemModel
+// The file list of one tab: a SortedFileList as a Qt model
+class CFileListModel final : public QAbstractItemModel, private SortedFileListObserver
 {
 	Q_OBJECT
 public:
@@ -46,13 +41,12 @@ public:
 
 	void setDropHandler(DropHandler handler);
 
-	// Resets the model. listedFolder: see fileListFolderPrefix().
+	// Below, a member with a namesake in SortedFileList has that namesake's contract
+
+	// Resets the model
 	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder = {});
-	// Removes, inserts, moves and changes single rows until the rows match 'rows', so every persistent index (selection, cursor, an open editor)
-	// stays on its row. Returns false if it reset the model instead: past a number of changes, one reset is cheaper.
-	// The rows are in the folder setRows() took.
+	// Every persistent index (selection, cursor, an open editor) stays on its row. Returns false if it reset the model instead.
 	bool updateRows(std::vector<CFileSystemObject> rows);
-	// filterText: a filter field's text (see splitNameFilterField()), matched against full names ignoring case. Empty shows every row.
 	void setNameFilter(const QString& filterText);
 
 	void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
@@ -63,9 +57,7 @@ public:
 	[[nodiscard]] const CFileSystemObject& rowAt(const QModelIndex& index) const;
 	[[nodiscard]] qulonglong itemHash(const QModelIndex& index) const; // 0 for an invalid index
 	[[nodiscard]] QModelIndex indexByHash(qulonglong hash) const; // Invalid if no row has it, or the filter hides it
-	// The topmost row holding a file (folders always sort above files), or -1 if there are no files
 	[[nodiscard]] int firstFileRow() const;
-	// Totals over every row, the hidden ones included
 	[[nodiscard]] const FolderContentsSummary& contentsSummary() const noexcept;
 
 	// Repaints the rows whose icon changed. Hashes of rows not shown are ignored.
@@ -95,28 +87,24 @@ signals:
 	void sorted();
 
 private:
-	// Arguments are indices into _rows
-	[[nodiscard]] bool rowLessThan(uint32_t l, uint32_t r) const;
-	[[nodiscard]] std::vector<uint32_t> displayedRowsInOrder() const;
-	// Where _rows[rowIndex] sorts among the displayed rows other than 'displayRow', as the destination of moving displayRow
-	[[nodiscard]] int moveDestination(uint32_t rowIndex, int displayRow) const;
-	void rebuildDisplayRowByHash() const;
-	void updateContentsSummary();
-	// Re-filters and re-sorts; every persistent index (selection, cursor, editor) follows its row or is dropped with it
-	void relayout(QAbstractItemModel::LayoutChangeHint hint);
+	void beforeReset() override;
+	void afterReset() override;
+	void beforeInsert(int first, int last) override;
+	void afterInsert() override;
+	void beforeRemove(int first, int last) override;
+	void afterRemove() override;
+	void beforeMove(int row, int destination) override;
+	void afterMove() override;
+	void rowChanged(int row) override;
+	// Every persistent index (selection, cursor, editor) follows its row or is dropped with it
+	void beforeReorder(SortedFileListReorderCause cause) override;
+	void afterReorder(SortedFileListReorderCause cause) override;
 
 private:
-	std::vector<CFileSystemObject> _rows;
-	std::vector<FileListSortKeys> _sortKeys; // Parallel to _rows
-	FileListSorter _sorter; // Caches the key of every extension seen since the last setRows()
-	QString _nameFilterText;
-	FileNameFilter _nameFilter;
-	// Indices into _rows: the rows the filter lets through, in display order
-	std::vector<uint32_t> _displayedRows;
-	// Rebuilt by the first lookup after _displayedRows changes: updateRows() changes it once per single-row change
-	mutable ankerl::unordered_dense::map<qulonglong, int, identity_hash> _displayRowByHash;
-	mutable bool _displayRowByHashIsStale = false;
-	FolderContentsSummary _contentsSummary;
+	SortedFileList _list{ *this };
+	// From beforeReorder() to afterReorder(): the persistent indexes and the hashes of their rows
+	QModelIndexList _indexesBeforeReorder;
+	std::vector<qulonglong> _hashesBeforeReorder;
 	DropHandler _dropHandler;
 	CIconProvider* const _iconProvider;
 };

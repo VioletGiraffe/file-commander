@@ -6,6 +6,8 @@
 #include "filelist/foldercontentssummary.h"
 #include "filesystemhelperfunctions.h"
 
+#include "filelisttestitems.h"
+
 #include "qt_helpers.hpp" // operator<< for QString, so Catch2 can print a name in a failure report
 
 
@@ -25,36 +27,6 @@ RESTORE_COMPILER_WARNINGS
 #include <thread>
 #include <time.h>
 #include <vector>
-
-// An entry of /folder/, built in memory
-static CFileSystemObject makeItem(FileSystemObjectType type, const QString& name, const QString& extension = {}, uint64_t size = 0, time_t modificationTime = 0)
-{
-	CFileSystemObjectProperties properties;
-	properties.type = type;
-	const QString fullName = extension.isEmpty() ? name : name + '.' + extension;
-	properties.fullPath = QStringLiteral("/folder/") + fullName + (type == Directory ? QStringLiteral("/") : QString{});
-	properties.size = size;
-	properties.modificationTime = modificationTime;
-	return CFileSystemObject{ properties };
-}
-
-static CFileSystemObject makeCdUpItem()
-{
-	CFileSystemObjectProperties properties;
-	properties.type = Directory;
-	properties.fullPath = QStringLiteral("/");
-	properties.isCdUp = true;
-	return CFileSystemObject{ properties };
-}
-
-// An entry anywhere, built in memory. A folder's path ends with '/'.
-static CFileSystemObject makeItemAt(FileSystemObjectType type, const QString& fullPath)
-{
-	CFileSystemObjectProperties properties;
-	properties.type = type;
-	properties.fullPath = fullPath;
-	return CFileSystemObject{ properties };
-}
 
 static QStringList sortedNames(std::vector<CFileSystemObject> items, FileListSortField field, Qt::SortOrder order)
 {

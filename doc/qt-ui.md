@@ -89,9 +89,9 @@ a refill changing too many rows for an update to pay off; the widget then places
 A cursor item the core designates (a created or renamed entry) is usually not listed yet: the tab holds it as a target
 until a refill lists it, a navigation starts, or the cursor is moved.
 
-`CFileListView` owns orthodox selection gestures and keyboard/mouse behavior. The model holds a copy of the rows it
-displays, sorts and filters them by the core's rules (`file-commander-core/src/filelist/`) with the tab's sorting and
-name filter, and depends on neither the controller nor the OS shell. The view paints the row bands and lines, the column separators, the
+`CFileListView` owns orthodox selection gestures and keyboard/mouse behavior. The model is the Qt side of a core
+`SortedFileList` (`file-commander-core/src/filelist/`), which holds a copy of the rows and sorts and filters them with the
+tab's sorting and name filter. Neither depends on the controller or the OS shell. The view paints the row bands and lines, the column separators, the
 selection and the cursor behind each row; the delegate paints the cells and defines the row geometry. Both take their
 colours from the widget palette and the rows' shape from a `FileListLook`, which the panel passes on from the theme.
 Drag/drop uses the same operation launch boundary as commands.

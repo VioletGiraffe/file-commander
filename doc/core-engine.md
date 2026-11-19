@@ -124,7 +124,7 @@ Panels watch their folder with `thin_io::directory_watcher` (`src/filesystemwatc
 | Area | Source and boundary |
 |------|---------------------|
 | Volumes | `diskenumerator/`; periodic enumeration with UI-queued delivery |
-| File list rules | `filelist/`; the display name, sort order, name filter and totals of a panel's rows |
+| File list rules | `filelist/`; the display name, sort order, name filter and totals of a panel's rows; `SortedFileList` keeps the rows in display order for a UI's list |
 | Search | `filesearchengine/`; cancellable traversal with a bounded content-search pool |
 | Comparison | `filecomparator/`; threaded wrappers over `file-operations/foldercomparison/`, for one file and for two folders |
 | Shell integration | `shell/`; platform clipboard, context menus, launching, and native deletion |
