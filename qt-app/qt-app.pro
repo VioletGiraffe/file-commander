@@ -161,6 +161,14 @@ mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libautoupdater.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a
 }
 
+linux*|freebsd{
+	# The file manager and UDisks2 services, for the file context menu
+	QT += dbus
+
+	HEADERS += src/panel/freedesktopshell.h
+	SOURCES += src/panel/freedesktopshell.cpp
+}
+
 RESOURCES += \
 	resources/app-resources.qrc
 

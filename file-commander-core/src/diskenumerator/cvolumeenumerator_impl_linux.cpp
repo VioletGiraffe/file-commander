@@ -41,11 +41,10 @@ bool isKnownNetworkFilesystem(const QString& fsType)
 	return networkFsTypes.contains(fsType) || fsType.startsWith(QStringLiteral("fuse."));
 }
 
-// device: as /proc/mounts lists it
-VolumeInfo::Kind blockDeviceKind(const QString& device)
+// devicePath: with the /dev/disk/by-* and /dev/mapper links resolved
+VolumeInfo::Kind blockDeviceKind(const QString& devicePath)
 {
-	// The kernel's name for the device: resolves the /dev/disk/by-* and /dev/mapper links
-	QString name = QFileInfo{ device }.canonicalFilePath().section('/', -1);
+	QString name = devicePath.section('/', -1); // The kernel's name for the device
 	// A device-mapper volume (LUKS, LVM) lies on other block devices: classified by the first of them
 	for (;;)
 	{
@@ -137,7 +136,13 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl(std::vector<QStr
 			info.rootObjectInfo = isRoot ? mountPoint : mountPoint + '/';
 			info.volumeLabel = isRoot ? QStringLiteral("root") : info.rootObjectInfo.fullName().toString();
 			info.fileSystemName = fsType.toUpper();
-			info.kind = isKnownNetworkFilesystem(fsType) ? VolumeInfo::Kind::Network : blockDeviceKind(device);
+			if (isKnownNetworkFilesystem(fsType))
+				info.kind = VolumeInfo::Kind::Network;
+			else
+			{
+				info.devicePath = QFileInfo{ device }.canonicalFilePath();
+				info.kind = blockDeviceKind(info.devicePath);
+			}
 		}
 
 		endmntent(mountsFile);

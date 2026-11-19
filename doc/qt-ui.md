@@ -12,10 +12,10 @@ owners. Filesystem and panel access goes through `CController`.
 | Function key buttons (F3 to F8) | `src/functionkeybar/` |
 | Panel tabs and visible-side state | `src/panel/cpanelwidget.{h,cpp,ui}` |
 | File-list view/model/delegate | `src/panel/filelistwidget/` |
-| Context menu of files and folders | `src/panel/filecontextmenu.{h,cpp}`: Explorer's on Windows; elsewhere the system's actions the app has no command for |
+| Context menu of files, folders and volumes | `src/panel/filecontextmenu.{h,cpp}`: Explorer's on Windows; elsewhere the system's actions the app has no command for. Linux and FreeBSD reach the file manager and UDisks2 over D-Bus: `src/panel/freedesktopshell.{h,cpp}` |
 | Quick view | `src/panel/cpaneldisplaycontroller.{h,cpp}` |
 | Viewer windows (F3) | `src/viewerwindow/` |
-| Blocking shell operations: native delete, clipboard paste | `file-operations/shelloperations/` |
+| Blocking shell operations: native delete, clipboard paste, Eject | `file-operations/shelloperations/` |
 | Command-line output panes | `src/commandoutput/`; see [process-launching.md](process-launching.md) |
 | Programs menu editor | `src/programseditor/`; see [process-launching.md](process-launching.md) |
 | File-operation UI | `src/progressdialogs/` (launch, confirmation); the dialogs are in `file-operations/fileoperationsui/` |

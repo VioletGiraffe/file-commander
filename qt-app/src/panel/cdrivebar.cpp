@@ -2,21 +2,16 @@
 
 #include "themes/stylesheet.h"
 
-#include "shell/cshell.h"
-
 
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "widgets/layouts/cflowlayout.h"
-#include "widgets/widgetutils.h"
 
 
 DISABLE_COMPILER_WARNINGS
 #include <QIcon>
 #include <QPushButton>
 RESTORE_COMPILER_WARNINGS
-
-#include <string>
 
 CDriveBar::CDriveBar(QWidget* parent) :
 	QWidget(parent)
@@ -57,13 +52,8 @@ void CDriveBar::setVolumes(const std::vector<VolumeInfo>& volumes)
 
 		const uint64_t volumeId = volume.id();
 		assert_r(connect(button, &QPushButton::clicked, this, [this, volumeId] { emit volumeClicked(volumeId); }));
-		// Outside Windows too: a custom policy consumes the context menu event, so a right click does not reach the parent widgets
 		button->setContextMenuPolicy(Qt::CustomContextMenu);
-#ifdef _WIN32
-		assert_r(connect(button, &QPushButton::customContextMenuRequested, this, [this, rootPath = volume.rootObjectInfo.fullAbsolutePath().toStdWString()] {
-			OsShell::openShellContextMenuForObjects({ rootPath }, WidgetUtils::nativeOwnerWinId(this));
-		}));
-#endif
+		assert_r(connect(button, &QPushButton::customContextMenuRequested, this, [this, volumeId] { emit volumeContextMenuRequested(volumeId); }));
 
 		layout()->addWidget(button);
 		_buttons.push_back({ .volumeId = volumeId, .button = button });

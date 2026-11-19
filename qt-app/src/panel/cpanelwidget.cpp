@@ -121,6 +121,11 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 
 		ui->_list->setFocus();
 	}));
+	// Looked up on request: the menu acts on the volume as it is now, not as it was when the button was made
+	assert_r(connect(ui->_driveButtonsWidget, &CDriveBar::volumeContextMenuRequested, this, [this](const uint64_t volumeId) {
+		if (const std::optional<VolumeInfo> volume = _controller->volumeInfoById(volumeId))
+			FileContextMenu::showForVolume(*volume, this, *_shellOperations);
+	}));
 
 	const auto dimTextColor = [] { return QApplication::palette().color(QPalette::PlaceholderText); };
 	ui->_btnFavs->setIcon(tintedSvgIcon(QSL(":/theme/star.svg"), dimTextColor));

@@ -17,7 +17,7 @@ RESTORE_COMPILER_WARNINGS
 
 class QPushButton;
 
-// A checkable button per volume, wrapping into rows. On Windows a button's context menu is the shell's menu for the volume.
+// A checkable button per volume, wrapping into rows.
 // The stylesheet selects the buttons by this widget's object name, _driveButtonsWidget.
 class CDriveBar final : public QWidget
 {
@@ -34,6 +34,7 @@ public:
 
 signals:
 	void volumeClicked(uint64_t volumeId);
+	void volumeContextMenuRequested(uint64_t volumeId);
 
 private:
 	struct DriveButton {
