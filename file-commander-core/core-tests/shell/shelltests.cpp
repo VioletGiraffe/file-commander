@@ -21,6 +21,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <functional>
+#include <vector>
 
 namespace {
 
@@ -318,4 +319,22 @@ TEST_CASE("commandLineProgramPath finds a program in PATH", "[launching]")
 	CHECK(OsShell::commandLineProgramPath(QStringLiteral("no-such-program-xyz arg"), dir).isEmpty());
 }
 
+#endif
+
+#ifdef __APPLE__
+TEST_CASE("applicationsToOpen lists the application bundles that open a text file", "[launching]")
+{
+	QTemporaryDir dir;
+	REQUIRE(dir.isValid());
+	const QString file = dir.filePath(QStringLiteral("notes.txt"));
+	writeFile(file, "notes");
+
+	const std::vector<OsShell::ApplicationBundle> applications = OsShell::applicationsToOpen({ file });
+	REQUIRE(!applications.empty()); // TextEdit at least
+	for (const OsShell::ApplicationBundle& application : applications)
+	{
+		CHECK(!application.name.isEmpty());
+		CHECK(application.path.endsWith(QStringLiteral(".app")));
+	}
+}
 #endif

@@ -10,6 +10,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <expected>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -32,6 +33,21 @@ namespace OsShell
 	[[nodiscard]] std::expected<void, QString> runCommandLineInTerminal(const QString& commandLine, const QString& workingDir, bool keepOpen);
 	// Without a window. Fails when sh cannot find the line's leading command; sh's errors past that are not reported.
 	[[nodiscard]] std::expected<void, QString> runCommandLineDetached(const QString& commandLine, const QString& workingDir);
+	// Starts `program` in `workingDir`, untracked and without sh. The error is the reason for the failure, never empty.
+	[[nodiscard]] std::expected<void, QString> startDetached(const QString& program, QStringList arguments, const QString& workingDir);
+#endif
+
+#ifdef __APPLE__
+	struct ApplicationBundle
+	{
+		QString name; // Localized
+		QString path;
+	};
+
+	// The applications that open every one of `paths`, the first path's default application first
+	[[nodiscard]] std::vector<ApplicationBundle> applicationsToOpen(const QStringList& paths);
+	// Returns at once. When the launch fails, `onFailure` gets the reason, never empty, on the main thread.
+	void openInApplication(const QStringList& paths, const QString& applicationPath, std::function<void(const QString& reason)> onFailure);
 #endif
 
 	// Opens at the mouse cursor; `objects` must all be in one folder

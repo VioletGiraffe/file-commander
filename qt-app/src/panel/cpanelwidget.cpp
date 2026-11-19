@@ -5,6 +5,7 @@
 #include "columns.h"
 #include "cvolumeusagebar.h"
 #include "fileclipboard.h"
+#include "filecontextmenu.h"
 #include "filelistwidget/cfilelistfilterdialog.h"
 #include "filelistwidget/model/cfilelistmodel.h"
 #include "tabviewstates.h"
@@ -787,14 +788,9 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 void CPanelWidget::showContextMenuForItems()
 {
 	const CPanel& panel = _controller->panel(_panelPosition);
-	std::vector<std::wstring> paths;
-	for (const CFileSystemObject& item : panel.selectedItems())
-		paths.push_back(item.fullAbsolutePath().toStdWString());
-
-	if (paths.empty())
-		paths.push_back(panel.currentDirPathNative().toStdWString());
-
-	OsShell::openShellContextMenuForObjects(paths, WidgetUtils::nativeOwnerWinId(this));
+	FileContextMenu::showForItems(panel.selectedItems(), panel.currentDirPathNative(), this, [this](const QString& folderPath) {
+		_controller->setPath(_panelPosition, folderPath, refreshCauseForwardNavigation);
+	});
 }
 
 void CPanelWidget::onSpacePressed()

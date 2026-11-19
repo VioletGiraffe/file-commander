@@ -346,7 +346,7 @@ std::expected<void, QString> OsShell::openWithDefaultApplication(const QString& 
 	return shellExecute(nullptr, extendedPath.c_str(), {}, folder, window);
 }
 #else
-static std::expected<void, QString> startDetached(const QString& program, QStringList arguments, const QString& workingDir)
+std::expected<void, QString> OsShell::startDetached(const QString& program, QStringList arguments, const QString& workingDir)
 {
 	QProcess process;
 	process.setProgram(program);
@@ -474,7 +474,7 @@ static std::expected<void, QString> startTerminal(QString folder, [[maybe_unused
 		*words << script;
 	}
 
-	return startDetached(program, std::move(*words), folder);
+	return OsShell::startDetached(program, std::move(*words), folder);
 #endif
 #endif
 }

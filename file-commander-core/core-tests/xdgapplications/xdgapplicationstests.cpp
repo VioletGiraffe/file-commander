@@ -3,17 +3,19 @@
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
-#include "utility/on_scope_exit.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
 #include "qtcore_helpers/catch_qt.hpp" // qtutils
 
+#include <QByteArray>
+#include <QDeadlineTimer>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QStringBuilder>
 #include <QTemporaryDir>
+#include <QThread>
 RESTORE_COMPILER_WARNINGS
 
 #include <map>
@@ -21,6 +23,14 @@ RESTORE_COMPILER_WARNINGS
 #include <vector>
 
 using namespace XdgApplications;
+
+static QStringList ids(const std::vector<Application>& applications)
+{
+	QStringList result;
+	for (const Application& application : applications)
+		result.push_back(application.id);
+	return result;
+}
 
 namespace {
 
@@ -73,10 +83,7 @@ struct TestFolders
 
 	[[nodiscard]] QStringList ids(const std::vector<QStringList>& fileTypes) const
 	{
-		QStringList result;
-		for (const Application& application : applicationsForFileTypes(fileTypes, environment))
-			result.push_back(application.id);
-		return result;
+		return ::ids(applicationsForFileTypes(fileTypes, environment));
 	}
 
 	[[nodiscard]] Application onlyApplication(const QString& mimeType) const
@@ -307,28 +314,69 @@ TEST_CASE("What escapedExecArgument and escapedStringValue write reads back unch
 	CHECK(commandLines(application, { QStringLiteral("/file") }) == std::vector<QStringList>{ { program, QStringLiteral("/file") } });
 }
 
+TEST_CASE("applicationsToOpen goes by the files' MIME types and their ancestors", "[xdgapplications]")
+{
+	const TestFolders folders;
+	folders.writeEntry(QStringLiteral("share1/applications/text.desktop"), QStringLiteral("text/plain"));
+	folders.writeEntry(QStringLiteral("share1/applications/folder.desktop"), QStringLiteral("inode/directory"));
+	folders.write(QStringLiteral("files/source.cpp"), QStringLiteral("int main() {}\n"));
+	const QString sourceFile = folders.root.path() % QStringLiteral("/files/source.cpp");
+	const QString folder = folders.root.path() % QStringLiteral("/files");
+
+	// text/x-c++src descends from text/plain
+	CHECK(ids(applicationsToOpen({ sourceFile }, folders.environment)) == QStringList{ QStringLiteral("text.desktop") });
+	CHECK(ids(applicationsToOpen({ folder }, folders.environment)) == QStringList{ QStringLiteral("folder.desktop") });
+	CHECK(applicationsToOpen({ sourceFile, folder }, folders.environment).empty());
+}
+
 #ifndef _WIN32
+namespace {
+
+// Sets environment variables for its lifetime; a null value unsets the variable
+class ScopedEnvironment
+{
+public:
+	explicit ScopedEnvironment(const std::vector<std::pair<const char*, QByteArray>>& values)
+	{
+		for (const auto& [variable, value] : values)
+		{
+			_savedValues.emplace_back(variable, qgetenv(variable));
+			set(variable, value);
+		}
+	}
+
+	~ScopedEnvironment()
+	{
+		for (const auto& [variable, value] : _savedValues)
+			set(variable, value);
+	}
+
+	ScopedEnvironment(const ScopedEnvironment&) = delete;
+	ScopedEnvironment& operator=(const ScopedEnvironment&) = delete;
+
+private:
+	static void set(const char* variable, const QByteArray& value)
+	{
+		if (value.isNull())
+			qunsetenv(variable);
+		else
+			qputenv(variable, value);
+	}
+
+	std::vector<std::pair<const char*, QByteArray>> _savedValues;
+};
+
+}
+
 TEST_CASE("currentEnvironment ignores relative folders and falls back to the spec's defaults", "[xdgapplications]")
 {
-	const char* const variables[]{ "XDG_CONFIG_HOME", "XDG_CONFIG_DIRS", "XDG_DATA_HOME", "XDG_DATA_DIRS", "XDG_CURRENT_DESKTOP" };
-	std::vector<std::pair<const char*, QByteArray>> savedValues;
-	for (const char* variable : variables)
-		savedValues.emplace_back(variable, qgetenv(variable));
-	EXEC_ON_SCOPE_EXIT([&savedValues] {
-		for (const auto& [variable, value] : savedValues)
-		{
-			if (value.isNull())
-				qunsetenv(variable);
-			else
-				qputenv(variable, value);
-		}
-	});
-
-	qputenv("XDG_CONFIG_HOME", "relative/config");
-	qunsetenv("XDG_CONFIG_DIRS");
-	qputenv("XDG_DATA_HOME", "/home data");
-	qputenv("XDG_DATA_DIRS", "relative:/first::/second");
-	qputenv("XDG_CURRENT_DESKTOP", "KDE:GNOME");
+	const ScopedEnvironment variables{ {
+		{ "XDG_CONFIG_HOME", "relative/config" },
+		{ "XDG_CONFIG_DIRS", QByteArray{} },
+		{ "XDG_DATA_HOME", "/home data" },
+		{ "XDG_DATA_DIRS", "relative:/first::/second" },
+		{ "XDG_CURRENT_DESKTOP", "KDE:GNOME" },
+	} };
 
 	const Environment environment = currentEnvironment();
 	CHECK(environment.configHome == QDir::homePath() % QStringLiteral("/.config"));
@@ -336,5 +384,27 @@ TEST_CASE("currentEnvironment ignores relative folders and falls back to the spe
 	CHECK(environment.dataHome == QStringLiteral("/home data"));
 	CHECK(environment.dataDirs == QStringList{ QStringLiteral("/first"), QStringLiteral("/second") });
 	CHECK(environment.desktops == QStringList{ QStringLiteral("kde"), QStringLiteral("gnome") });
+}
+
+TEST_CASE("openInApplication runs the command line in the first file's folder", "[xdgapplications][exec]")
+{
+	const TestFolders folders;
+	folders.write(QStringLiteral("files/a b.txt"), QStringLiteral("a"));
+	const QString folder = folders.root.path() % QStringLiteral("/files");
+	const QString file = folder % QStringLiteral("/a b.txt");
+
+	// The shell writes the folder it runs in and its argument, then renames the result: it appears complete
+	const Application application = applicationWithExec(QStringLiteral("/bin/sh -c \"printf %%s \\\"\\$PWD|\\$1\\\" > result.tmp && mv result.tmp result\" sh %f"));
+	REQUIRE(openInApplication(application, { file }));
+
+	QFile result{ folder % QStringLiteral("/result") };
+	for (const QDeadlineTimer deadline{ 10000 }; !result.exists() && !deadline.hasExpired();)
+		QThread::msleep(20);
+
+	REQUIRE(result.open(QIODevice::ReadOnly));
+	const QStringList parts = QString::fromUtf8(result.readAll()).split('|');
+	REQUIRE(parts.size() == 2);
+	CHECK(QFileInfo{ parts[0] }.canonicalFilePath() == QFileInfo{ folder }.canonicalFilePath());
+	CHECK(parts[1] == file);
 }
 #endif

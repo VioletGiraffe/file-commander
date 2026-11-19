@@ -1,5 +1,6 @@
 #include "xdgapplications.h"
 
+#include "cshell.h"
 #include "filesystemhelperfunctions.h"
 
 
@@ -7,8 +8,11 @@ DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
+#include <QFileInfo>
 #include <QHash>
 #include <QLocale>
+#include <QMimeDatabase>
+#include <QMimeType>
 #include <QSet>
 #include <QStandardPaths>
 #include <QStringBuilder>
@@ -404,9 +408,6 @@ std::vector<Application> XdgApplications::applicationsForFileTypes(const std::ve
 	std::vector<size_t> entries = index.applicationsForFileType(fileTypes.front());
 	for (const QStringList& typeWithAncestors : fileTypes | std::views::drop(1))
 	{
-		if (typeWithAncestors == fileTypes.front())
-			continue;
-
 		const std::vector<size_t> fileEntries = index.applicationsForFileType(typeWithAncestors);
 		std::erase_if(entries, [&fileEntries](const size_t entry) { return std::ranges::find(fileEntries, entry) == fileEntries.end(); });
 	}
@@ -417,6 +418,34 @@ std::vector<Application> XdgApplications::applicationsForFileTypes(const std::ve
 		applications.push_back(index.application(entry));
 
 	return applications;
+}
+
+// The names `type` is known by, in applicationsForFileTypes' order
+static QStringList typeNames(const QMimeType& type, const QMimeDatabase& database)
+{
+	QStringList names{ type.name() };
+	names += type.aliases();
+	for (const QString& ancestor : type.allAncestors())
+	{
+		names.push_back(ancestor);
+		names += database.mimeTypeForName(ancestor).aliases();
+	}
+
+	return names;
+}
+
+std::vector<Application> XdgApplications::applicationsToOpen(const QStringList& paths, const Environment& environment)
+{
+	const QMimeDatabase database;
+	std::vector<QStringList> fileTypes; // One entry per distinct type: every file of a type has the same applications
+	for (const QString& path : paths)
+	{
+		QStringList names = typeNames(database.mimeTypeForFile(path), database);
+		if (std::ranges::find(fileTypes, names) == fileTypes.end())
+			fileTypes.push_back(std::move(names));
+	}
+
+	return applicationsForFileTypes(fileTypes, environment);
 }
 
 // Whether `word` holds a field code among `codes`
@@ -514,6 +543,44 @@ std::expected<std::vector<QStringList>, QString> XdgApplications::commandLines(c
 
 	return result;
 }
+
+#ifndef _WIN32
+std::expected<void, QString> XdgApplications::openInApplication(const Application& application, const QStringList& files)
+{
+	std::expected<std::vector<QStringList>, QString> lines = commandLines(application, files);
+	if (!lines)
+		return std::unexpected{ std::move(lines.error()) };
+
+	QString workingDir = application.workingDir;
+	if (workingDir.isEmpty() && !files.isEmpty())
+		workingDir = QFileInfo{ files.front() }.absolutePath();
+
+	for (QStringList& commandLine : *lines)
+	{
+		std::expected<void, QString> started;
+		if (application.terminal)
+		{
+			// Every word single-quoted: shellQuotedPath would drop a trailing separator, which an argument may need
+			for (QString& word : commandLine)
+			{
+				word.replace('\'', QStringLiteral("'\\''"));
+				word = '\'' % word % '\'';
+			}
+			started = OsShell::runCommandLineInTerminal(commandLine.join(' '), workingDir, false);
+		}
+		else
+		{
+			const QString program = commandLine.takeFirst();
+			started = OsShell::startDetached(program, std::move(commandLine), workingDir);
+		}
+
+		if (!started)
+			return started;
+	}
+
+	return {};
+}
+#endif
 
 QString XdgApplications::escapedStringValue(QString value)
 {

@@ -35,6 +35,8 @@ threads only lock it to add theirs. Each front end aborts and joins its search b
 `calculateStatsFor` runs its scan team on whatever thread calls it: a `CFileStatisticsScan` thread, or a pool worker
 for a panel dir-size task, under the panel's abort flag. Concurrent calls each spawn their own team.
 A path bar folder's menu lists that folder on the UI thread as it opens: the folder is an ancestor of one just listed.
+A file's context menu looks up Open With's applications and the files' types on the UI thread as it opens.
+On macOS, `NSWorkspace` reports a failed Open With launch on a background queue, which hands it to the main queue.
 
 ## Panel lifetime and publication
 

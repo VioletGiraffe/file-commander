@@ -44,11 +44,19 @@ struct Application
 // The applications that open files of every one of `fileTypes`, the first file's default application first when it opens them all.
 // Each entry holds the names one file's type is known by, the most specific first: its MIME type and aliases, then its ancestors'.
 [[nodiscard]] std::vector<Application> applicationsForFileTypes(const std::vector<QStringList>& fileTypes, const Environment& environment);
+// applicationsForFileTypes for the files' types as QMimeDatabase finds them
+[[nodiscard]] std::vector<Application> applicationsToOpen(const QStringList& paths, const Environment& environment);
 
 // The command lines, program first, that open `files` in `application`: one, or one per file when its Exec takes a single file.
 // Without a file field code in Exec, the files are not passed.
 // The error is the reason the Exec value cannot be used, never empty.
 [[nodiscard]] std::expected<std::vector<QStringList>, QString> commandLines(const Application& application, const QStringList& files);
+
+#ifndef _WIN32
+// Runs commandLines: in a terminal when the entry asks for one, in the entry's working folder or else the first file's folder.
+// The error is the reason for the failure, never empty.
+[[nodiscard]] std::expected<void, QString> openInApplication(const Application& application, const QStringList& files);
+#endif
 
 // For writing a desktop entry: `value` escaped as a string value
 [[nodiscard]] QString escapedStringValue(QString value);
