@@ -1,43 +1,38 @@
 #include "cfilestatswindow.h"
 
-#include "csortbydatatreeitem.h"
+#include "panel/columns.h"
+#include "panel/filelistwidget/model/cfilelistmodel.h"
 
 #include "ccontroller.h"
+#include "cfilesystemobject.h"
+#include "filelist/filetimetext.h"
 #include "filesystemhelperfunctions.h"
 
 
 // Submodule includes
 #include "qtcore_helpers/displayformatting.hpp"
-#include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "widgets/clabelelided.h"
 
 
 DISABLE_COMPILER_WARNINGS
-#include <3rdparty/magic_enum/magic_enum.hpp>
-
-#include <QDateTime>
-#include <QHeaderView>
 #include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QShortcut>
+#include <QStringList>
 #include <QTimer>
-#include <QTreeWidget>
+#include <QTreeView>
 #include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
 
 #include <utility>
 
-namespace columns {
-	enum Columns {
-		Name, Size, ModDate, Folder
-	};
-}
-
-CFileStatsWindow::CFileStatsWindow(QWidget* parent, std::vector<QString> paths, CController& controller) :
+CFileStatsWindow::CFileStatsWindow(QWidget* parent, std::vector<QString> paths, CController& controller, CIconProvider& iconProvider) :
 	QMainWindow{ nullptr },
 	_parentWindow{ parent },
+	_iconProvider{ iconProvider },
 	_noPathExistsMessage{ paths.size() == 1 ? tr("The path %1 doesn't exist.").arg(toNativeSeparators(paths.front())) : tr("None of the selected items exist.") },
+	_listedFolder{ deepestFolderHolding(QStringList{ paths.cbegin(), paths.cend() }) },
 	_scan{ std::move(paths) }
 {
 	setAttribute(Qt::WA_DeleteOnClose);
@@ -54,7 +49,8 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent, std::vector<QString> paths, 
 	_largestFilesLabel = new QLabel;
 	layout->addWidget(_largestFilesLabel);
 
-	_list = new QTreeWidget;
+	_list = new QTreeView;
+	_list->setTextElideMode(Qt::ElideMiddle);
 	layout->addWidget(_list);
 
 	auto* btnClose = new QPushButton(tr("Close"));
@@ -67,19 +63,12 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent, std::vector<QString> paths, 
 	_statusLabel->setStyleSheet("color: palette(placeholder-text);");
 	layout->addWidget(_statusLabel);
 
-	_list->setHeaderLabels({
-		tr("Name"),
-		tr("Size"),
-		tr("Modification date"),
-		tr("Folder")
-	});
-	_list->header()->setStretchLastSection(false);
-	_list->setSortingEnabled(true);
-	_list->sortByColumn(columns::Size, Qt::DescendingOrder);
+	_largestFiles = new CFileListModel(&_iconProvider, { .dateLength = FileTimeTextLength::Long, .sizeText = FileListCellFormat::SizeText::Precise }, this);
+	showFileListInTreeView(*_largestFiles, *_list, SizeColumn, Qt::DescendingOrder);
+	_iconProvider.addIconsChangedListener(this);
 
-	connect(_list, &QTreeWidget::itemActivated, this, [&controller, parent](QTreeWidgetItem* item) {
-		const QString path = item->data(columns::Name, Qt::UserRole).toString();
-		controller.goToItem(controller.activePanelPosition(), CFileSystemObject{ path });
+	connect(_list, &QAbstractItemView::activated, this, [this, &controller, parent](const QModelIndex& index) {
+		controller.goToItem(controller.activePanelPosition(), CFileSystemObject{ _largestFiles->rowAt(index).fullAbsolutePath() });
 		parent->activateWindow();
 	});
 
@@ -88,6 +77,11 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent, std::vector<QString> paths, 
 	_progressTimer = new QTimer{ this };
 	connect(_progressTimer, &QTimer::timeout, this, &CFileStatsWindow::showScanProgress);
 	_progressTimer->start(100);
+}
+
+CFileStatsWindow::~CFileStatsWindow()
+{
+	_iconProvider.removeIconsChangedListener(this);
 }
 
 void CFileStatsWindow::showScanProgress()
@@ -130,35 +124,15 @@ void CFileStatsWindow::showResult(const CFileStatisticsScan::Result& result)
 	_largestFilesLabel->setText(tr("Largest files (%1):").arg(stats.largestFiles.size()));
 	_statusLabel->setText(tr("Scanned in %1 s").arg(result.elapsedMs * 1e-3f, 0, 'f', 1));
 
-	fillFileList(stats);
+	_largestFiles->setRows(stats.largestFiles, _listedFolder);
 }
 
-void CFileStatsWindow::fillFileList(const FileStatistics& stats)
+void CFileStatsWindow::onIconsChanged(const std::vector<qulonglong>& objectHashes)
 {
-	_list->clear();
+	_largestFiles->onIconsChanged(objectHashes);
+}
 
-	QList<QTreeWidgetItem*> items;
-	items.reserve(stats.largestFiles.size());
-
-	for (const CFileSystemObject& file : stats.largestFiles)
-	{
-		auto* item = new CSortByDataTreeItem;
-		item->setText(columns::Name, file.fullName().toString());
-		item->setData(columns::Name, Qt::UserRole, file.fullAbsolutePath());
-
-		item->setText(columns::Size, fileSizeToString(file.size()));
-		item->setData(columns::Size, Qt::UserRole, (qulonglong)file.size());
-
-		item->setText(columns::ModDate, fromTime_t(file.modificationTime()).toString("dd.MM.yyyy hh:mm:ss"));
-		item->setData(columns::ModDate, Qt::UserRole, (qulonglong)file.modificationTime());
-
-		item->setText(columns::Folder, file.parentDirPath());
-
-		items.push_back(item);
-	}
-
-	_list->addTopLevelItems(items);
-
-	for (int col = 0; col < _list->columnCount(); ++col)
-		_list->resizeColumnToContents(col);
+void CFileStatsWindow::onAllIconsChanged()
+{
+	_largestFiles->onAllIconsChanged();
 }

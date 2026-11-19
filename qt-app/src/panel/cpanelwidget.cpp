@@ -16,7 +16,6 @@
 
 #include "settings.h"
 #include "shell/cshell.h"
-#include "filelist/filetimetext.h"
 #include "filesystemhelperfunctions.h"
 
 
@@ -342,7 +341,7 @@ void CPanelWidget::initPanel(Panel p)
 int CPanelWidget::appendTab(const qulonglong tabId, const CFileListView::ColumnLayout& columnLayout)
 {
 	PanelTab& tab = _tabs.emplace_back();
-	tab.model = new CFileListModel(_iconProvider, FileTimeTextLength::Short, this);
+	tab.model = new CFileListModel(_iconProvider, {}, this);
 	tab.model->setDropHandler([this](const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath) {
 		return dropUrls(urls, action, destinationPath);
 	});

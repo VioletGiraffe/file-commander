@@ -598,3 +598,23 @@ TEST_CASE("An object built from its properties reports them", "[CFileSystemObjec
 	CHECK(CFileSystemObject{ CFileSystemObjectProperties{} }.hash() == 0u);
 }
 
+
+TEST_CASE("deepestFolderHolding is the deepest folder that is or holds each path, a file counting as its folder", "[CFileSystemObject]")
+{
+	QTemporaryDir root;
+	REQUIRE(root.isValid());
+	const QString one = root.path() + QStringLiteral("/one/x"), two = root.path() + QStringLiteral("/two"), file = root.path() + QStringLiteral("/one/file.txt");
+	REQUIRE(QDir{}.mkpath(one));
+	REQUIRE(QDir{}.mkpath(two));
+	{
+		QFile created{ file };
+		REQUIRE(created.open(QFile::WriteOnly));
+	}
+
+	const auto folderOf = [](const QString& path) { return CFileSystemObject{ path }.fullAbsolutePath(); };
+	CHECK(deepestFolderHolding({ one }) == folderOf(one));
+	CHECK(deepestFolderHolding({ one, two }) == folderOf(root.path()));
+	CHECK(deepestFolderHolding({ file }) == folderOf(root.path() + QStringLiteral("/one")));
+	CHECK(deepestFolderHolding({ file, one }) == folderOf(root.path() + QStringLiteral("/one")));
+	CHECK(deepestFolderHolding({}).isEmpty());
+}

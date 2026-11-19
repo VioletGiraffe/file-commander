@@ -7,6 +7,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QString>
 #include <QStringBuilder>
+#include <QStringList>
 #include <QStringView>
 RESTORE_COMPILER_WARNINGS
 
@@ -24,6 +25,10 @@ std::vector<QString> pathHierarchy(const QString& path);
 
 // A view into absolutePath: the folder holding its item, ending with '/'. Empty for a root.
 [[nodiscard]] QStringView parentFolderOf(const QString& absolutePath);
+
+// The deepest folder that is or holds each path; a path other than an existing folder counts as its parent folder. Empty when there is none.
+// The items found under the paths are listed in it: see fileListFolderPrefix().
+[[nodiscard]] QString deepestFolderHolding(const QStringList& paths);
 
 // CFileSystemObject::hash() of the object with this fullAbsolutePath()
 // An empty path hashes to 0, so every empty object does: simpler for the callers

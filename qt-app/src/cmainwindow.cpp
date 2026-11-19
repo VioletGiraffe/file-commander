@@ -1330,7 +1330,7 @@ void CMainWindow::calculateStatistics()
 	if (paths.empty())
 		return;
 
-	auto* statsWindow = new CFileStatsWindow(this, std::move(paths), *_controller);
+	auto* statsWindow = new CFileStatsWindow(this, std::move(paths), *_controller, _iconProvider);
 	WidgetUtils::centerWidgetOnScreen(statsWindow, 0.7);
 }
 

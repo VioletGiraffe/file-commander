@@ -8,22 +8,25 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "qtcore_helpers/displayformatting.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
 
 #include <QFont>
+#include <QHeaderView>
 #include <QIcon>
 #include <QMimeData>
 #include <QStringBuilder>
+#include <QTreeView>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <utility>
 #include <variant>
 
-static QVariant displayText(const CFileSystemObject& row, int column, const QString& listedFolder, FileTimeTextLength dateTextLength)
+static QVariant displayText(const CFileSystemObject& row, int column, const QString& listedFolder, const FileListCellFormat& format)
 {
 	switch (column)
 	{
@@ -40,14 +43,16 @@ static QVariant displayText(const CFileSystemObject& row, int column, const QStr
 			return {};
 
 	case SizeColumn:
-		if (row.size() > 0 || row.type() == File)
-			return compactFileSizeText(row.size(), FileSizeUnitSpacing::Spaced);
-		else
+		if (row.size() == 0 && row.type() != File)
 			return {};
+		else if (format.sizeText == FileListCellFormat::SizeText::Precise)
+			return fileSizeToString(row.size());
+		else
+			return compactFileSizeText(row.size(), FileSizeUnitSpacing::Spaced);
 
 	case DateColumn:
 		if (!row.isCdUp()) [[likely]]
-			return fileTimeText(row.modificationTime(), dateTextLength);
+			return fileTimeText(row.modificationTime(), format.dateLength);
 		else
 			return {};
 
@@ -66,10 +71,10 @@ static QAbstractItemModel::LayoutChangeHint layoutChangeHint(SortedFileListReord
 	return cause == SortedFileListReorderCause::Sort ? QAbstractItemModel::VerticalSortHint : QAbstractItemModel::NoLayoutChangeHint;
 }
 
-CFileListModel::CFileListModel(CIconProvider* iconProvider, FileTimeTextLength dateTextLength, QObject* parent) :
+CFileListModel::CFileListModel(CIconProvider* iconProvider, FileListCellFormat cellFormat, QObject* parent) :
 	QAbstractItemModel(parent),
 	_iconProvider(iconProvider),
-	_dateTextLength(dateTextLength)
+	_cellFormat(cellFormat)
 {
 }
 
@@ -217,7 +222,7 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 	case FullNameRole:
 		return row.fullName().toString();
 	case Qt::DisplayRole:
-		return displayText(row, index.column(), _list.listedFolder(), _dateTextLength);
+		return displayText(row, index.column(), _list.listedFolder(), _cellFormat);
 	case Qt::TextAlignmentRole:
 		return textAlignment(index.column());
 	case Qt::FontRole:
@@ -410,3 +415,20 @@ void CFileListModel::afterReorder(SortedFileListReorderCause cause)
 	emit layoutChanged({}, layoutChangeHint(cause));
 }
 
+
+void showFileListInTreeView(CFileListModel& model, QTreeView& view, const int sortColumn, const Qt::SortOrder sortOrder)
+{
+	view.setModel(&model);
+	view.setRootIsDecorated(false);
+	view.setUniformRowHeights(true);
+	view.setEditTriggers(QAbstractItemView::NoEditTriggers); // The model's names are editable for the panels' inline rename
+
+	QHeaderView* header = view.header();
+	header->setStretchLastSection(false);
+	for (int column = 0; column < NumberOfColumns; ++column)
+		header->setSectionResizeMode(column, column == NameColumn ? QHeaderView::Stretch : QHeaderView::ResizeToContents);
+	header->setResizeContentsPrecision(0); // The rows on screen only: a long list would be measured again at every change
+	// Enabling sorting sorts by the indicator, which starts as descending
+	header->setSortIndicator(sortColumn, sortOrder);
+	view.setSortingEnabled(true);
+}

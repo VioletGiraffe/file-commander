@@ -73,6 +73,19 @@ QStringView parentFolderOf(const QString& absolutePath)
 	return QStringView{ absolutePath }.first(absolutePath.lastIndexOf('/', absolutePath.endsWith('/') ? -2 : -1) + 1);
 }
 
+QString deepestFolderHolding(const QStringList& paths)
+{
+	QStringList absolutePaths;
+	for (const QString& path : paths)
+		absolutePaths.push_back(CFileSystemObject{ path }.fullAbsolutePath());
+
+	std::vector<QStringView> folders;
+	for (const QString& path : absolutePaths)
+		folders.push_back(path.endsWith(u'/') ? QStringView{ path } : parentFolderOf(path));
+
+	return deepestCommonFolder(folders);
+}
+
 CFileSystemObject& CFileSystemObject::operator=(const QString& path)
 {
 	setPath(path);

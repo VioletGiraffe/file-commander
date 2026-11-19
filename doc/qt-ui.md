@@ -96,8 +96,9 @@ selection and the cursor behind each row; the delegate paints the cells and defi
 colours from the widget palette and the rows' shape from a `FileListLook`, which the panel passes on from the theme.
 Drag/drop uses the same operation launch boundary as commands.
 
-The file search window lists its results in a `CFileListModel` of its own, in a plain `QTreeView`, dated to the second.
-Each batch the search reports merges into the list in one pass.
+The file search and Statistics windows each list their files in a `CFileListModel` of their own, dated to the second, in a
+plain `QTreeView` (`showFileListInTreeView()`). The Statistics window's sizes have four significant digits.
+Each batch a search reports merges into its list in one pass.
 
 The selection belongs to the tab's `CPanel`, and the selection model shows a copy. Gestures push their changes into
 the core from `selectionChanged`. After every refill and every change made through the core, the widget copies the

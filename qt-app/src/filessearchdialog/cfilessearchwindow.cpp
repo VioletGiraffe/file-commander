@@ -28,7 +28,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QClipboard>
 #include <QFileDialog>
-#include <QHeaderView>
 #include <QKeySequence>
 #include <QLineEdit>
 #include <QMenu>
@@ -62,14 +61,8 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 
 	enablePersistence(this, QSL("UI/FileSearchWindow"));
 
-	_results = new CFileListModel(&_iconProvider, FileTimeTextLength::Long, this);
-	ui->resultsList->setModel(_results);
-	QHeaderView* header = ui->resultsList->header();
-	header->setStretchLastSection(false);
-	header->setSectionResizeMode(NameColumn, QHeaderView::Stretch);
-	// Enabling sorting sorts by the indicator, which starts as descending
-	header->setSortIndicator(NameColumn, Qt::AscendingOrder);
-	ui->resultsList->setSortingEnabled(true);
+	_results = new CFileListModel(&_iconProvider, { .dateLength = FileTimeTextLength::Long }, this);
+	showFileListInTreeView(*_results, *ui->resultsList, NameColumn, Qt::AscendingOrder);
 	_iconProvider.addIconsChangedListener(this);
 
 	_resultsTimer = new QTimer(this);
@@ -240,7 +233,7 @@ void CFilesSearchWindow::search()
 			ui->searchRoot->addToHistory(ui->searchRoot->currentText());
 
 		ui->btnSearch->setText(tr("Stop"));
-		_results->setRows({}, searchResultsListedFolder(query.roots));
+		_results->setRows({}, deepestFolderHolding(query.roots));
 		_resultsTimer->start();
 
 		QString title = filtersString;

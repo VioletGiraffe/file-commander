@@ -253,23 +253,11 @@
       <property name="contextMenuPolicy">
        <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
       </property>
-      <property name="editTriggers">
-       <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
-      </property>
       <property name="textElideMode">
        <enum>Qt::TextElideMode::ElideMiddle</enum>
       </property>
       <property name="horizontalScrollMode">
        <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
-      </property>
-      <property name="rootIsDecorated">
-       <bool>false</bool>
-      </property>
-      <property name="uniformRowHeights">
-       <bool>true</bool>
-      </property>
-      <property name="itemsExpandable">
-       <bool>false</bool>
       </property>
      </widget>
     </item>

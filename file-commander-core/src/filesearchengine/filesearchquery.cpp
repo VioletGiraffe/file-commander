@@ -43,19 +43,6 @@ QStringList rootsFromSearchInField(const QString& fieldText, const QString& base
 	return roots;
 }
 
-QString searchResultsListedFolder(const QStringList& roots)
-{
-	QStringList rootPaths;
-	for (const QString& root : roots)
-		rootPaths.push_back(CFileSystemObject{ root }.fullAbsolutePath());
-
-	std::vector<QStringView> folders;
-	for (const QString& path : rootPaths)
-		folders.push_back(path.endsWith(u'/') ? QStringView{ path } : parentFolderOf(path));
-
-	return deepestCommonFolder(folders);
-}
-
 QString searchInFieldTextFor(const CPanel& panel)
 {
 	const std::vector<CFileSystemObject> selectedItems = panel.selectedItems();

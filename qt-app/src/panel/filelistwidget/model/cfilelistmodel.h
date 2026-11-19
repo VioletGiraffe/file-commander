@@ -31,6 +31,15 @@ enum Role {
 };
 
 class CIconProvider;
+class QTreeView;
+
+// How a file list shows its Date and Size columns
+struct FileListCellFormat
+{
+	FileTimeTextLength dateLength = FileTimeTextLength::Short;
+	// Compact: the panels' "1.5 K". Precise: fileSizeToString()'s four significant digits, for files ranked by size.
+	enum class SizeText { Compact, Precise } sizeText = SizeText::Compact;
+};
 
 // The file list of one tab: a SortedFileList as a Qt model
 class CFileListModel final : public QAbstractItemModel, private SortedFileListObserver
@@ -40,8 +49,8 @@ public:
 	// Handles dropped URLs; an empty destinationPath means the current folder
 	using DropHandler = std::function<bool (const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath)>;
 
-	// iconProvider: null leaves the rows without icons. dateTextLength: the Date column's.
-	explicit CFileListModel(CIconProvider* iconProvider, FileTimeTextLength dateTextLength = FileTimeTextLength::Short, QObject* parent = nullptr);
+	// iconProvider: null leaves the rows without icons
+	explicit CFileListModel(CIconProvider* iconProvider, FileListCellFormat cellFormat = {}, QObject* parent = nullptr);
 
 	void setDropHandler(DropHandler handler);
 
@@ -116,5 +125,9 @@ private:
 	ankerl::unordered_dense::set<qulonglong, identity_hash> _hashesReachedThroughLink;
 	DropHandler _dropHandler;
 	CIconProvider* const _iconProvider;
-	const FileTimeTextLength _dateTextLength;
+	const FileListCellFormat _cellFormat;
 };
+
+// Shows the model in a plain tree view, outside the panels: Name takes the width the other columns leave, each fitted to the rows on screen.
+// No row can be renamed there.
+void showFileListInTreeView(CFileListModel& model, QTreeView& view, int sortColumn, Qt::SortOrder sortOrder);

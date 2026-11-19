@@ -379,7 +379,7 @@ void CTuiFindDialog::startSearch()
 	if (searchInFieldTextBelongsInHistory(searchInText))
 		_searchInHistory.record(searchInText);
 
-	_results->clear(searchResultsListedFolder(query.roots));
+	_results->clear(deepestFolderHolding(query.roots));
 	setStatus({});
 	setSearchActive(true);
 	_nextResultsDisplayTime = std::chrono::steady_clock::now() + resultsDisplayInterval;
