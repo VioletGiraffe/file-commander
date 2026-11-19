@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795096030355,
+  "lastUpdate": 1795098062753,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -39298,6 +39298,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 32.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "f769f54d47233417b59c0f214fecf775b9905841",
+          "message": "Cancelling a batch rename asks first: Esc, Cancel or closing the progress dialog pauses the renaming and asks \"Cancel renaming?\", and No resumes it",
+          "timestamp": "2026-11-19T16:11:21+02:00",
+          "tree_id": "4d19933e7bd2e2f4c6e0602564572488f4c91c74",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/f769f54d47233417b59c0f214fecf775b9905841"
+        },
+        "date": 1795098059675,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 25224,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36813,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1812,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1085,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1151,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 483.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 54.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 34,
             "unit": "KB"
           },
           {
