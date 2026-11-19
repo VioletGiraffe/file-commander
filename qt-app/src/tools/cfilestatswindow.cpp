@@ -18,6 +18,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
 #include <QHeaderView>
 #include <QLabel>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QShortcut>
 #include <QTimer>
@@ -35,6 +36,8 @@ namespace columns {
 
 CFileStatsWindow::CFileStatsWindow(QWidget* parent, std::vector<QString> paths, CController& controller) :
 	QMainWindow{ nullptr },
+	_parentWindow{ parent },
+	_noPathExistsMessage{ paths.size() == 1 ? tr("The path %1 doesn't exist.").arg(toNativeSeparators(paths.front())) : tr("None of the selected items exist.") },
 	_scan{ std::move(paths) }
 {
 	setAttribute(Qt::WA_DeleteOnClose);
@@ -89,14 +92,30 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent, std::vector<QString> paths, 
 
 void CFileStatsWindow::showScanProgress()
 {
-	if (!_scan.finished())
+	const bool finished = _scan.finished();
+	if (finished)
+	{
+		_progressTimer->stop();
+		// Empty when no selected path is an existing file or folder
+		if (const auto& result = _scan.result(); result && result->stats.empty())
+		{
+			QMessageBox::warning(_parentWindow, tr("Statistics"), _noPathExistsMessage);
+			close();
+			return;
+		}
+	}
+
+	// The first poll shows the window
+	if (!isVisible())
+		show();
+
+	if (!finished)
 	{
 		if (const QString folder = _scan.currentFolder(); !folder.isEmpty())
 			_statusLabel->setText(tr("Scanning %1...").arg(toNativeSeparators(folder)));
 		return;
 	}
 
-	_progressTimer->stop();
 	if (const auto& result = _scan.result())
 		showResult(*result);
 	else

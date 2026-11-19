@@ -758,8 +758,10 @@ void CTuiPanel::showOccupiedSpace()
 	std::vector<QString> paths;
 	for (const CFileSystemObject& item : _controller.panel(_side).selectedItemsOrCurrentItem())
 		paths.push_back(item.fullAbsolutePath());
+	if (paths.empty())
+		return;
 
-	CFileStatisticsScan scan{ std::move(paths) };
+	CFileStatisticsScan scan{ paths };
 	const bool finished = waitWithProgressDialog(QStringLiteral("Statistics"), [&scan] { return scan.finished(); }, [&scan](const int width) {
 		return QStringList{ QStringLiteral("Scanning:"), elidedInTheMiddle(toNativeSeparators(scan.currentFolder()), width) };
 	});
@@ -770,8 +772,13 @@ void CTuiPanel::showOccupiedSpace()
 
 	const CFileStatisticsScan::Result& result = *scan.result();
 	const FileStatistics& stats = result.stats;
+	// Empty when no selected path is an existing file or folder
 	if (stats.empty())
+	{
+		showMessage(QStringLiteral("Statistics"), paths.size() == 1 ? QStringLiteral("The path %1 doesn't exist.").arg(toNativeSeparators(paths.front()))
+			: QStringLiteral("None of the selected items exist."));
 		return;
+	}
 
 	const QLocale locale;
 	const QStringList summary{

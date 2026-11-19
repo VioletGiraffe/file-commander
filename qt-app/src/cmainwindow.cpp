@@ -1332,7 +1332,6 @@ void CMainWindow::calculateStatistics()
 
 	auto* statsWindow = new CFileStatsWindow(this, std::move(paths), *_controller);
 	WidgetUtils::centerWidgetOnScreen(statsWindow, 0.7);
-	statsWindow->show();
 }
 
 void CMainWindow::calculateEachFolderSize()

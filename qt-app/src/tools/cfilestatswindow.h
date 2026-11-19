@@ -19,7 +19,8 @@ class QLabel;
 class QTimer;
 class QTreeWidget;
 
-// Shows the scan's progress until it finishes, then its result. Closing the window cancels the scan.
+// Shows the scan's progress until it finishes, then its result, or only a message when no selected path exists.
+// Shows itself. Closing the window cancels the scan.
 class CFileStatsWindow final : public QMainWindow
 {
 public:
@@ -37,5 +38,7 @@ private:
 	CLabelElided* _statusLabel = nullptr;
 	QTimer* _progressTimer = nullptr;
 
+	QWidget* const _parentWindow;
+	const QString _noPathExistsMessage;
 	CFileStatisticsScan _scan;
 };
