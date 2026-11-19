@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795112726179,
+  "lastUpdate": 1795113192861,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -39723,6 +39723,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 1146.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 486,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 55,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 33.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "888d9e50489fea18f94a6bf1fb0ccc0146218ba6",
+          "message": "The Statistics window lists the largest files like the panels and search results, sizes to four significant digits and dates to the second: CFileListModel takes a cell format, and both windows share one tree view setup\n\nThe search window's Ext, Size and Date columns now fit their contents; its dates were elided at the default width.",
+          "timestamp": "2026-11-19T20:25:06+02:00",
+          "tree_id": "79b9861843462cf9d9c44372fa4c266be2ba9b4c",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/888d9e50489fea18f94a6bf1fb0ccc0146218ba6"
+        },
+        "date": 1795113190064,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 25527,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36813,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1809.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1096,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1146,
             "unit": "KB"
           },
           {
