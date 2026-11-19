@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795113192861,
+  "lastUpdate": 1795124932402,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -39832,6 +39832,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 33.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2b47fedd5c7961572c2c529ea0a949c75fc33fb2",
+          "message": "Open With on Linux and FreeBSD reads the contents of the first five selected files only, so a large selection on a slow volume no longer holds up the menu",
+          "timestamp": "2026-11-19T23:39:38+02:00",
+          "tree_id": "36e3b1ea39b37a62c336ee7220fcc1afa533c588",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2b47fedd5c7961572c2c529ea0a949c75fc33fb2"
+        },
+        "date": 1795124928643,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 26491,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36813,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1812.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1096.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1148,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 486.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 55,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 34,
             "unit": "KB"
           },
           {
