@@ -13,7 +13,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <deque>
-#include <functional>
 #include <mutex>
 #include <optional>
 #include <stddef.h>
@@ -42,12 +41,7 @@ public:
 		std::optional<Completion> completion; // Never before the search's last match
 	};
 
-	// requestTake: must schedule one take() on the UI thread, and return without calling it.
-	// Called once per take() that is due, on a search thread or inside take(), possibly on both at the same time.
-	// Empty for an owner that calls take() periodically.
-	explicit CFileSearchResultsBuffer(std::function<void()> requestTake = {});
-
-	// At most maxMatches matches, the oldest first. Requests the next take() itself while matches remain.
+	// At most maxMatches matches, the oldest first
 	[[nodiscard]] Batch take(size_t maxMatches);
 
 	void itemScanned(const QString& currentItem) override;
@@ -55,17 +49,9 @@ public:
 	void searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed) override;
 
 private:
-	// Makes the change under the mutex, then requests a take() unless one is due already
-	template <typename Change>
-	void addReport(Change&& change);
-
-private:
-	const std::function<void()> _requestTake; // May be empty
-
 	std::mutex _mutex;
 	// Guarded by _mutex
 	std::deque<Match> _matches;
 	QString _lastScannedItem;
 	std::optional<Completion> _completion;
-	bool _takeIsDue = false;
 };

@@ -36,6 +36,10 @@ struct FileSearchQuery
 // Each is typed path text, resolved against baseDir: see resolveUserPath().
 [[nodiscard]] QStringList rootsFromSearchInField(const QString& fieldText, const QString& baseDir);
 
+// The folder a search's results are listed in (see fileListFolderPrefix()): the deepest one that is or holds each root,
+// a root other than an existing folder counting as its parent folder. Empty when there is none.
+[[nodiscard]] QString searchResultsListedFolder(const QStringList& roots);
+
 // A "Search in" field's text for the panel: its selected items, or with nothing selected its folder
 [[nodiscard]] QString searchInFieldTextFor(const CPanel& panel);
 

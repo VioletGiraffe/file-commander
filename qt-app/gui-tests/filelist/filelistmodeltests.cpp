@@ -27,7 +27,7 @@ TEST_CASE("A file with nothing before its extension displays its full name", "[f
 {
 	TestedModel tested;
 	CFileListModel& model = tested.model;
-	model.setRows({ makeItem(File, "", "jpg"), makeItem(File, "notes", "txt"), makeItem(Directory, "folder") });
+	model.setRows({ makeItem(File, "", "jpg"), makeItem(File, "notes", "txt"), makeItem(Directory, "folder") }, itemsFolder);
 	model.sort(NameColumn, Qt::AscendingOrder);
 
 	const QModelIndex folder = model.indexByHash(pathHash("/folder/folder/"));
@@ -54,7 +54,7 @@ TEST_CASE("A row outside the listed folder shows its folder relative to it befor
 	nestedFile.fullPath = QStringLiteral("/folder/sub/nested.txt");
 	CFileSystemObjectProperties nestedFolder = itemProperties(Directory, "inner");
 	nestedFolder.fullPath = QStringLiteral("/folder/sub/inner/");
-	model.setRows({ CFileSystemObject{ nestedFile }, CFileSystemObject{ nestedFolder }, makeItem(File, "own", "txt") }, QStringLiteral("/folder/"));
+	model.setRows({ CFileSystemObject{ nestedFile }, CFileSystemObject{ nestedFolder }, makeItem(File, "own", "txt") }, itemsFolder);
 
 	const auto nameShown = [&model](const char* path) { return model.data(model.indexByHash(pathHash(path)), Qt::DisplayRole).toString(); };
 	CHECK(nameShown("/folder/sub/nested.txt") == QDir::toNativeSeparators(QStringLiteral("sub/nested")));
@@ -67,7 +67,7 @@ TEST_CASE("The name filter hides the rows whose full name doesn't match", "[file
 {
 	TestedModel tested;
 	CFileListModel& model = tested.model;
-	model.setRows({ makeCdUpItem(), makeItem(Directory, "docs"), makeItem(File, "a", "txt"), makeItem(File, "b", "TXT"), makeItem(File, "c", "doc") });
+	model.setRows({ makeCdUpItem(), makeItem(Directory, "docs"), makeItem(File, "a", "txt"), makeItem(File, "b", "TXT"), makeItem(File, "c", "doc") }, itemsFolder);
 	model.sort(NameColumn, Qt::AscendingOrder);
 
 	model.setNameFilter("*.txt");
@@ -86,7 +86,7 @@ TEST_CASE("Selection and cursor follow their rows through sort and filter change
 {
 	TestedModel tested;
 	CFileListModel& model = tested.model;
-	model.setRows({ makeItem(File, "a", "txt"), makeItem(File, "b", "txt"), makeItem(File, "c", "doc"), makeItem(File, "d", "doc") });
+	model.setRows({ makeItem(File, "a", "txt"), makeItem(File, "b", "txt"), makeItem(File, "c", "doc"), makeItem(File, "d", "doc") }, itemsFolder);
 	model.sort(NameColumn, Qt::AscendingOrder);
 
 	QItemSelectionModel selection{ &model };
@@ -123,10 +123,10 @@ TEST_CASE("Rows are found by hash and by kind", "[filelist]")
 	TestedModel tested;
 	CFileListModel& model = tested.model;
 
-	model.setRows({ makeItem(Directory, "b"), makeItem(Directory, "a") });
+	model.setRows({ makeItem(Directory, "b"), makeItem(Directory, "a") }, itemsFolder);
 	CHECK(model.firstFileRow() == -1);
 
-	model.setRows({ makeItem(File, "x", "txt", 7u), makeCdUpItem(), makeItem(Directory, "b", "", 100u), makeItem(Directory, "a"), makeItem(File, "y", "", 3u) });
+	model.setRows({ makeItem(File, "x", "txt", 7u), makeCdUpItem(), makeItem(Directory, "b", "", 100u), makeItem(Directory, "a"), makeItem(File, "y", "", 3u) }, itemsFolder);
 	model.sort(NameColumn, Qt::DescendingOrder);
 	CHECK(model.firstFileRow() == 3);
 	CHECK(model.rowAt(model.firstFileRow()).fullName() == "y");

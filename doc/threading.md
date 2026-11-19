@@ -30,8 +30,8 @@ replace older pending entries with the same tag; work queued during a drain wait
 enumerator drains its own notification queue on its own timer. Which listener each queue feeds is in
 [notifications.md](notifications.md).
 
-The search window receives results through queued Qt invocations targeting a UI object whose destruction cancels
-delivery; the window still aborts and joins its worker before that object dies.
+Both search front ends take their results from a `CFileSearchResultsBuffer` on the UI thread, on a timer: the search
+threads only lock it to add theirs. Each front end aborts and joins its search before the buffer dies.
 `calculateStatsFor` runs its scan team on whatever thread calls it: a `CFileStatisticsScan` thread, or a pool worker
 for a panel dir-size task, under the panel's abort flag. Concurrent calls each spawn their own team.
 A path bar folder's menu lists that folder on the UI thread as it opens: the folder is an ancestor of one just listed.

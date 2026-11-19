@@ -13,6 +13,30 @@ DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
+#include <vector>
+
+TEST_CASE("deepestCommonFolder is the deepest folder that is or holds each one", "[deepestCommonFolder]")
+{
+	using Folders = std::vector<QStringView>;
+	CHECK(deepestCommonFolder(Folders{ u"/a/b/" }) == QStringLiteral("/a/b/"));
+	CHECK(deepestCommonFolder(Folders{ u"/a/b/", u"/a/c/d/" }) == QStringLiteral("/a/"));
+	CHECK(deepestCommonFolder(Folders{ u"/a/b/", u"/a/" }) == QStringLiteral("/a/"));
+	CHECK(deepestCommonFolder(Folders{ u"/a/", u"/b/" }) == QStringLiteral("/"));
+	CHECK(deepestCommonFolder(Folders{ u"/ab/", u"/a/" }) == QStringLiteral("/"));
+	CHECK(deepestCommonFolder(Folders{}).isEmpty());
+}
+
+#ifdef _WIN32
+TEST_CASE("deepestCommonFolder: no folder holds two drives or two network shares", "[deepestCommonFolder]")
+{
+	using Folders = std::vector<QStringView>;
+	CHECK(deepestCommonFolder(Folders{ u"C:/a/", u"D:/a/" }).isEmpty());
+	CHECK(deepestCommonFolder(Folders{ u"C:/a/", u"C:/b/" }) == QStringLiteral("C:/"));
+	CHECK(deepestCommonFolder(Folders{ u"//server/one/x/", u"//server/two/x/" }).isEmpty());
+	CHECK(deepestCommonFolder(Folders{ u"//server/one/x/", u"//server/one/y/" }) == QStringLiteral("//server/one/"));
+}
+#endif
+
 TEST_CASE("shellQuotedPath leaves an ordinary path bare", "[shellQuotedPath]")
 {
 #ifdef _WIN32

@@ -11,6 +11,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <optional>
 #include <stdint.h>
+#include <vector>
 
 [[nodiscard]] consteval char nativeSeparator() noexcept
 {
@@ -30,6 +31,10 @@ RESTORE_COMPILER_WARNINGS
 // Windows: a drive letter without a separator ("E:", "E:dir") means that drive's root; "/dir" starts at baseDir's root.
 // "." and ".." are resolved lexically. Empty when the expanded text is, and on Windows for a UNC spelling without a share.
 [[nodiscard]] QString resolveUserPath(const QString& text, const QString& baseDir);
+
+// The deepest folder that is or holds each of 'folders', all absolute and ending with '/'. Ends with '/'.
+// Empty when there are none, and when no folder holds them all, as for folders on two drives.
+[[nodiscard]] QString deepestCommonFolder(const std::vector<QStringView>& folders);
 
 // Quotes only where a shell would otherwise misread the path, so an ordinary one comes back bare and stays readable when pasted.
 // The trailing separator is stripped: inside the quotes it would read as an escaped quote.

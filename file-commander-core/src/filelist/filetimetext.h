@@ -16,6 +16,7 @@ enum class FileTimeTextLength {
 };
 
 inline constexpr int maxShortFileTimeTextLength = 12; // This year's form
+inline constexpr int longFileTimeTextLength = 19;
 
 // A file's time in local time, with English month names in any locale
 [[nodiscard]] QString fileTimeText(time_t time, FileTimeTextLength length);

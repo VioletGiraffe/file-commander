@@ -19,13 +19,13 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
 #include <random>
 #include <stdint.h>
 #include <vector>
 
 namespace {
 
-const QString listedFolder = QStringLiteral("/folder/");
 
 // What a row shows: its path, size and time
 QString rowText(const CFileSystemObject& row)
@@ -115,7 +115,12 @@ public:
 
 	void beforeReorder(SortedFileListReorderCause cause) override
 	{
-		changes.push_back(cause == SortedFileListReorderCause::Sort ? QStringLiteral("sort") : QStringLiteral("filter"));
+		switch (cause)
+		{
+		case SortedFileListReorderCause::Sort: changes.push_back(QStringLiteral("sort")); break;
+		case SortedFileListReorderCause::Filter: changes.push_back(QStringLiteral("filter")); break;
+		case SortedFileListReorderCause::Addition: changes.push_back(QStringLiteral("addition")); break;
+		}
 		checkPositions();
 	}
 
@@ -147,7 +152,7 @@ QStringList expectedRowTexts(std::vector<CFileSystemObject> items, const QString
 
 	FileListSorter sorter;
 	sorter.setSorting(field, order);
-	sorter.setListedFolder(listedFolder);
+	sorter.setListedFolder(itemsFolder);
 	sorter.sort(items);
 
 	QStringList texts;
@@ -174,12 +179,15 @@ TEST_CASE("Sorted file list - random updates, filters and sortings are notified 
 		for (int i = 0; i < 30; ++i)
 			names.push_back(QStringLiteral("%1%2").arg(QChar(u'a' + i % 6)).arg(i));
 
+		const auto randomItem = [&](const QString& name) {
+			return makeItem(randomBelow(5) == 0 ? Directory : File, name, randomBelow(2) ? QStringLiteral("txt") : QStringLiteral("doc"), (uint64_t)randomBelow(4), randomBelow(4));
+		};
 		const auto randomItems = [&] {
 			std::vector<CFileSystemObject> items;
 			for (const QString& name : names)
 			{
 				if (randomBelow(10) < 7)
-					items.push_back(makeItem(randomBelow(5) == 0 ? Directory : File, name, randomBelow(2) ? QStringLiteral("txt") : QStringLiteral("doc"), (uint64_t)randomBelow(4), randomBelow(4)));
+					items.push_back(randomItem(name));
 			}
 			return items;
 		};
@@ -189,12 +197,12 @@ TEST_CASE("Sorted file list - random updates, filters and sortings are notified 
 		QString filterText;
 		FileListSortField field = FileListSortField::Name;
 		Qt::SortOrder order = Qt::AscendingOrder;
-		o.list.setRows(items, listedFolder);
+		o.list.setRows(items, itemsFolder);
 
 		for (int round = 0; round < 40; ++round)
 		{
 			INFO("Round " << round);
-			switch (randomBelow(5))
+			switch (randomBelow(6))
 			{
 			case 0:
 				field = fields[randomBelow(4)];
@@ -205,6 +213,19 @@ TEST_CASE("Sorted file list - random updates, filters and sortings are notified 
 				filterText = filters[randomBelow(3)];
 				o.list.setNameFilter(filterText);
 				break;
+			case 2:
+			{
+				std::vector<CFileSystemObject> added;
+				for (const QString& name : names)
+				{
+					const CFileSystemObject item = randomItem(name);
+					if (randomBelow(3) == 0 && std::ranges::none_of(items, [&item](const CFileSystemObject& listed) { return listed.fullAbsolutePath() == item.fullAbsolutePath(); }))
+						added.push_back(item);
+				}
+				items.insert(items.end(), added.cbegin(), added.cend());
+				o.list.addRows(std::move(added));
+				break;
+			}
 			default:
 				items = randomItems();
 				REQUIRE(o.list.updateRows(items));
@@ -227,14 +248,14 @@ TEST_CASE("Sorted file list - updateRows() resets past MaxChangesForUpdate chang
 	};
 
 	ObservedList o;
-	o.list.setRows({}, listedFolder);
+	o.list.setRows({}, itemsFolder);
 	o.observer.changes.clear();
 
 	CHECK(o.list.updateRows(items(SortedFileList::MaxChangesForUpdate)));
 	CHECK(o.observer.changes == QStringList{ "insert" });
 	o.observer.checkRows();
 
-	o.list.setRows({}, listedFolder);
+	o.list.setRows({}, itemsFolder);
 	o.observer.changes.clear();
 
 	CHECK_FALSE(o.list.updateRows(items(SortedFileList::MaxChangesForUpdate + 1)));
@@ -245,7 +266,7 @@ TEST_CASE("Sorted file list - updateRows() resets past MaxChangesForUpdate chang
 TEST_CASE("Sorted file list - the same sorting or filter again changes nothing", "[sortedfilelist]")
 {
 	ObservedList o;
-	o.list.setRows({ makeItem(File, "b", "txt"), makeItem(File, "a", "txt") }, listedFolder);
+	o.list.setRows({ makeItem(File, "b", "txt"), makeItem(File, "a", "txt") }, itemsFolder);
 	o.list.setSorting(FileListSortField::Name, Qt::DescendingOrder);
 	o.list.setNameFilter(QStringLiteral("a"));
 	o.observer.changes.clear();
@@ -255,11 +276,29 @@ TEST_CASE("Sorted file list - the same sorting or filter again changes nothing",
 	CHECK(o.observer.changes.isEmpty());
 }
 
+TEST_CASE("Sorted file list - addRows() of rows the filter hides changes no row, and the totals count them", "[sortedfilelist]")
+{
+	ObservedList o;
+	o.list.setRows({ makeItem(File, "a", "txt") }, itemsFolder);
+	o.list.setNameFilter(QStringLiteral("a"));
+	o.observer.changes.clear();
+
+	o.list.addRows({ makeItem(File, "b", "txt"), makeItem(File, "c", "txt") });
+	CHECK(o.observer.changes.isEmpty());
+	CHECK(o.list.rowCount() == 1);
+	CHECK(o.list.contentsSummary().numFiles == 3);
+
+	o.list.addRows({ makeItem(File, "ba", "txt"), makeItem(File, "d", "txt") });
+	CHECK(o.observer.changes == QStringList{ "addition" });
+	o.observer.checkRows();
+	CHECK(o.list.rowCount() == 2);
+}
+
 TEST_CASE("Sorted file list - lookups skip the rows the filter hides; the totals count them", "[sortedfilelist]")
 {
 	ObservedList o;
 	const CFileSystemObject hidden = makeItem(File, "b", "txt");
-	o.list.setRows({ makeItem(File, "a", "txt"), hidden, makeItem(Directory, "x") }, listedFolder);
+	o.list.setRows({ makeItem(File, "a", "txt"), hidden, makeItem(Directory, "x") }, itemsFolder);
 	o.list.setNameFilter(QStringLiteral("a"));
 
 	CHECK(o.list.rowCount() == 1);

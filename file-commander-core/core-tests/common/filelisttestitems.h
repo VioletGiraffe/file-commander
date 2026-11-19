@@ -16,13 +16,16 @@ RESTORE_COMPILER_WARNINGS
 #include <stdint.h>
 #include <time.h>
 
-// An entry of /folder/; a test that changes it before listing keeps the properties, the others use makeItem()
+// The folder of the items built by name: its rows' listed folder, see fileListFolderPrefix()
+inline const QString itemsFolder = QStringLiteral("/folder/");
+
+// An entry of itemsFolder; a test that changes it before listing keeps the properties, the others use makeItem()
 inline CFileSystemObjectProperties itemProperties(FileSystemObjectType type, const QString& name, const QString& extension = {}, uint64_t size = 0, time_t modificationTime = 0)
 {
 	CFileSystemObjectProperties properties;
 	properties.type = type;
 	const QString fullName = extension.isEmpty() ? name : name + '.' + extension;
-	properties.fullPath = QStringLiteral("/folder/") + fullName + (type == Directory ? QStringLiteral("/") : QString{});
+	properties.fullPath = itemsFolder + fullName + (type == Directory ? QStringLiteral("/") : QString{});
 	properties.size = size;
 	properties.modificationTime = modificationTime;
 	return properties;

@@ -307,34 +307,16 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	enqueueFileListUpdate(request, refreshCauseOther);
 }
 
-// The deepest folder holding every path, ending with '/'. Empty when no folder does, as for paths on two drives.
-static QString deepestCommonFolder(const QStringList& paths)
-{
-	if (paths.isEmpty())
-		return {};
-
-	QString common = parentFolderOf(paths.front()).toString();
-	for (const QString& path : paths)
-	{
-		const QStringView folder = parentFolderOf(path);
-		while (!folder.startsWith(common))
-		{
-			const qsizetype parentEnd = common.lastIndexOf('/', -2);
-			if (parentEnd < 0)
-				return {};
-
-			common.truncate(parentEnd + 1);
-		}
-	}
-
-	return common;
-}
-
 void CPanel::showSearchResults(QStringList paths)
 {
+	std::vector<QStringView> folders;
+	folders.reserve((size_t)paths.size());
+	for (const QString& path : paths)
+		folders.push_back(parentFolderOf(path));
+
 	// The UI thread is the only writer of _history, so it reads it unlocked
 	ListableFolderProbe probe{ _abortBackgroundTasks };
-	FolderResolution resolution = resolveFolder(deepestCommonFolder(paths), currentDirObject(), _history, probe);
+	FolderResolution resolution = resolveFolder(deepestCommonFolder(folders), currentDirObject(), _history, probe);
 	{
 		std::lock_guard locker(_fileListAndCurrentDirMutex);
 		_searchResultPaths = std::move(paths);

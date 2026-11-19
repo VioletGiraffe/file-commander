@@ -83,7 +83,7 @@ TEST_CASE("An update changes single rows, and selection and cursor stay on their
 	for (const CFileSystemObjectProperties& row : { cdUpItemProperties(), itemProperties(Directory, "d"), itemProperties(File, "a", "txt", 1), itemProperties(File, "b", "txt", 2),
 		itemProperties(File, "c", "txt", 3), itemProperties(File, "e", "txt", 4) })
 		listing[row.fullPath] = row;
-	model.setRows(rowsOf(listing));
+	model.setRows(rowsOf(listing), itemsFolder);
 
 	QItemSelectionModel selection{ &model };
 	const qulonglong a = pathHash("/folder/a.txt"), b = pathHash("/folder/b.txt"), c = pathHash("/folder/c.txt");
@@ -116,7 +116,7 @@ TEST_CASE("An update past a number of changes resets instead, whatever the share
 		std::vector<CFileSystemObject> rows;
 		for (int i = 0; i < numRows; ++i)
 			rows.push_back(makeItem(File, QStringLiteral("old%1").arg(i), "txt"));
-		model.setRows(rows);
+		model.setRows(rows, itemsFolder);
 
 		rows.clear();
 		for (int i = 0; i < numRows; ++i)
@@ -170,7 +170,7 @@ TEST_CASE("Random updates keep the rows, their order and the persistent indexes 
 	CFileListModel& model = tested.model;
 	model.sort(sortColumn, sortOrder);
 	model.setNameFilter(nameFilter);
-	model.setRows(rowsOf(listing));
+	model.setRows(rowsOf(listing), itemsFolder);
 	QItemSelectionModel selection{ &model };
 
 	for (int step = 0; step < 50; ++step)
@@ -203,7 +203,7 @@ TEST_CASE("Random updates keep the rows, their order and the persistent indexes 
 		CFileListModel reference{ nullptr };
 		reference.sort(sortColumn, sortOrder);
 		reference.setNameFilter(nameFilter);
-		reference.setRows(rowsOf(listing));
+		reference.setRows(rowsOf(listing), itemsFolder);
 		REQUIRE(displayedRowData(model) == displayedRowData(reference));
 		CHECK(model.contentsSummary().numFiles == reference.contentsSummary().numFiles);
 		CHECK(model.contentsSummary().numFolders == reference.contentsSummary().numFolders);
@@ -222,7 +222,7 @@ TEST_CASE("Random updates keep the rows, their order and the persistent indexes 
 	model.setNameFilter({});
 	CFileListModel reference{ nullptr };
 	reference.sort(sortColumn, sortOrder);
-	reference.setRows(rowsOf(listing));
+	reference.setRows(rowsOf(listing), itemsFolder);
 	CHECK(displayedRowData(model) == displayedRowData(reference));
 }
 
@@ -233,7 +233,7 @@ TEST_CASE("An open editor keeps its row and its text through an update", "[filel
 	Listing listing;
 	for (const CFileSystemObjectProperties& row : { itemProperties(File, "a", "txt", 1), itemProperties(File, "b", "txt", 2), itemProperties(File, "c", "txt", 3) })
 		listing[row.fullPath] = row;
-	model.setRows(rowsOf(listing));
+	model.setRows(rowsOf(listing), itemsFolder);
 
 	CFileListView view;
 	view.setModel(&model);
@@ -266,7 +266,7 @@ TEST_CASE("The rows on screen stay in place through an update", "[filelist][upda
 		const CFileSystemObjectProperties row = itemProperties(File, QStringLiteral("f%1").arg(i, 3, 10, QChar('0')), "txt");
 		listing[row.fullPath] = row;
 	}
-	model.setRows(rowsOf(listing));
+	model.setRows(rowsOf(listing), itemsFolder);
 
 	CFileListView view;
 	view.setModel(&model);
@@ -309,7 +309,7 @@ TEST_CASE("The rows on screen stay in place through an update", "[filelist][upda
 	SECTION("A reset leaves no row to restore")
 	{
 		const CFileListView::ScrollPosition position = view.scrollPosition();
-		model.setRows(rowsOf(listing));
+		model.setRows(rowsOf(listing), itemsFolder);
 		CHECK_FALSE(view.restoreScrollPosition(position));
 	}
 
@@ -317,7 +317,7 @@ TEST_CASE("The rows on screen stay in place through an update", "[filelist][upda
 	{
 		const CFileListView::ScrollPosition position = view.scrollPosition();
 		CFileListModel otherModel{ nullptr };
-		otherModel.setRows(rowsOf(listing));
+		otherModel.setRows(rowsOf(listing), itemsFolder);
 		view.setModel(&otherModel);
 		view.scrollToTop();
 		view.setModel(&model);
@@ -348,7 +348,7 @@ TEST_CASE("The file list paints its look's row bands, row lines and margin line"
 		std::vector<CFileSystemObject> rows;
 		for (int i = 0; i < rowCount; ++i)
 			rows.push_back(makeItem(File, QStringLiteral("f%1").arg(i, 3, 10, QChar('0')), "txt"));
-		model.setRows(std::move(rows));
+		model.setRows(std::move(rows), itemsFolder);
 		view.setLook(look);
 		view.show();
 	};
@@ -456,7 +456,7 @@ TEST_CASE("Timings of an update against a reset", "[.][filelist][update][timing]
 			const auto timeMs = [&](int column, const auto& apply) {
 				CFileListModel model{ nullptr };
 				model.sort(column, Qt::AscendingOrder);
-				model.setRows(baseRows);
+				model.setRows(baseRows, itemsFolder);
 				QTreeView view;
 				view.setUniformRowHeights(true);
 				view.setModel(&model);
@@ -472,7 +472,7 @@ TEST_CASE("Timings of an update against a reset", "[.][filelist][update][timing]
 			for (const int column : { SizeColumn, NameColumn, ExtColumn })
 			{
 				const double updateMs = timeMs(column, [](CFileListModel& model, std::vector<CFileSystemObject> rows) { (void)model.updateRows(std::move(rows)); });
-				const double resetMs = timeMs(column, [](CFileListModel& model, std::vector<CFileSystemObject> rows) { model.setRows(std::move(rows)); });
+				const double resetMs = timeMs(column, [](CFileListModel& model, std::vector<CFileSystemObject> rows) { model.setRows(std::move(rows), itemsFolder); });
 				std::printf("%8d %8d %6s %12.1f %12.1f\n", numRows, numChanges, columnNames[column], updateMs, resetMs);
 			}
 		}
@@ -515,11 +515,11 @@ TEST_CASE("Timings of a name filter change", "[.][filelist][filter][timing]")
 			const int column = configuration.column;
 			CFileListModel model{ nullptr };
 			model.sort(column, Qt::AscendingOrder);
-			model.setRows(configuration.rows);
+			model.setRows(configuration.rows, itemsFolder);
 
 			CFileListModel viewedModel{ nullptr };
 			viewedModel.sort(column, Qt::AscendingOrder);
-			viewedModel.setRows(configuration.rows);
+			viewedModel.setRows(configuration.rows, itemsFolder);
 			QTreeView view;
 			view.resize(800, 600);
 			view.setUniformRowHeights(true);
@@ -646,7 +646,7 @@ TEST_CASE("Timings of a collator sort", "[.][filelist][collator][timing]")
 		model.sort(ExtColumn, Qt::AscendingOrder);
 		const size_t before = processPrivateBytes();
 		const auto start = std::chrono::steady_clock::now();
-		model.setRows(std::move(rows));
+		model.setRows(std::move(rows), itemsFolder);
 		const double setRowsMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 		const double bytesPerRow = (double)(processPrivateBytes() - before) / (double)model.rowCount();
 		std::printf("A model of %d rows with 20 extensions, sorted by extension: %.1f ms to set, %.0f bytes per row besides the rows\n", model.rowCount(), setRowsMs, bytesPerRow);

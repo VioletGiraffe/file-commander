@@ -25,7 +25,7 @@ QStringView fileListDisplayName(const CFileSystemObject& row) noexcept
 
 QString fileListFolderPrefix(const CFileSystemObject& row, const QString& listedFolder)
 {
-	if (row.isCdUp() || listedFolder.isEmpty())
+	if (row.isCdUp())
 		return {};
 
 	const QStringView folder = parentFolderOf(row.fullAbsolutePath());

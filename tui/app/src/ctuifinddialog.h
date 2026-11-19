@@ -73,8 +73,6 @@ private:
 	CTuiSavedFieldHistory _nameHistory, _contentsHistory, _searchInHistory;
 
 	QString _baseDir;
-	// A result's path is shown without it: the single folder searched in, ending with '/'. Empty when there is none.
-	QString _searchRootPrefix;
 	Outcome _outcome;
 
 	// Before the engine, whose threads report into it

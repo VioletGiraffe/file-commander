@@ -23,14 +23,14 @@ namespace {
 constexpr int minNameColumnWidth = 20;
 
 // Zero for Name, whose width is what the others leave
-[[nodiscard]] int fixedColumnWidth(FileListSortField field) noexcept
+[[nodiscard]] int fixedColumnWidth(FileListSortField field, FileTimeTextLength dateTextLength) noexcept
 {
 	switch (field)
 	{
 	case FileListSortField::Name: return 0;
 	case FileListSortField::Extension: return 5; // "Ext ↑"
 	case FileListSortField::Size: return 6; // "Size ↑"
-	case FileListSortField::Date: return maxShortFileTimeTextLength;
+	case FileListSortField::Date: return dateTextLength == FileTimeTextLength::Long ? longFileTimeTextLength : maxShortFileTimeTextLength;
 	}
 	return 0;
 }
@@ -54,26 +54,42 @@ constexpr int minNameColumnWidth = 20;
 	return shown;
 }
 
-// In the cell before each column but the first
-void drawColumnSeparators(TDrawBuffer& line, const std::vector<FileListColumn>& columns, TColorAttr color)
-{
-	if (!columnSeparatorsShown())
-		return;
+} // namespace
 
-	for (size_t i = 1; i < columns.size(); ++i)
-		line.moveStr((ushort)(columns[i].x - 1), "┆", color);
+std::vector<FileListColumn> fileListColumns(const int width, const FileListSortField sortField, const FileTimeTextLength dateTextLength)
+{
+	// One cell before each column, and one after the last
+	int nameWidth = width - 2;
+	std::array<bool, 4> shown{};
+	shown[(size_t)FileListSortField::Name] = true;
+	const auto show = [&](FileListSortField field) {
+		shown[(size_t)field] = true;
+		nameWidth -= fixedColumnWidth(field, dateTextLength) + 1;
+	};
+
+	if (sortField != FileListSortField::Name)
+		show(sortField);
+	for (const FileListSortField field : { FileListSortField::Size, FileListSortField::Extension, FileListSortField::Date })
+	{
+		if (!shown[(size_t)field] && nameWidth - fixedColumnWidth(field, dateTextLength) - 1 >= minNameColumnWidth)
+			show(field);
+	}
+
+	std::vector<FileListColumn> columns;
+	int x = 1;
+	for (const FileListSortField field : { FileListSortField::Name, FileListSortField::Extension, FileListSortField::Size, FileListSortField::Date })
+	{
+		if (!shown[(size_t)field])
+			continue;
+
+		const int columnWidth = field == FileListSortField::Name ? std::max(nameWidth, 0) : fixedColumnWidth(field, dateTextLength);
+		columns.push_back({ field, x, columnWidth });
+		x += columnWidth + 1;
+	}
+	return columns;
 }
 
-// Size is right-aligned, the others left-aligned
-void drawInColumn(TDrawBuffer& line, const FileListColumn& column, const QString& text, TColorAttr color)
-{
-	const QByteArray utf8 = text.toUtf8();
-	const TStringView view{ utf8.constData(), (size_t)utf8.size() };
-	const int indent = column.field == FileListSortField::Size ? column.x + std::max(column.width - strwidth(view), 0) : column.x;
-	line.moveStr((ushort)indent, view, color, (ushort)column.width);
-}
-
-[[nodiscard]] QString columnText(const CFileSystemObject& item, FileListSortField field, bool extensionShown, const QString& listedFolder)
+QString fileListCellText(const CFileSystemObject& item, FileListSortField field, bool extensionShown, const QString& listedFolder, FileTimeTextLength dateTextLength)
 {
 	switch (field)
 	{
@@ -85,44 +101,43 @@ void drawInColumn(TDrawBuffer& line, const FileListColumn& column, const QString
 		// A folder has a size once Space has calculated it
 		return item.isDir() && item.size() == 0 ? QStringLiteral("<DIR>") : compactFileSizeText(item.size(), FileSizeUnitSpacing::Joined);
 	case FileListSortField::Date:
-		return item.isCdUp() ? QString{} : fileTimeText(item.modificationTime(), FileTimeTextLength::Short);
+		return item.isCdUp() ? QString{} : fileTimeText(item.modificationTime(), dateTextLength);
 	}
 	return {};
 }
 
-} // namespace
-
-std::vector<FileListColumn> fileListColumns(const int width, const FileListSortField sortField)
+void drawFileListCell(TDrawBuffer& line, const FileListColumn& column, const QString& text, TColorAttr color)
 {
-	// One cell before each column, and one after the last
-	int nameWidth = width - 2;
-	std::array<bool, 4> shown{};
-	shown[(size_t)FileListSortField::Name] = true;
-	const auto show = [&](FileListSortField field) {
-		shown[(size_t)field] = true;
-		nameWidth -= fixedColumnWidth(field) + 1;
-	};
+	const QByteArray utf8 = text.toUtf8();
+	const TStringView view{ utf8.constData(), (size_t)utf8.size() };
+	const int indent = column.field == FileListSortField::Size ? column.x + std::max(column.width - strwidth(view), 0) : column.x;
+	line.moveStr((ushort)indent, view, color, (ushort)column.width);
+}
 
-	if (sortField != FileListSortField::Name)
-		show(sortField);
-	for (const FileListSortField field : { FileListSortField::Size, FileListSortField::Extension, FileListSortField::Date })
+void drawFileListColumnSeparators(TDrawBuffer& line, const std::vector<FileListColumn>& columns, TColorAttr color)
+{
+	if (!columnSeparatorsShown())
+		return;
+
+	for (size_t i = 1; i < columns.size(); ++i)
+		line.moveStr((ushort)(columns[i].x - 1), "┆", color);
+}
+
+void drawFileListHeader(TDrawBuffer& line, int width, FileListSortField sortField, Qt::SortOrder sortOrder, FileTimeTextLength dateTextLength,
+	TColorAttr color, TColorAttr separatorColor)
+{
+	line.moveChar(0, ' ', color, (ushort)width);
+	const std::vector<FileListColumn> columns = fileListColumns(width, sortField, dateTextLength);
+	for (const FileListColumn& column : columns)
 	{
-		if (!shown[(size_t)field] && nameWidth - fixedColumnWidth(field) - 1 >= minNameColumnWidth)
-			show(field);
+		QString title = columnTitle(column.field);
+		if (appliedColourTheme().parameters.uppercaseColumnHeader)
+			title = title.toUpper();
+		if (column.field == sortField)
+			title += sortOrder == Qt::AscendingOrder ? QStringLiteral(" ↑") : QStringLiteral(" ↓");
+		drawFileListCell(line, column, title, color);
 	}
-
-	std::vector<FileListColumn> columns;
-	int x = 1;
-	for (const FileListSortField field : { FileListSortField::Name, FileListSortField::Extension, FileListSortField::Size, FileListSortField::Date })
-	{
-		if (!shown[(size_t)field])
-			continue;
-
-		const int columnWidth = field == FileListSortField::Name ? std::max(nameWidth, 0) : fixedColumnWidth(field);
-		columns.push_back({ field, x, columnWidth });
-		x += columnWidth + 1;
-	}
-	return columns;
+	drawFileListColumnSeparators(line, columns, separatorColor);
 }
 
 CTuiColumnHeader::CTuiColumnHeader(const TRect& bounds) noexcept : TView(bounds)
@@ -139,21 +154,8 @@ void CTuiColumnHeader::setSorting(FileListSortField field, Qt::SortOrder order)
 
 void CTuiColumnHeader::draw()
 {
-	const TColorAttr color = mapColor(ppColumnHeader);
-
 	TDrawBuffer line;
-	line.moveChar(0, ' ', color, (ushort)size.x);
-	const std::vector<FileListColumn> columns = fileListColumns(size.x, _sortField);
-	for (const FileListColumn& column : columns)
-	{
-		QString title = columnTitle(column.field);
-		if (appliedColourTheme().parameters.uppercaseColumnHeader)
-			title = title.toUpper();
-		if (column.field == _sortField)
-			title += _sortOrder == Qt::AscendingOrder ? QStringLiteral(" ↑") : QStringLiteral(" ↓");
-		drawInColumn(line, column, title, color);
-	}
-	drawColumnSeparators(line, columns, mapColor(ppHeaderColumnSeparator));
+	drawFileListHeader(line, size.x, _sortField, _sortOrder, FileTimeTextLength::Short, mapColor(ppColumnHeader), mapColor(ppHeaderColumnSeparator));
 	writeLine(0, 0, (short)size.x, 1, line);
 }
 
@@ -164,7 +166,7 @@ void CTuiColumnHeader::handleEvent(TEvent& event)
 		return;
 
 	const int x = makeLocal(event.mouse.where).x;
-	for (const FileListColumn& column : fileListColumns(size.x, _sortField))
+	for (const FileListColumn& column : fileListColumns(size.x, _sortField, FileTimeTextLength::Short))
 	{
 		if (x >= column.x && x < column.x + column.width)
 		{
@@ -225,7 +227,7 @@ void CTuiFileList::draw()
 	const TColorAttr cursorColor = mapColor(ppFileListCursor), selectedCursorColor = mapColor(ppFileListSelectedCursor), cursorSeparatorColor = mapColor(ppCursorColumnSeparator);
 	const int rowsPerBand = appliedColourTheme().parameters.rowsPerBand;
 
-	const std::vector<FileListColumn> columns = fileListColumns(size.x, _sortField);
+	const std::vector<FileListColumn> columns = fileListColumns(size.x, _sortField, FileTimeTextLength::Short);
 	const bool extensionShown = std::ranges::any_of(columns, [](const FileListColumn& column) { return column.field == FileListSortField::Extension; });
 
 	for (int y = 0; y < size.y; ++y)
@@ -246,10 +248,10 @@ void CTuiFileList::draw()
 			for (const FileListColumn& column : columns)
 			{
 				const TColorAttr columnColor = column.field == FileListSortField::Name ? color : detailsColor;
-				drawInColumn(line, column, columnText(_rows[(size_t)row], column.field, extensionShown, _listedFolder), columnColor);
+				drawFileListCell(line, column, fileListCellText(_rows[(size_t)row], column.field, extensionShown, _listedFolder, FileTimeTextLength::Short), columnColor);
 			}
 		}
-		drawColumnSeparators(line, columns, onCursor ? cursorSeparatorColor : offCursor.separator);
+		drawFileListColumnSeparators(line, columns, onCursor ? cursorSeparatorColor : offCursor.separator);
 
 		writeLine(0, (short)y, (short)size.x, 1, line);
 	}

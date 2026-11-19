@@ -25,7 +25,7 @@ RESTORE_COMPILER_WARNINGS
 // A file with nothing before its extension, like .jpg on Windows, displays and sorts by its full name
 [[nodiscard]] QStringView fileListDisplayName(const CFileSystemObject& row) noexcept;
 // What the name column shows before the name: the row's folder relative to listedFolder, native, ending with a separator.
-// Empty for [..], for a child of listedFolder, and when listedFolder is empty; the whole folder path for a row outside it.
+// Empty for [..] and for a child of listedFolder; the whole folder path for a row outside it, so for every row when listedFolder is empty.
 // listedFolder: the panel's folder, ending with '/'. A view of items from many folders lists them all in it.
 [[nodiscard]] QString fileListFolderPrefix(const CFileSystemObject& row, const QString& listedFolder);
 

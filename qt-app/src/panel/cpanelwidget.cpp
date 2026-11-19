@@ -16,6 +16,7 @@
 
 #include "settings.h"
 #include "shell/cshell.h"
+#include "filelist/filetimetext.h"
 #include "filesystemhelperfunctions.h"
 
 
@@ -341,7 +342,7 @@ void CPanelWidget::initPanel(Panel p)
 int CPanelWidget::appendTab(const qulonglong tabId, const CFileListView::ColumnLayout& columnLayout)
 {
 	PanelTab& tab = _tabs.emplace_back();
-	tab.model = new CFileListModel(_iconProvider, this);
+	tab.model = new CFileListModel(_iconProvider, FileTimeTextLength::Short, this);
 	tab.model->setDropHandler([this](const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath) {
 		return dropUrls(urls, action, destinationPath);
 	});
@@ -1303,7 +1304,7 @@ void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 
 	// Display only - see PanelContentsChangedListener. The tab is already at the new folder, so its name is shown
 	// right away instead of lagging behind for however long the listing takes.
-	_model->setRows({});
+	_model->setRows({}, {});
 	PanelTab& tab = activeTab();
 	tab.navigationId.reset();
 	tab.cursorTargetHash = 0;

@@ -105,3 +105,19 @@ TEST_CASE("Search fields - only a \"Search in\" text of one path belongs in the 
 	CHECK(searchInFieldTextBelongsInHistory(QSL("/a;b")));
 	CHECK_FALSE(searchInFieldTextBelongsInHistory(QSL("/a; /b")));
 }
+
+TEST_CASE("Search fields - the results are listed in the deepest folder that is or holds each root", "[search][fields]")
+{
+	TempTree tree;
+	const QString one = tree.makeDir(QSL("one/x"));
+	const QString two = tree.makeDir(QSL("two"));
+	const QString file = tree.makeFile(QSL("one/file.txt"));
+	const auto folderOf = [](const QString& path) { return CFileSystemObject{ path }.fullAbsolutePath(); };
+
+	CHECK(searchResultsListedFolder({ one }) == folderOf(one));
+	CHECK(searchResultsListedFolder({ one, two }) == folderOf(tree.path()));
+	// A file counts as its folder
+	CHECK(searchResultsListedFolder({ file }) == folderOf(tree.path(QSL("one"))));
+	CHECK(searchResultsListedFolder({ file, one }) == folderOf(tree.path(QSL("one"))));
+	CHECK(searchResultsListedFolder({}).isEmpty());
+}

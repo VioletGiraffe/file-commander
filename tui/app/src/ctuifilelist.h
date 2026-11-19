@@ -4,10 +4,12 @@
 
 #include "cfilesystemobject.h"
 #include "filelist/filelistsorter.h"
+#include "filelist/filetimetext.h"
 
 #include "compiler/compiler_warnings_control.h"
 #include "hash/hash_functors.hpp"
 
+#define Uses_TDrawBuffer
 #define Uses_TView
 #define Uses_TScrollBar
 DISABLE_COMPILER_WARNINGS
@@ -27,7 +29,18 @@ struct FileListColumn
 };
 // The columns that fit in a row of `width` cells, in the order Name, Ext, Size, Date.
 // Name and the sorted column are always shown; Size, Ext and Date follow, in that priority, while they fit. Name takes the width left over.
-[[nodiscard]] std::vector<FileListColumn> fileListColumns(int width, FileListSortField sortField);
+[[nodiscard]] std::vector<FileListColumn> fileListColumns(int width, FileListSortField sortField, FileTimeTextLength dateTextLength);
+
+// What item shows in the column. extensionShown: whether the row has an Ext column; listedFolder: see fileListFolderPrefix().
+[[nodiscard]] QString fileListCellText(const CFileSystemObject& item, FileListSortField field, bool extensionShown, const QString& listedFolder,
+	FileTimeTextLength dateTextLength);
+// Size is right-aligned, the others left-aligned
+void drawFileListCell(TDrawBuffer& line, const FileListColumn& column, const QString& text, TColorAttr color);
+// In the cell before each column but the first, if the GUI's setting shows them
+void drawFileListColumnSeparators(TDrawBuffer& line, const std::vector<FileListColumn>& columns, TColorAttr color);
+// The whole line: every column's title, with an arrow for the order on the sorted one
+void drawFileListHeader(TDrawBuffer& line, int width, FileListSortField sortField, Qt::SortOrder sortOrder, FileTimeTextLength dateTextLength,
+	TColorAttr color, TColorAttr separatorColor);
 
 // The titles of the file list's columns, with an arrow for the order on the sorted one
 class CTuiColumnHeader final : public TView

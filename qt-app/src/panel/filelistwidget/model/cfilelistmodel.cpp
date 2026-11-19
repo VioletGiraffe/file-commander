@@ -13,6 +13,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
 
+#include <QFont>
 #include <QIcon>
 #include <QMimeData>
 #include <QStringBuilder>
@@ -22,7 +23,7 @@ RESTORE_COMPILER_WARNINGS
 #include <utility>
 #include <variant>
 
-static QVariant displayText(const CFileSystemObject& row, int column, const QString& listedFolder)
+static QVariant displayText(const CFileSystemObject& row, int column, const QString& listedFolder, FileTimeTextLength dateTextLength)
 {
 	switch (column)
 	{
@@ -46,7 +47,7 @@ static QVariant displayText(const CFileSystemObject& row, int column, const QStr
 
 	case DateColumn:
 		if (!row.isCdUp()) [[likely]]
-			return fileTimeText(row.modificationTime(), FileTimeTextLength::Short);
+			return fileTimeText(row.modificationTime(), dateTextLength);
 		else
 			return {};
 
@@ -65,9 +66,10 @@ static QAbstractItemModel::LayoutChangeHint layoutChangeHint(SortedFileListReord
 	return cause == SortedFileListReorderCause::Sort ? QAbstractItemModel::VerticalSortHint : QAbstractItemModel::NoLayoutChangeHint;
 }
 
-CFileListModel::CFileListModel(CIconProvider* iconProvider, QObject* parent) :
+CFileListModel::CFileListModel(CIconProvider* iconProvider, FileTimeTextLength dateTextLength, QObject* parent) :
 	QAbstractItemModel(parent),
-	_iconProvider(iconProvider)
+	_iconProvider(iconProvider),
+	_dateTextLength(dateTextLength)
 {
 }
 
@@ -78,6 +80,7 @@ void CFileListModel::setDropHandler(DropHandler handler)
 
 void CFileListModel::setRows(std::vector<CFileSystemObject> rows, QString listedFolder)
 {
+	_hashesReachedThroughLink.clear();
 	_list.setRows(std::move(rows), std::move(listedFolder));
 }
 
@@ -86,9 +89,19 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 	return _list.updateRows(std::move(rows));
 }
 
+void CFileListModel::addRows(std::vector<CFileSystemObject> rows)
+{
+	_list.addRows(std::move(rows));
+}
+
 void CFileListModel::setNameFilter(const QString& filterText)
 {
 	_list.setNameFilter(filterText);
+}
+
+void CFileListModel::markReachedThroughLink(qulonglong itemHash)
+{
+	_hashesReachedThroughLink.insert(itemHash);
 }
 
 void CFileListModel::sort(int column, Qt::SortOrder order)
@@ -204,9 +217,20 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 	case FullNameRole:
 		return row.fullName().toString();
 	case Qt::DisplayRole:
-		return displayText(row, index.column(), _list.listedFolder());
+		return displayText(row, index.column(), _list.listedFolder(), _dateTextLength);
 	case Qt::TextAlignmentRole:
 		return textAlignment(index.column());
+	case Qt::FontRole:
+		if (_hashesReachedThroughLink.contains(row.hash()))
+		{
+			// Only italic is set: the delegate takes the rest from the view's font
+			QFont italic;
+			italic.setItalic(true);
+			return italic;
+		}
+		return {};
+	case Qt::ToolTipRole:
+		return _hashesReachedThroughLink.contains(row.hash()) ? tr("Found by following a directory link") : QVariant{};
 	case Qt::DecorationRole:
 	case FileGlyphRole:
 	{

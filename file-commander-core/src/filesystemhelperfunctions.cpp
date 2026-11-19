@@ -124,6 +124,27 @@ QString resolveUserPath(const QString& text, const QString& baseDir)
 	return normalizedAbsolutePath(path);
 }
 
+QString deepestCommonFolder(const std::vector<QStringView>& folders)
+{
+	if (folders.empty())
+		return {};
+
+	QString common = folders.front().toString();
+	for (const QStringView folder : folders)
+	{
+		while (!folder.startsWith(common))
+		{
+			// Never above a root: two drives or two network shares have no common folder
+			if (isRootPath(common))
+				return {};
+
+			common.truncate(common.lastIndexOf('/', -2) + 1);
+		}
+	}
+
+	return common;
+}
+
 // Unicode letters and digits are never special to a shell, so paths in any script stay unquoted.
 static bool isSafeUnquoted(const QChar c) noexcept
 {

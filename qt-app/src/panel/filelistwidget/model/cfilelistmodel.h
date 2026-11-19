@@ -3,15 +3,19 @@
 #include "panel/columns.h"
 
 #include "cfilesystemobject.h"
+#include "filelist/filetimetext.h"
 #include "filelist/foldercontentssummary.h"
 #include "filelist/sortedfilelist.h"
 
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "hash/hash_functors.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
+#include <3rdparty/ankerl/unordered_dense.h>
+
 #include <QAbstractItemModel>
 #include <QList>
 #include <QString>
@@ -36,18 +40,22 @@ public:
 	// Handles dropped URLs; an empty destinationPath means the current folder
 	using DropHandler = std::function<bool (const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath)>;
 
-	// iconProvider: null leaves the rows without icons
-	explicit CFileListModel(CIconProvider* iconProvider, QObject* parent = nullptr);
+	// iconProvider: null leaves the rows without icons. dateTextLength: the Date column's.
+	explicit CFileListModel(CIconProvider* iconProvider, FileTimeTextLength dateTextLength = FileTimeTextLength::Short, QObject* parent = nullptr);
 
 	void setDropHandler(DropHandler handler);
 
 	// Below, a member with a namesake in SortedFileList has that namesake's contract
 
-	// Resets the model
-	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder = {});
+	// Resets the model, and clears the marks of markReachedThroughLink()
+	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder);
 	// Every persistent index (selection, cursor, an open editor) stays on its row. Returns false if it reset the model instead.
 	bool updateRows(std::vector<CFileSystemObject> rows);
+	void addRows(std::vector<CFileSystemObject> rows);
 	void setNameFilter(const QString& filterText);
+
+	// The item's row is in italics, with a tooltip: a search found the item by following a directory link
+	void markReachedThroughLink(qulonglong itemHash);
 
 	void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 	[[nodiscard]] int sortColumn() const noexcept;
@@ -105,6 +113,8 @@ private:
 	// From beforeReorder() to afterReorder(): the persistent indexes and the hashes of their rows
 	QModelIndexList _indexesBeforeReorder;
 	std::vector<qulonglong> _hashesBeforeReorder;
+	ankerl::unordered_dense::set<qulonglong, identity_hash> _hashesReachedThroughLink;
 	DropHandler _dropHandler;
 	CIconProvider* const _iconProvider;
+	const FileTimeTextLength _dateTextLength;
 };

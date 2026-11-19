@@ -1,8 +1,8 @@
 #pragma once
 
-#include "cfilesystemobject.h"
 #include "filesearchengine/cfilesearchengine.h"
 #include "filesearchengine/cfilesearchresultsbuffer.h"
+#include "iconprovider/ciconprovider.h"
 
 
 // Submodule includes
@@ -11,6 +11,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
+#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <vector>
@@ -20,11 +21,11 @@ class CFilesSearchWindow;
 }
 
 class QAction;
-class QLabel;
+class QTimer;
 
-class CIconProvider;
+class CFileListModel;
 
-class CFilesSearchWindow final : public QMainWindow
+class CFilesSearchWindow final : public QMainWindow, private IconsChangedListener
 {
 public:
 	CFilesSearchWindow(const QString& initialSearchInText, CIconProvider& iconProvider, QWidget* parent);
@@ -37,23 +38,28 @@ private:
 	void showSearchCompletion(const CFileSearchResultsBuffer::Completion& completion);
 
 	void setProgressText(const QString& text, Qt::TextElideMode elideMode);
-	// The caller disables the list's updates around a batch of these
-	void addResultToUi(const CFileSystemObject& object, bool reachedThroughLink);
 
 	void saveResults();
 	void loadResults();
 	// Stops a running search first
 	void sendResultsToPanel();
+	// In the displayed order
+	[[nodiscard]] QStringList resultPaths() const;
 
 	void showContextMenu(const QPoint &pos);
 	void copyCurrentResultPath() const;
 
+	void onIconsChanged(const std::vector<qulonglong>& objectHashes) override;
+	void onAllIconsChanged() override;
+
 private:
 	CIconProvider& _iconProvider;
+	CFileListModel* _results = nullptr;
 	// What the search has reported and this window has not shown yet. Declared before the engine, whose threads report into it.
 	CFileSearchResultsBuffer _pendingResults;
 	CFileSearchEngine _engine;
-	std::vector<QString> _matches;
+	// Runs while a search does: each timeout shows what it reported since the previous one
+	QTimer* _resultsTimer = nullptr;
 	// Set from a started search until its completion is shown: the engine's own flag clears before its results are all shown
 	bool _searchActive = false;
 

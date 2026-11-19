@@ -575,8 +575,19 @@ TEST_CASE("Alt+F7 finds files by name under the panel's folder, and Enter on a r
 	goTo(*session, sandbox.work({}), QStringLiteral("hay.txt"));
 
 	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed, 1 item found"));
-	const QString result = QDir::toNativeSeparators(QStringLiteral("sub/needle.txt")); // Relative to the folder searched in
-	CHECK(session->screen().contains(result));
+	// Relative to the folder searched in, in the panel's columns, with the date to the second
+	const QString sizeText = QString::number(QFileInfo{ sandbox.work(QStringLiteral("sub/needle.txt")) }.size()); // Below 1 K: in bytes
+	const QRegularExpression resultRow{ QRegularExpression::escape(QDir::toNativeSeparators(QStringLiteral("sub/needle"))) + columnGap + QStringLiteral("txt") +
+		columnGap + sizeText + columnGap + QStringLiteral("\\d\\d [A-Z][a-z]{2} '\\d\\d \\d\\d:\\d\\d:\\d\\d") };
+	const auto showsResultRow = [&resultRow](const CTerminalScreen& screen) {
+		for (int row = 0; row < screenRows; ++row)
+		{
+			if (resultRow.match(screen.row(row)).hasMatch())
+				return true;
+		}
+		return false;
+	};
+	CHECK(showsResultRow(session->screen()));
 	CHECK(session->screen().contains(QDir::toNativeSeparators(sandbox.work(QStringLiteral("sub/needle.txt"))))); // The one under the cursor, in full
 
 	session->send(Keys::Enter); // The results have the focus once the search completes
@@ -586,7 +597,7 @@ TEST_CASE("Alt+F7 finds files by name under the panel's folder, and Enter on a r
 	// The dialog opens again with the results
 	openFindDialog(*session);
 	CHECK(session->screen().contains(QStringLiteral("Search completed, 1 item found")));
-	CHECK(session->screen().contains(result));
+	CHECK(showsResultRow(session->screen()));
 }
 
 TEST_CASE("F3 on a search result shows it in the viewer, and Esc returns to the results", "[tui]")

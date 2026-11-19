@@ -199,6 +199,33 @@ bool SortedFileList::updateRows(std::vector<CFileSystemObject> rows)
 	return true;
 }
 
+void SortedFileList::addRows(std::vector<CFileSystemObject> rows)
+{
+	std::vector<uint32_t> displayedNewRows;
+	for (CFileSystemObject& row : rows)
+	{
+		if (_nameFilter.matches(row.fullName()))
+			displayedNewRows.push_back((uint32_t)_rows.size());
+
+		_contentsSummary.add(row);
+		_sortKeys.push_back(_sorter.sortKeysFor(row));
+		_rows.push_back(std::move(row));
+	}
+
+	if (displayedNewRows.empty())
+		return;
+
+	const auto lessThan = [this](uint32_t l, uint32_t r) { return rowLessThan(l, r); };
+	std::sort(displayedNewRows.begin(), displayedNewRows.end(), lessThan);
+
+	_observer.beforeReorder(SortedFileListReorderCause::Addition);
+	const auto oldRowCount = (ptrdiff_t)_displayedRows.size();
+	_displayedRows.insert(_displayedRows.end(), displayedNewRows.cbegin(), displayedNewRows.cend());
+	std::inplace_merge(_displayedRows.begin(), _displayedRows.begin() + oldRowCount, _displayedRows.end(), lessThan);
+	_displayRowByHashIsStale = true;
+	_observer.afterReorder(SortedFileListReorderCause::Addition);
+}
+
 void SortedFileList::setNameFilter(const QString& filterText)
 {
 	if (filterText == _nameFilterText)

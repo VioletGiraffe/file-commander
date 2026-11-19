@@ -249,7 +249,7 @@
      </layout>
     </item>
     <item>
-     <widget class="QListWidget" name="resultsList">
+     <widget class="QTreeView" name="resultsList">
       <property name="contextMenuPolicy">
        <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
       </property>
@@ -262,14 +262,14 @@
       <property name="horizontalScrollMode">
        <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
       </property>
-      <property name="isWrapping" stdset="0">
+      <property name="rootIsDecorated">
        <bool>false</bool>
       </property>
-      <property name="resizeMode">
-       <enum>QListView::ResizeMode::Adjust</enum>
-      </property>
-      <property name="uniformItemSizes">
+      <property name="uniformRowHeights">
        <bool>true</bool>
+      </property>
+      <property name="itemsExpandable">
+       <bool>false</bool>
       </property>
      </widget>
     </item>

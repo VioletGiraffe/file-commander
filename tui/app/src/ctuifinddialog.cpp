@@ -2,16 +2,19 @@
 #include "ctuiapplication.h"
 #include "ctuidialogs.h"
 #include "ctuifields.h"
+#include "ctuifilelist.h"
 #include "ctuiprograms.h"
 #include "ctuirowlist.h"
 #include "ctuiviewer.h"
 
 #include "cfilesystemobject.h"
+#include "filelist/filetimetext.h"
+#include "filelist/sortedfilelist.h"
 #include "filesearchengine/filesearchquery.h"
 #include "filesystemhelperfunctions.h"
 #include "settings.h"
 
-#include "utils/naturalsorting/cnaturalsorterqcollator.h"
+#include "hash/hash_functors.hpp"
 
 #define Uses_TButton
 #define Uses_TCheckBoxes
@@ -27,12 +30,12 @@
 #define Uses_TSItem
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
+#include <3rdparty/ankerl/unordered_dense.h>
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <functional>
-#include <iterator>
 #include <stdint.h>
 #include <utility>
 #include <vector>
@@ -58,28 +61,34 @@ constexpr size_t maxResultsPerDisplay = 10'000;
 	return count == 1 ? QStringLiteral("1 item") : QStringLiteral("%1 items").arg(count);
 }
 
-struct FoundItem
+// The dialog palette's list viewer entries: normal, focused
+TPalette& resultsPalette()
 {
-	QString path; // CFileSystemObject::fullAbsolutePath()
-	QString text; // As shown
-	bool isFile = false;
-	bool reachedThroughLink = false;
-};
-
-[[nodiscard]] bool pathOrderLess(const QString& l, const QString& r)
-{
-	return NaturalSort::lessThan(l, r);
-}
-
-[[nodiscard]] bool resultOrderLess(const FoundItem& l, const FoundItem& r)
-{
-	return pathOrderLess(l.path, r.path);
+	static TPalette palette("\x1A\x1B", 2);
+	return palette;
 }
 
 } // namespace
 
-// The results: in the order found while the search runs, then sorted. A link mark starts the row of an item found through a directory link.
-class CTuiFindResultsList final : public CTuiRowList
+// The results' column titles, above them
+class CTuiFindResultsHeader final : public TView
+{
+public:
+	explicit CTuiFindResultsHeader(const TRect& bounds) noexcept : TView(bounds) { growMode = gfGrowHiX; }
+
+	void draw() override
+	{
+		TDrawBuffer line;
+		drawFileListHeader(line, size.x, FileListSortField::Name, Qt::AscendingOrder, FileTimeTextLength::Long, mapColor(1), mapColor(1));
+		writeLine(0, 0, (short)size.x, 1, line);
+	}
+
+	TPalette& getPalette() const override { return resultsPalette(); }
+};
+
+// The results, sorted by name as they arrive. A link mark starts the row of an item found through a directory link.
+// The cursor stays on the first row until the user moves it, then on its item.
+class CTuiFindResultsList final : public CTuiRowList, private SortedFileListObserver
 {
 public:
 	CTuiFindResultsList(const TRect& bounds, TScrollBar* verticalScrollBar) noexcept : CTuiRowList(bounds, verticalScrollBar) {}
@@ -87,37 +96,17 @@ public:
 	// Called when the item under the cursor may have changed: the cursor moved, or the items did
 	std::function<void()> onCurrentItemChanged;
 
-	void clear()
+	// listedFolder: see fileListFolderPrefix()
+	void clear(QString listedFolder)
 	{
-		_items.clear();
-		rowsChanged(0);
-		onCurrentItemChanged();
+		_hashesReachedThroughLink.clear();
+		_cursorFollowsItem = false;
+		_list.setRows({}, std::move(listedFolder));
 	}
 
-	// The cursor follows the newest item while it is on the last row
-	void append(std::vector<FoundItem> items)
-	{
-		if (items.empty())
-			return;
-
-		const bool followingNewest = cursorIsOnLastRow();
-		_items.insert(_items.end(), std::make_move_iterator(items.begin()), std::make_move_iterator(items.end()));
-		rowsChanged(followingNewest ? (int)_items.size() - 1 : cursorRow());
-		onCurrentItemChanged();
-	}
-
-	// In the panel's natural order of their paths. The cursor stays on its item, or goes from the last row to the first.
-	void sort()
-	{
-		if (_items.empty())
-			return;
-
-		const bool followingNewest = cursorIsOnLastRow();
-		const QString cursorPath = _items[(size_t)cursorRow()].path;
-		std::ranges::sort(_items, resultOrderLess);
-		rowsChanged(followingNewest ? 0 : (int)(std::ranges::lower_bound(_items, cursorPath, pathOrderLess, &FoundItem::path) - _items.begin()));
-		onCurrentItemChanged();
-	}
+	// Requires items not listed yet
+	void add(std::vector<CFileSystemObject> items) { _list.addRows(std::move(items)); }
+	void markReachedThroughLink(qulonglong itemHash) { _hashesReachedThroughLink.insert(itemHash); }
 
 	void handleEvent(TEvent& event) override
 	{
@@ -125,21 +114,23 @@ public:
 		clearPlainTextKey(event);
 	}
 
-	[[nodiscard]] const FoundItem* currentItem() const noexcept { return _items.empty() ? nullptr : &_items[(size_t)cursorRow()]; }
-	[[nodiscard]] size_t itemCount() const noexcept { return _items.size(); }
+	[[nodiscard]] const CFileSystemObject* currentItem() const { return _list.rowCount() > 0 ? &_list.rowAt(cursorRow()) : nullptr; }
+	[[nodiscard]] int itemCount() const noexcept { return _list.rowCount(); }
 
 	[[nodiscard]] QStringList paths() const
 	{
 		QStringList paths;
-		paths.reserve((qsizetype)_items.size());
-		for (const FoundItem& item : _items)
-			paths.push_back(item.path);
+		paths.reserve(_list.rowCount());
+		for (int row = 0, numRows = _list.rowCount(); row < numRows; ++row)
+			paths.push_back(_list.rowAt(row).fullAbsolutePath());
 		return paths;
 	}
 
 	void draw() override
 	{
 		const TColorAttr normalColor = mapColor(1), cursorColor = mapColor(2);
+		const std::vector<FileListColumn> columns = fileListColumns(size.x, FileListSortField::Name, FileTimeTextLength::Long);
+		const bool extensionShown = std::ranges::any_of(columns, [](const FileListColumn& column) { return column.field == FileListSortField::Extension; });
 		for (int y = 0; y < size.y; ++y)
 		{
 			const int row = topRow() + y;
@@ -147,31 +138,61 @@ public:
 
 			TDrawBuffer line;
 			line.moveChar(0, ' ', color, (ushort)size.x);
-			if (row < (int)_items.size())
+			if (row < _list.rowCount())
 			{
-				const FoundItem& item = _items[(size_t)row];
-				if (item.reachedThroughLink)
+				const CFileSystemObject& item = _list.rowAt(row);
+				if (_hashesReachedThroughLink.contains(item.hash()))
 					line.moveStr(0, "↪", color);
-				line.moveStr(1, stringView(elidedInTheMiddle(item.text, size.x - 2).toUtf8()), color, (ushort)std::max(size.x - 2, 0));
+				for (const FileListColumn& column : columns)
+				{
+					QString text = fileListCellText(item, column.field, extensionShown, _list.listedFolder(), FileTimeTextLength::Long);
+					if (column.field == FileListSortField::Name)
+						text = elidedInTheMiddle(text, column.width);
+					drawFileListCell(line, column, text, color);
+				}
 			}
+			drawFileListColumnSeparators(line, columns, color);
 			writeLine(0, (short)y, (short)size.x, 1, line);
 		}
 	}
 
-	TPalette& getPalette() const override
+	TPalette& getPalette() const override { return resultsPalette(); }
+
+private:
+	[[nodiscard]] int rowCount() const noexcept override { return _list.rowCount(); }
+
+	void cursorMovedByUser() override
 	{
-		static TPalette palette("\x1A\x1B", 2); // The dialog palette's list viewer entries: normal, focused
-		return palette;
+		_cursorFollowsItem = true;
+		onCurrentItemChanged();
 	}
 
-private:
-	[[nodiscard]] int rowCount() const noexcept override { return (int)_items.size(); }
-	void cursorMovedByUser() override { onCurrentItemChanged(); }
-	// True for an empty list
-	[[nodiscard]] bool cursorIsOnLastRow() const noexcept { return cursorRow() >= (int)_items.size() - 1; }
+	void beforeChange() { _cursorItemHash = _cursorFollowsItem && currentItem() ? currentItem()->hash() : 0; }
+
+	void afterChange()
+	{
+		const int itemRow = _cursorFollowsItem ? _list.rowOf(_cursorItemHash) : 0;
+		rowsChanged(itemRow >= 0 ? itemRow : cursorRow());
+		onCurrentItemChanged();
+	}
+
+	void beforeReset() override { beforeChange(); }
+	void afterReset() override { afterChange(); }
+	void beforeInsert(int, int) override { beforeChange(); }
+	void afterInsert() override { afterChange(); }
+	void beforeRemove(int, int) override { beforeChange(); }
+	void afterRemove() override { afterChange(); }
+	void beforeMove(int, int) override { beforeChange(); }
+	void afterMove() override { afterChange(); }
+	void rowChanged(int) override { drawView(); }
+	void beforeReorder(SortedFileListReorderCause) override { beforeChange(); }
+	void afterReorder(SortedFileListReorderCause) override { afterChange(); }
 
 private:
-	std::vector<FoundItem> _items;
+	SortedFileList _list{ *this };
+	ankerl::unordered_dense::set<qulonglong, identity_hash> _hashesReachedThroughLink;
+	bool _cursorFollowsItem = false;
+	qulonglong _cursorItemHash = 0; // From beforeChange() to afterChange()
 };
 
 CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
@@ -214,10 +235,11 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	sendButton->growMode = gfGrowLoX | gfGrowHiX;
 	insert(sendButton);
 
-	auto* scrollBar = new TScrollBar({ right - 1, listTop, right, currentPathY });
+	insert(new CTuiFindResultsHeader({ labelX, listTop, right - 1, listTop + 1 }));
+	auto* scrollBar = new TScrollBar({ right - 1, listTop + 1, right, currentPathY });
 	scrollBar->growMode = gfGrowLoX | gfGrowHiX | gfGrowHiY;
 	insert(scrollBar);
-	_results = new CTuiFindResultsList({ labelX, listTop, right - 1, currentPathY }, scrollBar);
+	_results = new CTuiFindResultsList({ labelX, listTop + 1, right - 1, currentPathY }, scrollBar);
 	_results->onCurrentItemChanged = [this] { showCurrentResultPath(); };
 	insert(_results);
 
@@ -294,15 +316,15 @@ void CTuiFindDialog::handleEvent(TEvent& event)
 		}
 		if ((key == kbF3 || key == kbF4) && inResults)
 		{
-			if (const FoundItem* item = _results->currentItem(); item && item->isFile)
-				key == kbF3 ? viewFile(item->path) : editFile(item->path);
+			if (const CFileSystemObject* item = _results->currentItem(); item && item->isFile())
+				key == kbF3 ? viewFile(item->fullAbsolutePath()) : editFile(item->fullAbsolutePath());
 			clearEvent(event);
 			return;
 		}
 		if (key == kbAltC)
 		{
-			if (const FoundItem* item = _results->currentItem())
-				CTuiApplication::copyToClipboard(shellQuotedPath(toNativeSeparators(item->path)));
+			if (const CFileSystemObject* item = _results->currentItem())
+				CTuiApplication::copyToClipboard(shellQuotedPath(toNativeSeparators(item->fullAbsolutePath())));
 			clearEvent(event);
 			return;
 		}
@@ -346,17 +368,6 @@ void CTuiFindDialog::startSearch()
 		.contentsIsRegex = isChecked(_contentsOptions, ContentsIsRegex)
 	};
 
-	_searchRootPrefix.clear();
-	if (query.roots.size() == 1)
-	{
-		if (const CFileSystemObject root{ query.roots.front() }; root.isDir())
-		{
-			_searchRootPrefix = root.fullAbsolutePath();
-			if (!_searchRootPrefix.endsWith(u'/'))
-				_searchRootPrefix += u'/';
-		}
-	}
-
 	if (!_engine.search(query, &_pendingResults))
 	{
 		setStatus(QStringLiteral("Nothing to search in"));
@@ -368,7 +379,7 @@ void CTuiFindDialog::startSearch()
 	if (searchInFieldTextBelongsInHistory(searchInText))
 		_searchInHistory.record(searchInText);
 
-	_results->clear();
+	_results->clear(searchResultsListedFolder(query.roots));
 	setStatus({});
 	setSearchActive(true);
 	_nextResultsDisplayTime = std::chrono::steady_clock::now() + resultsDisplayInterval;
@@ -376,29 +387,20 @@ void CTuiFindDialog::startSearch()
 
 void CTuiFindDialog::showPendingResults(const size_t maxMatches)
 {
-	const CFileSearchResultsBuffer::Batch batch = _pendingResults.take(maxMatches);
+	CFileSearchResultsBuffer::Batch batch = _pendingResults.take(maxMatches);
 
 	if (!batch.lastScannedItem.isEmpty())
 		setStatus(toNativeSeparators(batch.lastScannedItem));
 
-	std::vector<FoundItem> items;
+	std::vector<CFileSystemObject> items;
 	items.reserve(batch.matches.size());
-	for (const CFileSearchResultsBuffer::Match& match : batch.matches)
+	for (CFileSearchResultsBuffer::Match& match : batch.matches)
 	{
-		FoundItem& item = items.emplace_back();
-		item.path = match.item.fullAbsolutePath();
-		item.isFile = match.item.isFile();
-		item.reachedThroughLink = match.reachedThroughLink;
-
-		item.text = toNativeSeparators(!_searchRootPrefix.isEmpty() && item.path.startsWith(_searchRootPrefix) ? item.path.mid(_searchRootPrefix.size()) : item.path);
-		if (match.item.isDir())
-		{
-			if (item.text.endsWith(nativeSeparator()))
-				item.text.chop(1);
-			item.text = u'[' + item.text + u']';
-		}
+		if (match.reachedThroughLink)
+			_results->markReachedThroughLink(match.item.hash());
+		items.push_back(std::move(match.item));
 	}
-	_results->append(std::move(items));
+	_results->add(std::move(items));
 
 	// A full batch leaves more waiting
 	_nextResultsDisplayTime = std::chrono::steady_clock::now() + (batch.matches.size() < maxMatches ? resultsDisplayInterval : 0ms);
@@ -410,7 +412,6 @@ void CTuiFindDialog::showPendingResults(const size_t maxMatches)
 void CTuiFindDialog::showCompletion(const CFileSearchResultsBuffer::Completion& completion)
 {
 	setSearchActive(false);
-	_results->sort();
 
 	if (completion.status == CFileSearchEngine::SearchInvalidPattern)
 	{
@@ -419,14 +420,14 @@ void CTuiFindDialog::showCompletion(const CFileSearchResultsBuffer::Completion& 
 	}
 
 	QString message = completion.status == CFileSearchEngine::SearchCancelled ? QStringLiteral("Search aborted") : QStringLiteral("Search completed");
-	message += QStringLiteral(", %1 found").arg(itemCountText(_results->itemCount()));
+	message += QStringLiteral(", %1 found").arg(itemCountText((uint64_t)_results->itemCount()));
 	// Neither matches nor known non-matches, so saying nothing would present the results as complete
 	if (completion.inconclusiveItems > 0)
 		message += QStringLiteral(", %1 could not be searched").arg(itemCountText(completion.inconclusiveItems));
 	message += QStringLiteral(": %1 scanned in %2 sec").arg(itemCountText(completion.itemsScanned)).arg((double)completion.msElapsed * 1e-3, 0, 'f', 1);
 	setStatus(message);
 
-	// Unless the user is already going through them. Only the user can have moved the cursor off the last row, which sort() left at the first.
+	// Unless the user is already going through them
 	if (_results->itemCount() > 0 && !(_results->state & sfFocused))
 		_results->select();
 }
@@ -446,17 +447,17 @@ void CTuiFindDialog::setStatus(const QString& text)
 
 void CTuiFindDialog::showCurrentResultPath()
 {
-	const FoundItem* item = _results->currentItem();
-	_currentResultPath->setLines({ item ? elidedInTheMiddle(toNativeSeparators(item->path), _currentResultPath->size.x) : QString{} });
+	const CFileSystemObject* item = _results->currentItem();
+	_currentResultPath->setLines({ item ? elidedInTheMiddle(toNativeSeparators(item->fullAbsolutePath()), _currentResultPath->size.x) : QString{} });
 }
 
 void CTuiFindDialog::goToCurrentResult()
 {
-	const FoundItem* item = _results->currentItem();
+	const CFileSystemObject* item = _results->currentItem();
 	if (!item)
 		return;
 
-	_outcome = GoToResult{ item->path };
+	_outcome = GoToResult{ item->fullAbsolutePath() };
 	endModal(cmGoToResult);
 }
 

@@ -1,10 +1,12 @@
 #include "cfilessearchwindow.h"
 
 #include "cmainwindow.h"
-#include "iconprovider/ciconprovider.h"
+#include "panel/columns.h"
+#include "panel/filelistwidget/model/cfilelistmodel.h"
 
 #include "ccontroller.h"
 #include "cfilesystemobject.h"
+#include "filelist/filetimetext.h"
 #include "filesearchengine/filesearchquery.h"
 #include "filesystemhelperfunctions.h"
 #include "settings.h"
@@ -12,33 +14,36 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "hash/hash_functors.hpp"
 #include "qtcore_helpers/qstring_helpers.hpp"
-#include "utils/naturalsorting/cnaturalsorterqcollator.h"
 #include "widgets/cpersistenceenabler.h"
 
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
 
+#include <3rdparty/ankerl/unordered_dense.h>
+
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
 #include <QFileDialog>
-#include <QFont>
+#include <QHeaderView>
 #include <QKeySequence>
 #include <QLineEdit>
-#include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
 #include <QSettings>
 #include <QStringList>
+#include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
-#include <stddef.h>
+#include <chrono>
 #include <stdint.h>
+#include <utility>
 
-// Results added to the list per event loop turn, so the window stays responsive while results arrive faster than it can add them
-static constexpr size_t maxRowsPerTurn = 200;
+// Each batch of results merges into the list once, a pass over all its rows: often enough to look immediate, rarely enough to stay cheap
+static constexpr std::chrono::milliseconds resultsDisplayInterval{ 100 };
 
 // "1 item", "2 items"
 [[nodiscard]] static QString itemCountText(const uint64_t count)
@@ -46,21 +51,9 @@ static constexpr size_t maxRowsPerTurn = 200;
 	return count == 1 ? QObject::tr("1 item") : QObject::tr("%1 items").arg(count);
 }
 
-// Sorts by path, in the panel's natural order: the engine reports matches in no particular order
-class CSearchResultItem final : public QListWidgetItem
-{
-public:
-	bool operator<(const QListWidgetItem& other) const override
-	{
-		return NaturalSort::lessThan(data(Qt::UserRole).toString(), other.data(Qt::UserRole).toString());
-	}
-};
-
 CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIconProvider& iconProvider, QWidget* parent) :
 	QMainWindow(parent),
 	_iconProvider(iconProvider),
-	// Queued also when requested on this thread, so the event loop runs between batches
-	_pendingResults([this] { QMetaObject::invokeMethod(this, &CFilesSearchWindow::displayPendingResults, Qt::QueuedConnection); }),
 	ui(new Ui::CFilesSearchWindow)
 {
 	ui->setupUi(this);
@@ -68,6 +61,20 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 	setAttribute(Qt::WA_DeleteOnClose, true);
 
 	enablePersistence(this, QSL("UI/FileSearchWindow"));
+
+	_results = new CFileListModel(&_iconProvider, FileTimeTextLength::Long, this);
+	ui->resultsList->setModel(_results);
+	QHeaderView* header = ui->resultsList->header();
+	header->setStretchLastSection(false);
+	header->setSectionResizeMode(NameColumn, QHeaderView::Stretch);
+	// Enabling sorting sorts by the indicator, which starts as descending
+	header->setSortIndicator(NameColumn, Qt::AscendingOrder);
+	ui->resultsList->setSortingEnabled(true);
+	_iconProvider.addIconsChangedListener(this);
+
+	_resultsTimer = new QTimer(this);
+	_resultsTimer->setInterval(resultsDisplayInterval);
+	connect(_resultsTimer, &QTimer::timeout, this, &CFilesSearchWindow::displayPendingResults);
 
 	connect(ui->btnSearch, &QPushButton::clicked, this, &CFilesSearchWindow::search);
 
@@ -98,16 +105,15 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 	connect(ui->btnLoadResults, &QPushButton::clicked, this, &CFilesSearchWindow::loadResults);
 	connect(ui->btnSendToPanel, &QPushButton::clicked, this, &CFilesSearchWindow::sendResultsToPanel);
 
-	ui->resultsList->setSortingEnabled(true);
-	connect(ui->resultsList, &QListWidget::itemActivated, [](QListWidgetItem* item) {
+	connect(ui->resultsList, &QAbstractItemView::activated, this, [this](const QModelIndex& index) {
 		CController& controller = CController::get();
-		controller.goToItem(controller.activePanelPosition(), CFileSystemObject(item->data(Qt::UserRole).toString()));
+		controller.goToItem(controller.activePanelPosition(), CFileSystemObject{ _results->rowAt(index).fullAbsolutePath() });
 
 		auto* mainWindow = CMainWindow::get();
 		assert_and_return_r(mainWindow, );
 		mainWindow->activateWindow();
 	});
-	connect(ui->resultsList, &QListWidget::customContextMenuRequested, this, &CFilesSearchWindow::showContextMenu);
+	connect(ui->resultsList, &QWidget::customContextMenuRequested, this, &CFilesSearchWindow::showContextMenu);
 
 	_copyPathAction = new QAction(tr("Copy path to clipboard"), this);
 	_copyPathAction->setShortcut(QKeySequence{ QSL("Ctrl+Shift+X") }); // The main window's key for copying paths
@@ -122,9 +128,10 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 
 CFilesSearchWindow::~CFilesSearchWindow()
 {
-	// The search threads post to this window through _pendingResults, so they must be gone before any of it is
+	// The search threads report into _pendingResults, so they must be gone before it is
 	_engine.stopSearching();
 	_engine.waitForSearchToFinish();
+	_iconProvider.removeIconsChangedListener(this);
 
 	QSettings s;
 	s.setValue(KEY_FILE_SEARCH_NAME_CASE_SENSITIVE, ui->cbNameCaseSensitive->isChecked());
@@ -139,21 +146,21 @@ CFilesSearchWindow::~CFilesSearchWindow()
 
 void CFilesSearchWindow::displayPendingResults()
 {
-	const CFileSearchResultsBuffer::Batch batch = _pendingResults.take(maxRowsPerTurn);
+	CFileSearchResultsBuffer::Batch batch = _pendingResults.take(SIZE_MAX);
 
 	if (!batch.lastScannedItem.isEmpty())
 		setProgressText(batch.lastScannedItem, Qt::ElideMiddle);
 
-	if (!batch.matches.empty())
+	std::vector<CFileSystemObject> rows;
+	rows.reserve(batch.matches.size());
+	for (CFileSearchResultsBuffer::Match& match : batch.matches)
 	{
-		ui->resultsList->setUpdatesEnabled(false);
-		for (const CFileSearchResultsBuffer::Match& match : batch.matches)
-		{
-			_matches.push_back(match.item.fullAbsolutePath());
-			addResultToUi(match.item, match.reachedThroughLink);
-		}
-		ui->resultsList->setUpdatesEnabled(true);
+		// The same item can also be listed under its direct path: marking this one keeps the pair from reading as a duplicate
+		if (match.reachedThroughLink)
+			_results->markReachedThroughLink(match.item.hash());
+		rows.push_back(std::move(match.item));
 	}
+	_results->addRows(std::move(rows));
 
 	if (batch.completion)
 		showSearchCompletion(*batch.completion);
@@ -162,6 +169,7 @@ void CFilesSearchWindow::displayPendingResults()
 void CFilesSearchWindow::showSearchCompletion(const CFileSearchResultsBuffer::Completion& completion)
 {
 	_searchActive = false;
+	_resultsTimer->stop();
 	ui->btnSearch->setText(tr("Start"));
 
 	if (completion.status == CFileSearchEngine::SearchInvalidPattern)
@@ -172,8 +180,8 @@ void CFilesSearchWindow::showSearchCompletion(const CFileSearchResultsBuffer::Co
 	}
 
 	QString message = (completion.status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
-	if (!_matches.empty())
-		message = message % ", " % tr("%1 found").arg(itemCountText(_matches.size()));
+	if (const int found = _results->rowCount(); found > 0)
+		message = message % ", " % tr("%1 found").arg(itemCountText((uint64_t)found));
 
 	// Neither matches nor known non-matches, so saying nothing would present the results as complete
 	if (completion.inconclusiveItems > 0)
@@ -190,8 +198,8 @@ void CFilesSearchWindow::showSearchCompletion(const CFileSearchResultsBuffer::Co
 	setProgressText(message, Qt::ElideRight);
 
 	ui->resultsList->setFocus();
-	if (ui->resultsList->count() > 0)
-		ui->resultsList->item(0)->setSelected(true);
+	if (_results->rowCount() > 0)
+		ui->resultsList->setCurrentIndex(_results->index(0, NameColumn));
 }
 
 // This label alternates between scanned paths and status sentences, which want different ends of the text kept
@@ -208,8 +216,6 @@ void CFilesSearchWindow::search()
 		_engine.stopSearching();
 		return;
 	}
-
-	_matches.clear();
 
 	const QString filtersString = ui->nameToFind->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
@@ -234,7 +240,8 @@ void CFilesSearchWindow::search()
 			ui->searchRoot->addToHistory(ui->searchRoot->currentText());
 
 		ui->btnSearch->setText(tr("Stop"));
-		ui->resultsList->clear();
+		_results->setRows({}, searchResultsListedFolder(query.roots));
+		_resultsTimer->start();
 
 		QString title = filtersString;
 		if (!withText.isEmpty())
@@ -248,39 +255,9 @@ void CFilesSearchWindow::search()
 	}
 }
 
-void CFilesSearchWindow::addResultToUi(const CFileSystemObject& object, bool reachedThroughLink)
-{
-	const QString& path = object.fullAbsolutePath();
-	QString name = toNativeSeparators(path);
-	if (object.isDir())
-	{
-		if (name.endsWith(nativeSeparator()))
-			name.chop(1);
-		name.prepend('[').append(']');
-	}
-
-	auto* item = new CSearchResultItem;
-	item->setText(name);
-	item->setIcon(_iconProvider.qIcon(_iconProvider.genericIconFor(object)));
-	item->setData(Qt::UserRole, path);
-
-	if (reachedThroughLink)
-	{
-		// The same file can also be listed under its direct path; marking this one keeps the pair from reading as
-		// a duplicate the search shouldn't have produced.
-		item->setToolTip(tr("Found by following a directory link"));
-		// The item's own font is still the default one until it joins the list, so italicize the list's font instead
-		QFont font = ui->resultsList->font();
-		font.setItalic(true);
-		item->setFont(font);
-	}
-
-	ui->resultsList->addItem(item);
-}
-
 void CFilesSearchWindow::saveResults()
 {
-	if (_matches.empty())
+	if (_results->rowCount() == 0)
 		return;
 
 	const QString path = QFileDialog::getSaveFileName(this, {}, ui->searchRoot->currentText().split(';').front(), QSL("*.searchresult"));
@@ -294,9 +271,9 @@ void CFilesSearchWindow::saveResults()
 		return;
 	}
 
-	for (const auto& match : _matches)
+	for (const QString& resultPath : resultPaths())
 	{
-		file.write(match.toUtf8());
+		file.write(resultPath.toUtf8());
 		file.write("\n", 1);
 	}
 }
@@ -317,14 +294,18 @@ void CFilesSearchWindow::loadResults()
 	QTextStream stream{ &file };
 	stream.setEncoding(QStringConverter::Utf8);
 
-	ui->resultsList->setUpdatesEnabled(false);
+	// The saved file is a plain list of paths, with no record of how each was reached.
+	// A path listed already is skipped: the list holds each item once.
+	ankerl::unordered_dense::set<qulonglong, identity_hash> loadedHashes;
+	std::vector<CFileSystemObject> rows;
 	QString line;
 	while (stream.readLineInto(&line))
 	{
-		_matches.push_back(line);
-		addResultToUi(CFileSystemObject{ line }, false); // The saved file is a plain list of paths, with no record of how each was reached
+		CFileSystemObject row{ line };
+		if (!_results->indexByHash(row.hash()).isValid() && loadedHashes.insert(row.hash()).second)
+			rows.push_back(std::move(row));
 	}
-	ui->resultsList->setUpdatesEnabled(true);
+	_results->addRows(std::move(rows));
 }
 
 void CFilesSearchWindow::sendResultsToPanel()
@@ -338,31 +319,50 @@ void CFilesSearchWindow::sendResultsToPanel()
 			displayPendingResults();
 	}
 
-	if (_matches.empty())
+	if (_results->rowCount() == 0)
 		return;
 
 	CController& controller = CController::get();
-	controller.showSearchResults(controller.activePanelPosition(), QStringList{ _matches.cbegin(), _matches.cend() });
+	controller.showSearchResults(controller.activePanelPosition(), resultPaths());
 
 	auto* mainWindow = CMainWindow::get();
 	assert_and_return_r(mainWindow, );
 	mainWindow->activateWindow();
 }
 
+QStringList CFilesSearchWindow::resultPaths() const
+{
+	QStringList paths;
+	paths.reserve(_results->rowCount());
+	for (int row = 0, numRows = _results->rowCount(); row < numRows; ++row)
+		paths.push_back(_results->rowAt(row).fullAbsolutePath());
+	return paths;
+}
+
 void CFilesSearchWindow::showContextMenu(const QPoint& pos)
 {
-	QListWidgetItem *clickedItem = ui->resultsList->itemAt(pos);
-	if (!clickedItem)
+	const QModelIndex clickedIndex = ui->resultsList->indexAt(pos);
+	if (!clickedIndex.isValid())
 		return;
 
-	ui->resultsList->setCurrentItem(clickedItem); // The item the menu's action copies
+	ui->resultsList->setCurrentIndex(clickedIndex); // The item the menu's action copies
 	QMenu menu(this);
 	menu.addAction(_copyPathAction);
-	menu.exec(ui->resultsList->mapToGlobal(pos));
+	menu.exec(ui->resultsList->viewport()->mapToGlobal(pos));
 }
 
 void CFilesSearchWindow::copyCurrentResultPath() const
 {
-	if (const QListWidgetItem* item = ui->resultsList->currentItem())
-		QApplication::clipboard()->setText(shellQuotedPath(toNativeSeparators(item->data(Qt::UserRole).toString())));
+	if (const QModelIndex current = ui->resultsList->currentIndex(); current.isValid())
+		QApplication::clipboard()->setText(shellQuotedPath(toNativeSeparators(_results->rowAt(current).fullAbsolutePath())));
+}
+
+void CFilesSearchWindow::onIconsChanged(const std::vector<qulonglong>& objectHashes)
+{
+	_results->onIconsChanged(objectHashes);
+}
+
+void CFilesSearchWindow::onAllIconsChanged()
+{
+	_results->onAllIconsChanged();
 }

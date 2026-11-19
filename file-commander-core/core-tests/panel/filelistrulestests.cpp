@@ -123,6 +123,10 @@ TEST_CASE("File list - a row's folder prefix is its folder relative to the liste
 	CHECK(fileListFolderPrefix(makeItemAt(File, QStringLiteral("/folder/x/y/a.txt")), listedFolder) == toNativeSeparators(QStringLiteral("x/y/")));
 	CHECK(fileListFolderPrefix(makeItemAt(Directory, QStringLiteral("/folder/x/sub/")), listedFolder) == toNativeSeparators(QStringLiteral("x/")));
 	CHECK(fileListFolderPrefix(makeItemAt(File, QStringLiteral("/other/a.txt")), listedFolder) == toNativeSeparators(QStringLiteral("/other/")));
+
+	// No listed folder: every row shows its whole folder
+	CHECK(fileListFolderPrefix(makeItem(File, "a", "txt"), {}) == toNativeSeparators(QStringLiteral("/folder/")));
+	CHECK(fileListFolderPrefix(makeCdUpItem(), {}).isEmpty());
 }
 
 TEST_CASE("File list - sorting by name takes the folder prefix first", "[filelistrules][sort]")
@@ -154,6 +158,7 @@ TEST_CASE("File list - a file's short time shows the year only for other years, 
 	CHECK(fileTimeText(thisYear, FileTimeTextLength::Short).size() == maxShortFileTimeTextLength);
 	CHECK(fileTimeText(thisYear, FileTimeTextLength::Long) == QStringLiteral("02 Jan '%1 03:04:05").arg(twoDigitYear));
 	CHECK(fileTimeText(lastYear, FileTimeTextLength::Long) == QStringLiteral("31 Dec '%1 23:58:59").arg(lastTwoDigitYear));
+	CHECK(fileTimeText(lastYear, FileTimeTextLength::Long).size() == longFileTimeTextLength);
 
 	const QLocale previousLocale;
 	QLocale::setDefault(QLocale{ QLocale::German });

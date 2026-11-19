@@ -23,7 +23,7 @@ RESTORE_COMPILER_WARNINGS
 #include <stdint.h>
 #include <vector>
 
-enum class SortedFileListReorderCause { Sort, Filter };
+enum class SortedFileListReorderCause { Sort, Filter, Addition };
 
 // Receives each change to a SortedFileList's rows twice, before and after it, matching QAbstractItemModel's begin and end calls.
 // Before a change, the rows are at their old positions; after it, at the new ones.
@@ -43,7 +43,7 @@ public:
 	virtual void afterMove() = 0;
 	// The row's data changed, not its position
 	virtual void rowChanged(int row) = 0;
-	// Every row may change its position or be hidden: the observer finds a row again by its hash
+	// Rows may move, be hidden or be added: the observer finds a row again by its hash
 	virtual void beforeReorder(SortedFileListReorderCause cause) = 0;
 	virtual void afterReorder(SortedFileListReorderCause cause) = 0;
 
@@ -70,6 +70,9 @@ public:
 	// tracks by row number stays on its row. Returns false if it reset instead: past a number of changes, one reset is cheaper.
 	// The rows are in the folder setRows() took.
 	bool updateRows(std::vector<CFileSystemObject> rows);
+	// Each row where it sorts, in one reorder; none if the filter hides them all. Requires rows not listed yet.
+	// One merge: linear in the rows already listed, whatever the number added.
+	void addRows(std::vector<CFileSystemObject> rows);
 	// filterText: a filter field's text (see splitNameFilterField()), matched against full names ignoring case. Empty shows every row.
 	void setNameFilter(const QString& filterText);
 	// Re-sorts only when the sorting changes
