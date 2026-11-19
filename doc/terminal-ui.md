@@ -117,8 +117,9 @@ dialog is open.
 
 - Turbo Vision turns on win32-input-mode, which breaks keys over SSH from Windows Terminal. `disableWin32InputMode`
   turns it off at start and in `CTuiApplication::resume()`.
-- Turbo Vision takes a fast burst of text keys for a paste, and an Enter arriving right behind it is lost. Scripted
-  input types one key at a time.
+- Turbo Vision takes a burst of text keys for a paste, Enter and Tab included, and an input line inserts an Enter or
+  Tab inside a paste as a space. A paste ends at the first key that is not text, so scripted input follows its text
+  with End.
 - Which Ctrl combinations arrive depends on how the terminal encodes keys:
   - The Windows console: all of them, decoded from the scan code. Ctrl+Alt is lost on layouts with AltGr.
   - A terminal with an extended keyboard protocol that Turbo Vision requests at start (XTerm's modifyOtherKeys, Kitty's,

@@ -173,19 +173,14 @@ void requireText(CTerminalSession& session, const QString& text)
 	requireScreen(session, [&text](const CTerminalScreen& screen) { return screen.contains(text); }, quoted(text));
 }
 
-// Types one character at a time, each once the previous one shows: as a change of the text, or of the cursor for a space at the end of a line.
-// Turbo Vision takes a burst of text keys for a paste (TEventQueue::getKeyOrPasteEvent), and an Enter sent right behind one is lost.
+// Types into the focused input line in one burst, which Turbo Vision takes for a paste (TEventQueue::getKeyOrPasteEvent).
+// An input line inserts pasted text as typed text, but turns an Enter or Tab inside a paste into a space.
+// Ends with End: a paste ends at the first key that is not text, so the next key stays out of it.
+// Must type at the end of the field's text: End moves the cursor there.
 void typeText(CTerminalSession& session, const QString& text)
 {
-	for (const QChar c : text)
-	{
-		const CTerminalScreen& screen = session.screen();
-		const QString screenBefore = screen.text();
-		const int rowBefore = screen.cursorRow(), columnBefore = screen.cursorColumn();
-		session.send(QString{ c });
-		requireScreen(session, [&](const CTerminalScreen& now) { return now.text() != screenBefore || now.cursorRow() != rowBefore || now.cursorColumn() != columnBefore; },
-			QStringLiteral("\"%1\" to show").arg(c));
-	}
+	session.send(text);
+	session.send(Keys::End);
 }
 
 struct FctermStart
@@ -242,7 +237,6 @@ struct FctermStart
 }
 
 // Waits for a text prompt (textPrompt() in the app) whose label holds `label`, with the cursor in its input line.
-// A frame can arrive in several reads, and Turbo Vision places the cursor last: text typed before then can be read as a paste.
 // The input line is two rows under the label: the label must fit one row.
 void requirePromptInput(CTerminalSession& session, const QString& label)
 {
@@ -263,7 +257,7 @@ void goTo(CTerminalSession& session, const QString& folder, const QString& entry
 		QStringLiteral("%1 listed in %2").arg(entry, folder));
 }
 
-// Opens the search dialog and returns the name field's row, once the cursor is in that field: see requirePromptInput()
+// Opens the search dialog and returns the name field's row, once the cursor is in that field
 int openFindDialog(CTerminalSession& session)
 {
 	session.send(Keys::AltF7);
@@ -355,7 +349,7 @@ void requireViewerStatus(CTerminalSession& session, const QString& text)
 	requireScreen(session, [&text](const CTerminalScreen& screen) { return screen.row(viewerStatusRow).contains(text); }, quoted(text) + QStringLiteral(" in the viewer's status row"));
 }
 
-// Searches with the viewer's find dialog, typing into its text field once the cursor is there: see requirePromptInput()
+// Searches with the viewer's find dialog, typing into its text field once the cursor is there
 void findInViewer(CTerminalSession& session, const QString& text)
 {
 	session.send(Keys::CtrlF);
@@ -1644,11 +1638,11 @@ TEST_CASE("Ctrl+O runs the shell in the panel's folder until it exits", "[tui]")
 
 	session->send(Keys::CtrlO);
 	requireText(*session, QStringLiteral("shell-ready>"));
-	typeText(*session, printFolder);
+	session->send(printFolder); // Not typeText(): its End would reach the shell as input
 	session->send(Keys::Enter);
 	const QString folderFile = sandbox.work(QStringLiteral("folder.txt"));
 	requireScreen(*session, [&](const CTerminalScreen&) { return QFileInfo{ folderFile }.size() > 0; }, QStringLiteral("the shell's folder written"));
-	typeText(*session, QStringLiteral("exit"));
+	session->send(QStringLiteral("exit"));
 	session->send(Keys::Enter);
 	// fcterm redraws the whole screen when it takes the terminal back
 	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("shell-ready>")) && screen.contains(QStringLiteral("F2 Rename")); },
