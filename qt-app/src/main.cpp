@@ -1,5 +1,4 @@
 #include "cmainwindow.h"
-#include "desktopentry/desktopentry.h"
 #include "iconprovider/ciconprovider.h"
 #include "themes/theme.h"
 
@@ -177,8 +176,9 @@ int main(int argc, char *argv[])
 	// fcterm sets the same names: the two front ends share their settings
 	QApplication::setApplicationName("File Commander");
 	QApplication::setOrganizationName("GitHubSoft");
-	// The window's app ID on Wayland and its application ID on X11: desktops match windows to desktop entries by it
-	QApplication::setDesktopFileName(DesktopEntry::id);
+	// The window's app ID on Wayland and its application ID on X11: desktops match windows to desktop entries by it.
+	// installer/linux/file_commander.desktop must be named after it: the AppImage's desktop entry is that file.
+	QApplication::setDesktopFileName(QStringLiteral("file_commander"));
 
 	migrateLegacyAppearanceSettings();
 	installTheme(app);

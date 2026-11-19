@@ -59,9 +59,4 @@ struct Application
 [[nodiscard]] std::expected<void, QString> openInApplication(const Application& application, const QStringList& files);
 #endif
 
-// For writing a desktop entry: `value` escaped as a string value
-[[nodiscard]] QString escapedStringValue(QString value);
-// For writing a desktop entry: `argument` quoted as one Exec argument, then escaped as a string value
-[[nodiscard]] QString escapedExecArgument(const QString& argument);
-
 }

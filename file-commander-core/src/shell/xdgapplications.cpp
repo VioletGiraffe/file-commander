@@ -590,26 +590,3 @@ std::expected<void, QString> XdgApplications::openInApplication(const Applicatio
 	return {};
 }
 #endif
-
-QString XdgApplications::escapedStringValue(QString value)
-{
-	value.replace('\\', QStringLiteral("\\\\"));
-	value.replace('\n', QStringLiteral("\\n"));
-	value.replace('\r', QStringLiteral("\\r"));
-	return value;
-}
-
-QString XdgApplications::escapedExecArgument(const QString& argument)
-{
-	QString quoted{ u'"' };
-	for (const QChar c : argument)
-	{
-		if (c == '"' || c == '`' || c == '$' || c == '\\')
-			quoted += '\\';
-		else if (c == '%') // A field code prefix
-			quoted += '%';
-		quoted += c;
-	}
-	quoted += '"';
-	return escapedStringValue(quoted);
-}

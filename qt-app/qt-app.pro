@@ -64,7 +64,6 @@ SOURCES += \
 	src/panel/filelistwidget/cfilelistfilterdialog.cpp \
 	src/filessearchdialog/cfilessearchwindow.cpp \
 	src/aboutdialog/aboutdialog.cpp \
-	src/desktopentry/desktopentry.cpp \
 	src/panel/cpaneldisplaycontroller.cpp \
 	src/viewerwindow/cviewerwindow.cpp \
 	src/tools/cbatchrenamedialog.cpp \
@@ -113,7 +112,6 @@ HEADERS += \
 	src/tools/csortbydatatreeitem.h \
 	src/version.h \
 	src/aboutdialog/aboutdialog.h \
-	src/desktopentry/desktopentry.h \
 	src/panel/cpaneldisplaycontroller.h \
 	src/viewerwindow/cviewerwindow.h \
 	src/themes/stylesheet.h \

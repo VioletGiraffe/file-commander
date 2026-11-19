@@ -22,7 +22,7 @@ owners. Filesystem and panel access goes through `CController`.
 | Search, tools, and settings | `src/filessearchdialog/`, `src/tools/`, `src/settings/` |
 | File and volume icons | `src/iconprovider/`; the app's glyphs replace the OS's default folder icon and its unknown-type icon |
 | Themes | `src/themes/`; the app-independent parts are in `qtutils/theme/` |
-| Desktop entry of the Linux AppImage | `src/desktopentry/`: the AppImage's own `installer/linux/file_commander.desktop`, pointed at the AppImage file |
+| Desktop entry of the Linux AppImage | qtutils `appimage/appimagedesktopentry.h`, on the AppImage's own `installer/linux/file_commander.desktop`; `main()` sets its file ID |
 
 ## Main window
 

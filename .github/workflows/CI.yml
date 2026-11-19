@@ -330,7 +330,7 @@ jobs:
           scheme=${theme%%:*} name=${theme#*:}
           # Fresh settings with the theme, no update check and no desktop entry question: either would be a second window that xdotool could pick
           if [ "$scheme" = dark ]; then themeKey=DarkTheme; else themeKey=LightTheme; fi
-          printf '[Other]\nUpdateChecking\\CheckAutomatically=false\n\n[Theme]\nColorScheme=%s\n%s=%s\n\n[Ui]\nDesktopEntryOffered=true\n' "$scheme" "$themeKey" "$name" \
+          printf '[Other]\nUpdateChecking\\CheckAutomatically=false\n\n[Theme]\nColorScheme=%s\n%s=%s\n\n[desktopEntry]\noffered=true\n' "$scheme" "$themeKey" "$name" \
             > "$XDG_CONFIG_HOME/GitHubSoft/File Commander.conf"
           export SCREENSHOT_FILE="$SCREENSHOT_DIR/$name.png"
           # The window opens at half the screen on first launch: 1280x800

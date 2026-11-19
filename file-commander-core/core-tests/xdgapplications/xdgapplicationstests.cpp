@@ -301,19 +301,6 @@ TEST_CASE("Exec is unescaped as a string value before its quoting applies", "[xd
 		== std::vector<QStringList>{ { QStringLiteral("program"), QStringLiteral("a b"), QStringLiteral("$HOME"), QStringLiteral("/file") } });
 }
 
-TEST_CASE("What escapedExecArgument and escapedStringValue write reads back unchanged", "[xdgapplications][exec]")
-{
-	const TestFolders folders;
-	const QString program = QStringLiteral("/opt/My \"App\"/`$bin`\\%f 100%");
-	const QString icon = QStringLiteral("/icons/back\\slash\nnew line");
-	folders.write(QStringLiteral("share1/applications/written.desktop"), QStringLiteral("[Desktop Entry]\nType=Application\nName=Written\nMimeType=text/plain\nExec=")
-		% escapedExecArgument(program) % QStringLiteral(" %F\nIcon=") % escapedStringValue(icon) % '\n');
-
-	const Application application = folders.onlyApplication(QStringLiteral("text/plain"));
-	CHECK(application.icon == icon);
-	CHECK(commandLines(application, { QStringLiteral("/file") }) == std::vector<QStringList>{ { program, QStringLiteral("/file") } });
-}
-
 TEST_CASE("applicationsToOpen goes by the files' MIME types and their ancestors", "[xdgapplications]")
 {
 	const TestFolders folders;

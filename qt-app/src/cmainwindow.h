@@ -146,9 +146,6 @@ private:
 	void compareFolders();
 	void batchRename();
 	void checkForUpdates();
-	void setDesktopEntryInstalled(bool installed);
-	// Asks on the first launch of an AppImage only
-	void offerDesktopEntryOnce();
 	void reportBug();
 	void about();
 
