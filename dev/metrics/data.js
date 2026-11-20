@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795128391724,
+  "lastUpdate": 1795174559976,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -40005,6 +40005,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 55,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "d30865ff4323a469eea03491f3823cc0a9f0b7fe",
+          "message": "The file-operation prompt and conflict list share one helper for creating their decision buttons",
+          "timestamp": "2026-11-20T13:28:03+02:00",
+          "tree_id": "6e8913264da564e3eb683cb6aea3d28a16216784",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/d30865ff4323a469eea03491f3823cc0a9f0b7fe"
+        },
+        "date": 1795174557349,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 26337,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 37713,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1850.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1182.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 489,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 56,
             "unit": "KB"
           },
           {
