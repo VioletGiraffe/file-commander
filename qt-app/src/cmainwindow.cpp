@@ -450,14 +450,14 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 	const QString label = (kind == TransferKind::Copy ? tr("Copy %1 %2 to") : tr("Move %1 %2 to"))
 		.arg(sources.size()).arg(sources.size() > 1 ? tr("files") : tr("file"));
 
-	CFileOperationConfirmationPrompt prompt(caption, label, toNativeSeparators(prefill), this);
+	CFileOperationConfirmationPrompt prompt(caption, label, toNativeSeparators(prefill), kind == TransferKind::Copy, this);
 	if (QSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
 		if (prompt.exec() != QDialog::Accepted)
 			return false;
 	}
 
-	auto request = makeUiTransferRequest(kind, sourcePaths, prompt.text(), destinationDirectory);
+	auto request = makeUiTransferRequest(kind, sourcePaths, prompt.text(), destinationDirectory, prompt.linkMode());
 	if (!request)
 	{
 		QMessageBox::warning(this, tr("Operation cannot start"), requestValidationErrorText(request.error()));

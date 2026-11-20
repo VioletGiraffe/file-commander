@@ -31,6 +31,13 @@
     <widget class="QLineEdit" name="_editField"/>
    </item>
    <item>
+    <widget class="QCheckBox" name="_copyLinkTargets">
+     <property name="text">
+      <string>Copy what &amp;links point to, instead of the links</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
       <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>

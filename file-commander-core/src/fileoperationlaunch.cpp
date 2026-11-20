@@ -76,8 +76,8 @@ QString prefillTransferDestination(const TransferKind kind, const QStringList& r
 	return destination->child(source->name()).value();
 }
 
-std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(
-	const TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationText, const QString& destinationFolder)
+std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(const TransferKind kind, const QStringList& rawSourcePaths,
+	const QString& destinationText, const QString& destinationFolder, const LinkTransferMode linkMode)
 {
 	QString destination = resolveUserPath(destinationText, destinationFolder);
 	// Resolution drops a trailing separator, and the intent heuristic reads one as "into this folder"
@@ -85,7 +85,7 @@ std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(
 		destination += QLatin1Char('/');
 
 	const DestinationIntent intent = transferDestinationIntent(rawSourcePaths, destination);
-	return makeTransferRequest(kind, rawSourcePaths, intent, destination);
+	return makeTransferRequest(kind, rawSourcePaths, intent, destination, linkMode);
 }
 
 DeletionBackend deletionBackendFor(const bool toTrash, const DesktopShellUse shellUse)

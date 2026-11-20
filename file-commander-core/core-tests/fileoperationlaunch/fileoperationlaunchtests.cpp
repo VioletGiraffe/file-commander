@@ -151,6 +151,17 @@ TEST_CASE("launch: request construction chooses the intent once", "[fileoperatio
 		CHECK(request->destination.intent == DestinationIntent::ExactEntry);
 	}
 
+	SECTION("a copy keeps its links unless told to copy what they point to")
+	{
+		const auto keeping = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, base % "/existingDir", base);
+		REQUIRE(keeping.has_value());
+		CHECK(keeping->linkMode == LinkTransferMode::CopyLinks);
+
+		const auto following = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, base % "/existingDir", base, LinkTransferMode::CopyTargets);
+		REQUIRE(following.has_value());
+		CHECK(following->linkMode == LinkTransferMode::CopyTargets);
+	}
+
 	SECTION("a trailing separator preserves IntoDirectory intent through request parsing")
 	{
 		const QString destination = base % "/new/deep/";

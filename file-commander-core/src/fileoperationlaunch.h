@@ -25,8 +25,8 @@ RESTORE_COMPILER_WARNINGS
 
 // Builds the trusted request from the selected paths and the edited destination, choosing the intent once.
 // The destination is typed path text, resolved against destinationFolder: see resolveUserPath().
-[[nodiscard]] std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(
-	TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationText, const QString& destinationFolder);
+[[nodiscard]] std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(TransferKind kind, const QStringList& rawSourcePaths,
+	const QString& destinationText, const QString& destinationFolder, LinkTransferMode linkMode = LinkTransferMode::CopyLinks);
 
 // Which backend performs a deletion
 enum class DeletionBackend

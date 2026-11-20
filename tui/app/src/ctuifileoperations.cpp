@@ -476,12 +476,16 @@ void transferSelectedItems(CController& controller, const Panel sourcePanel, con
 	const QString operationName = fileOperationName(operation);
 	const QString destinationFolder = controller.otherPanel(sourcePanel).currentDirPathNative();
 
-	const std::optional<QString> destination = askForText(operationName, { QStringLiteral("%1 %2 to:").arg(operationName, itemsText(sources)), true },
+	DialogSpec prompt = textPrompt(operationName, { QStringLiteral("%1 %2 to:").arg(operationName, itemsText(sources)), true },
 		toNativeSeparators(prefillTransferDestination(kind, sourcePaths, destinationFolder)), operationName);
-	if (!destination)
+	if (kind == TransferKind::Copy)
+		prompt.checkBoxLabel = QStringLiteral("Copy what ~l~inks point to, instead of the links");
+	const DialogAnswer answer = execDialog(prompt);
+	if (answer.button != size_t{ 0 })
 		return;
 
-	auto request = makeUiTransferRequest(kind, sourcePaths, *destination, destinationFolder);
+	const LinkTransferMode linkMode = answer.checked ? LinkTransferMode::CopyTargets : LinkTransferMode::CopyLinks;
+	auto request = makeUiTransferRequest(kind, sourcePaths, answer.inputText, destinationFolder, linkMode);
 	if (!request)
 	{
 		showMessage(QStringLiteral("Operation cannot start"), requestValidationErrorText(request.error()));
