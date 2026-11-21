@@ -49,12 +49,6 @@ RESTORE_COMPILER_WARNINGS
 // Often enough to look immediate, rarely enough to keep cheap a sorted list's merge of each batch, a pass over all its rows
 static constexpr std::chrono::milliseconds resultsDisplayInterval{ 100 };
 
-// "1 item", "2 items"
-[[nodiscard]] static QString itemCountText(const uint64_t count)
-{
-	return count == 1 ? QObject::tr("1 item") : QObject::tr("%1 items").arg(count);
-}
-
 CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIconProvider& iconProvider, QWidget* parent) :
 	QMainWindow(parent),
 	_iconProvider(iconProvider),
@@ -211,23 +205,7 @@ void CFilesSearchWindow::showSearchCompletion(const CFileSearchResultsBuffer::Co
 	_resultsTimer->stop();
 	ui->btnSearch->setText(tr("Start"));
 
-	if (completion.status == CFileSearchEngine::SearchInvalidPattern)
-	{
-		// No traversal happened, so the scan statistics below would all read zero
-		setProgressText(tr("The contents pattern is not a valid regular expression"), Qt::ElideRight);
-		return;
-	}
-
-	QString message = (completion.status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
-	if (const int found = _results->rowCount(); found > 0)
-		message = message % ", " % tr("%1 found").arg(itemCountText((uint64_t)found));
-
-	// Neither matches nor known non-matches, so saying nothing would present the results as complete
-	if (completion.inconclusiveItems > 0)
-		message = message % ", " % tr("%1 could not be searched").arg(itemCountText(completion.inconclusiveItems));
-
-	message = message % ": " % tr("%1 scanned in %2 sec").arg(itemCountText(completion.itemsScanned)).arg((double)completion.msElapsed * 1e-3, 0, 'f', 1);
-
+	QString message = fileSearchCompletionText(completion, (uint64_t)_results->rowCount());
 	if (completion.msElapsed > 0)
 	{
 		const uint64_t itemsPerSecond = completion.itemsScanned * 1000ULL / completion.msElapsed;

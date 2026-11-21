@@ -57,3 +57,5 @@ private:
 	QString _lastScannedItem;
 	std::optional<Completion> _completion;
 };
+
+[[nodiscard]] QString fileSearchCompletionText(const CFileSearchResultsBuffer::Completion& completion, uint64_t itemsFound);

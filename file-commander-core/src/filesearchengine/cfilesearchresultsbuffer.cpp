@@ -4,6 +4,10 @@
 #include "assert/advanced_assert.h"
 
 
+DISABLE_COMPILER_WARNINGS
+#include <QObject>
+RESTORE_COMPILER_WARNINGS
+
 #include <algorithm>
 #include <utility>
 
@@ -46,4 +50,24 @@ void CFileSearchResultsBuffer::searchFinished(CFileSearchEngine::SearchStatus st
 {
 	std::lock_guard lock{ _mutex };
 	_completion = Completion{ status, itemsScanned, inconclusiveItems, msElapsed };
+}
+
+// "1 item", "2 items"
+[[nodiscard]] static QString itemCountText(const uint64_t count)
+{
+	return count == 1 ? QObject::tr("1 item") : QObject::tr("%1 items").arg(count);
+}
+
+QString fileSearchCompletionText(const CFileSearchResultsBuffer::Completion& completion, const uint64_t itemsFound)
+{
+	if (completion.status == CFileSearchEngine::SearchInvalidPattern)
+		return QObject::tr("The contents pattern is not a valid regular expression");
+
+	QString text = completion.status == CFileSearchEngine::SearchCancelled ? QObject::tr("Search aborted") : QObject::tr("Search completed");
+	text += QObject::tr(", %1 found").arg(itemCountText(itemsFound));
+	// Neither matches nor known non-matches, so saying nothing would present the results as complete
+	if (completion.inconclusiveItems > 0)
+		text += QObject::tr(", %1 could not be searched").arg(itemCountText(completion.inconclusiveItems));
+	text += QObject::tr(": %1 scanned in %2 sec").arg(itemCountText(completion.itemsScanned)).arg((double)completion.msElapsed * 1e-3, 0, 'f', 1);
+	return text;
 }

@@ -86,3 +86,12 @@ TEST_CASE("Results buffer - a search's matches all arrive before its completion"
 
 	CHECK(matchCount == fileCount);
 }
+
+TEST_CASE("Results buffer - the completion text states the outcome and its counts", "[search][buffer]")
+{
+	using Completion = CFileSearchResultsBuffer::Completion;
+	CHECK(fileSearchCompletionText(Completion{ CFileSearchEngine::SearchFinished, 3, 0, 1500 }, 0) == QSL("Search completed, 0 items found: 3 items scanned in 1.5 sec"));
+	CHECK(fileSearchCompletionText(Completion{ CFileSearchEngine::SearchCancelled, 1, 2, 0 }, 1) ==
+		QSL("Search aborted, 1 item found, 2 items could not be searched: 1 item scanned in 0.0 sec"));
+	CHECK(fileSearchCompletionText(Completion{ CFileSearchEngine::SearchInvalidPattern, 0, 0, 0 }, 0) == QSL("The contents pattern is not a valid regular expression"));
+}

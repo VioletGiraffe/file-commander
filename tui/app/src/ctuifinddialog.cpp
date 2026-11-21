@@ -56,12 +56,6 @@ constexpr int inputLimit = 32 * 1024;
 constexpr auto resultsDisplayInterval = 100ms;
 constexpr size_t maxResultsPerDisplay = 10'000;
 
-// "1 item", "2 items"
-[[nodiscard]] QString itemCountText(const uint64_t count)
-{
-	return count == 1 ? QStringLiteral("1 item") : QStringLiteral("%1 items").arg(count);
-}
-
 // The dialog palette's list viewer entries
 constexpr uchar resultsNormalEntry = 0x1A, resultsFocusedEntry = 0x1B;
 
@@ -449,20 +443,7 @@ void CTuiFindDialog::showPendingResults(const size_t maxMatches)
 void CTuiFindDialog::showCompletion(const CFileSearchResultsBuffer::Completion& completion)
 {
 	setSearchActive(false);
-
-	if (completion.status == CFileSearchEngine::SearchInvalidPattern)
-	{
-		setStatus(QStringLiteral("The contents pattern is not a valid regular expression"));
-		return;
-	}
-
-	QString message = completion.status == CFileSearchEngine::SearchCancelled ? QStringLiteral("Search aborted") : QStringLiteral("Search completed");
-	message += QStringLiteral(", %1 found").arg(itemCountText((uint64_t)_results->itemCount()));
-	// Neither matches nor known non-matches, so saying nothing would present the results as complete
-	if (completion.inconclusiveItems > 0)
-		message += QStringLiteral(", %1 could not be searched").arg(itemCountText(completion.inconclusiveItems));
-	message += QStringLiteral(": %1 scanned in %2 sec").arg(itemCountText(completion.itemsScanned)).arg((double)completion.msElapsed * 1e-3, 0, 'f', 1);
-	setStatus(message);
+	setStatus(fileSearchCompletionText(completion, (uint64_t)_results->itemCount()));
 
 	if (_results->itemCount() > 0 && !_userActedDuringSearch)
 		_results->select();
