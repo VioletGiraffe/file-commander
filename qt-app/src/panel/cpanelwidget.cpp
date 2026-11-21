@@ -683,19 +683,10 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 	const qulonglong previousCurrentHash = _model->itemHash(previousCurrentIndex);
 
 	const CPanel& panel = _controller->panel(_panelPosition);
-	std::vector<CFileSystemObject> rows;
-	QString listedFolder;
-	bool listed = false;
-	panel.readCommittedContents([&rows, &listedFolder, &listed](const QString& folder, const FileListHashMap& items) {
-		listed = true;
-		listedFolder = folder;
-		rows.reserve(items.size());
-		for (const auto& item : items)
-			rows.push_back(item.second);
-	});
+	CPanel::CommittedListing listing = panel.committedListing();
 
 	PanelTab& tab = activeTab();
-	const std::optional<uint64_t> navigationId = listed ? std::optional{ panel.navigationId() } : std::nullopt;
+	const std::optional<uint64_t> navigationId = listing.isCommitted ? std::optional{ panel.navigationId() } : std::nullopt;
 	// A refresh keeps the scroll position, the cursor, the selection and an open editor; a navigation starts over
 	const bool refresh = navigationId && navigationId == tab.navigationId;
 	tab.navigationId = navigationId;
@@ -708,11 +699,11 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 		if (refresh)
 		{
 			const CFileListView::ScrollPosition scrollPosition = ui->_list->scrollPosition();
-			modelReset = !_model->updateRows(std::move(rows));
+			modelReset = !_model->updateRows(std::move(listing.items));
 			ui->_list->restoreScrollPosition(scrollPosition);
 		}
 		else
-			_model->setRows(std::move(rows), std::move(listedFolder));
+			_model->setRows(std::move(listing.items), std::move(listing.folder));
 
 		placeCursorAfterFill(operation, modelReset, previousCurrentRow, previousCurrentHash);
 	}

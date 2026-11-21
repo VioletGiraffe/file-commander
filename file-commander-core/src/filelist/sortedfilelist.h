@@ -51,6 +51,22 @@ protected:
 	~SortedFileListObserver() = default;
 };
 
+// For an owner that reads the rows only after it finishes changing them
+class NullSortedFileListObserver final : public SortedFileListObserver
+{
+	void beforeReset() override {}
+	void afterReset() override {}
+	void beforeInsert(int, int) override {}
+	void afterInsert() override {}
+	void beforeRemove(int, int) override {}
+	void afterRemove() override {}
+	void beforeMove(int, int) override {}
+	void afterMove() override {}
+	void rowChanged(int) override {}
+	void beforeReorder(SortedFileListReorderCause) override {}
+	void afterReorder(SortedFileListReorderCause) override {}
+};
+
 // A file list's items as displayed: the ones the name filter lets through, sorted by FileListSorter's rules.
 // A row is a displayed item, numbered from the top.
 class SortedFileList

@@ -144,6 +144,13 @@ public:
 	// Invokes fn(folder, contents) under the list lock, or not at all if no committed listing belongs to the
 	// current view. fn holds up this panel's refreshes, so it must be short.
 	void readCommittedContents(const std::function<void(const QString& folder, const FileListHashMap& contents)>& fn) const;
+	struct CommittedListing
+	{
+		std::vector<CFileSystemObject> items; // In no particular order
+		QString folder;
+		bool isCommitted = false; // False, with the other fields empty, while no committed listing belongs to the current view
+	};
+	[[nodiscard]] CommittedListing committedListing() const;
 	// Advances on every setPath() and showAllFilesFromCurrentFolderAndBelow(), even to the folder already in view; a refresh keeps it.
 	// Changes only on the UI thread.
 	[[nodiscard]] uint64_t navigationId() const;
@@ -159,8 +166,6 @@ public:
 	void setSorting(FileListSortField field, Qt::SortOrder order);
 	[[nodiscard]] FileListSortField sortField() const;
 	[[nodiscard]] Qt::SortOrder sortOrder() const;
-	// The items the name filter shows, in display order. Empty while the committed listing does not belong to the current view.
-	[[nodiscard]] std::vector<CFileSystemObject> visibleItems() const;
 
 // Selection: items of the committed listing, never [..] and never an item the name filter hides.
 // A new listing keeps the selected items it still has at the same path, so a navigation to another folder clears it.

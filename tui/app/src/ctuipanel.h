@@ -5,6 +5,8 @@
 #include "cpanel.h"
 
 #include <functional>
+#include <optional>
+#include <stdint.h>
 
 class CController;
 class CTuiColumnHeader;
@@ -57,6 +59,14 @@ public:
 	void chooseVolume();
 
 private:
+	struct ListedView
+	{
+		qulonglong tabId = 0;
+		uint64_t navigationId = 0;
+
+		[[nodiscard]] bool operator==(const ListedView&) const = default;
+	};
+
 	// False for a command the panel does not carry out
 	bool runCommand(ushort command);
 
@@ -123,4 +133,5 @@ private:
 	CTuiFilterLine* _filterLine;
 	CTuiStatusLine* _statusLine;
 	TTimerId _showEmptyListTimer = nullptr; // Non-null while the screen shows rows the list no longer holds
+	std::optional<ListedView> _listedView; // The view whose committed listing _fileList holds
 };

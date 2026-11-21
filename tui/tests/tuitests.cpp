@@ -1336,6 +1336,27 @@ TEST_CASE("Space on [..] shows the parent folder's size in its row and the statu
 		QStringLiteral("the size of [..] in the status line"));
 }
 
+TEST_CASE("A refresh adds and removes rows where they sort and keeps the cursor on its item", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/bbb.txt"));
+	sandbox.createFile(QStringLiteral("work/ccc.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("ccc.txt"));
+	moveCursorTo(*session, QStringLiteral("ccc.txt"));
+
+	sandbox.createFile(QStringLiteral("work/aaa.txt"));
+	requireScreen(*session, [](const CTerminalScreen& screen) {
+		const int addedRow = panelRowOf(screen, QStringLiteral("aaa")), nextRow = panelRowOf(screen, QStringLiteral("bbb"));
+		return addedRow >= 0 && addedRow < nextRow && cursorIsOn(screen, QStringLiteral("ccc.txt"));
+	}, QStringLiteral("aaa.txt listed above bbb.txt, with the cursor still on ccc.txt"));
+
+	REQUIRE(QFile::remove(sandbox.work(QStringLiteral("bbb.txt"))));
+	requireScreen(*session, [](const CTerminalScreen& screen) {
+		return panelRowOf(screen, QStringLiteral("aaa")) >= 0 && panelRowOf(screen, QStringLiteral("bbb")) < 0 && cursorIsOn(screen, QStringLiteral("ccc.txt"));
+	}, QStringLiteral("bbb.txt gone, with the cursor still on ccc.txt"));
+}
+
 TEST_CASE("A double click on a row activates it, in the focused panel and in the other one", "[tui][double-click]")
 {
 	const Sandbox sandbox;

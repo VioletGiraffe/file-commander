@@ -579,13 +579,14 @@ void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	// The old frame stays up briefly: a listing that arrives by then replaces it with no blank frame between them
 	static constexpr uint oldFrameHoldMs = 100;
 	_fileList->clearRowsKeepingScreen();
+	_listedView.reset();
 	if (!_showEmptyListTimer)
 		_showEmptyListTimer = setTimer(oldFrameHoldMs);
 }
 
 void CTuiPanel::showEmptyListWhileListing()
 {
-	_fileList->setRows({}, {}, _controller.panel(_side).sortField(), {}, 0, 0);
+	_fileList->showEmptyRows();
 	updateStatusLine();
 	updateTitle();
 	updateTabStrip();
@@ -601,8 +602,21 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 	// The core's current item is always the row under the cursor.
 	const bool navigated = cause == refreshCauseForwardNavigation || cause == refreshCauseCdUp;
 	_columnHeader->setSorting(panel.sortField(), panel.sortOrder());
-	_fileList->setRows(panel.visibleItems(), panel.currentDirPathPosix(), panel.sortField(), panel.selectedItemHashes(),
-		_controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()), navigated ? 0 : _fileList->cursorRow());
+
+	CPanel::CommittedListing listing = panel.committedListing();
+	const std::optional<ListedView> listedView = listing.isCommitted ? std::optional{ ListedView{ panel.id(), panel.navigationId() } } : std::nullopt;
+	const bool refreshesShownView = listedView && listedView == _listedView;
+	_listedView = listedView;
+
+	_fileList->setContents({
+		.items = std::move(listing.items),
+		.listedFolder = std::move(listing.folder),
+		.refreshesShownView = refreshesShownView,
+		.sortField = panel.sortField(),
+		.sortOrder = panel.sortOrder(),
+		.nameFilter = panel.nameFilter(),
+		.selectedItemHashes = panel.selectedItemHashes(),
+	}, _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()), navigated ? 0 : _fileList->cursorRow());
 	if (const CFileSystemObject* row = _fileList->currentRow())
 		_controller.setCurrentItemHashForCurrentFolder(_side, row->hash(), false);
 

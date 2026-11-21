@@ -5,6 +5,7 @@
 #include "cfilesystemobject.h"
 #include "filelist/filelistsorter.h"
 #include "filelist/filetimetext.h"
+#include "filelist/sortedfilelist.h"
 
 #include "compiler/compiler_warnings_control.h"
 #include "hash/hash_functors.hpp"
@@ -66,13 +67,22 @@ class CTuiFileList final : public CTuiRowList
 public:
 	CTuiFileList(const TRect& bounds, TScrollBar* verticalScrollBar) noexcept;
 
+	struct Contents
+	{
+		std::vector<CFileSystemObject> items; // In any order
+		QString listedFolder; // See fileListFolderPrefix()
+		bool refreshesShownView = false; // The items are a newer listing of the view shown: unchanged rows keep their sort keys
+		FileListSortField sortField = FileListSortField::Name; // This column stays shown however narrow the list is
+		Qt::SortOrder sortOrder = Qt::AscendingOrder;
+		QString nameFilter; // As SortedFileList::setNameFilter()
+		std::vector<qulonglong> selectedItemHashes;
+	};
 	// The cursor goes to the row whose hash is cursorItemHash, or to fallbackRow (clamped to the rows) when no row has it.
-	// listedFolder: see fileListFolderPrefix().
-	// sortField: this column stays shown however narrow the list is.
-	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder, FileListSortField sortField, const std::vector<qulonglong>& selectedItemHashes,
-		qulonglong cursorItemHash, int fallbackRow);
+	void setContents(Contents contents, qulonglong cursorItemHash, int fallbackRow);
 	// Removes the rows and the selection. The screen keeps showing them until the next draw.
 	void clearRowsKeepingScreen();
+	// Draws the list that clearRowsKeepingScreen() emptied
+	void showEmptyRows();
 	[[nodiscard]] const CFileSystemObject* currentRow() const noexcept; // nullptr when there are no rows
 	[[nodiscard]] std::optional<int> firstFileRow() const; // nullopt when no row is a file
 
@@ -89,8 +99,7 @@ private:
 	void cursorMovedByUser() override;
 
 private:
-	std::vector<CFileSystemObject> _rows;
-	QString _listedFolder;
+	NullSortedFileListObserver _listObserver;
+	SortedFileList _list{ _listObserver };
 	ankerl::unordered_dense::set<qulonglong, identity_hash> _selectedItemHashes;
-	FileListSortField _sortField = FileListSortField::Name;
 };

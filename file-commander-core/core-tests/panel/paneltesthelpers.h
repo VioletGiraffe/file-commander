@@ -5,6 +5,7 @@
 
 #include "cpanel.h"
 #include "cfilesystemobject.h"
+#include "filelist/sortedfilelist.h"
 #include "settings.h"
 #include "temptree.h"
 
@@ -40,6 +41,7 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <mutex>
 #include <thread>
+#include <utility>
 #include <vector>
 
 // Returns once the system has reported every change made so far in the temporary folder, which holds every TempTree:
@@ -85,6 +87,23 @@ inline void waitUntilChangesAreReported()
 	size_t count = 0;
 	panel.readCommittedContents([&count](const QString&, const FileListHashMap& contents) { count = contents.size(); });
 	return count;
+}
+
+// The committed listing as a front end shows it: through the panel's name filter and sorting
+[[nodiscard]] inline std::vector<CFileSystemObject> shownItems(const CPanel& panel)
+{
+	NullSortedFileListObserver observer;
+	SortedFileList list{ observer };
+	list.setNameFilter(panel.nameFilter());
+	list.setSorting(panel.sortField(), panel.sortOrder());
+	CPanel::CommittedListing listing = panel.committedListing();
+	list.setRows(std::move(listing.items), std::move(listing.folder));
+
+	std::vector<CFileSystemObject> items;
+	items.reserve((size_t)list.rowCount());
+	for (int row = 0; row < list.rowCount(); ++row)
+		items.push_back(list.rowAt(row));
+	return items;
 }
 
 // Windows takes the hidden attribute; Linux/FreeBSD honor a leading dot; macOS honors neither for Qt's

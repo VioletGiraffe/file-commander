@@ -13,7 +13,7 @@
 [[nodiscard]] static QStringList shownNames(const CPanel& panel)
 {
 	QStringList names;
-	for (const CFileSystemObject& item : panel.visibleItems())
+	for (const CFileSystemObject& item : shownItems(panel))
 	{
 		QString name = fileListFolderPrefix(item, panel.currentDirPathPosix());
 		name += item.fullName();
