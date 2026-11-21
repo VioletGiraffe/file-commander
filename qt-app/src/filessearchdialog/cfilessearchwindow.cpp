@@ -215,6 +215,7 @@ void CFilesSearchWindow::showSearchCompletion(const CFileSearchResultsBuffer::Co
 {
 	_searchActive = false;
 	qApp->removeEventFilter(this);
+	ui->btnLoadResults->setEnabled(true);
 	_resultsTimer->stop();
 	ui->btnSearch->setText(tr("Start"));
 
@@ -285,6 +286,8 @@ void CFilesSearchWindow::search()
 	{
 		_searchActive = true;
 		_userActedDuringSearch = false;
+		// addRows() requires rows not listed yet, and the search may still report a loaded path
+		ui->btnLoadResults->setEnabled(false);
 		// Queued: a line edit ignores the Enter that started the search, so that key is still on its way through the parent widgets
 		QMetaObject::invokeMethod(this, [this] {
 			if (_searchActive)

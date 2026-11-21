@@ -9,8 +9,10 @@
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
 #include "directoryscan/directoryscanner.h"
+#include "directoryscan/thinioqstring.h"
 #include "file.hpp"
 #include "qt_paths.hpp" // thin_io
+#include "qtcore_helpers/qstring_hash.hpp"
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "threading/cthreadpool.h"
 #include "threading/thread_helpers.h"
@@ -20,9 +22,13 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <3rdparty/ankerl/unordered_dense.h>
+
 #include <QByteArrayView>
 #include <QRegularExpression>
+#include <QStringBuilder>
 #include <QStringDecoder>
+#include <QStringList>
 #include <QStringView>
 RESTORE_COMPILER_WARNINGS
 
@@ -34,6 +40,7 @@ RESTORE_COMPILER_WARNINGS
 #include <semaphore>
 #include <stddef.h>
 #include <thread>
+#include <utility>
 
 // How much of a file one pass examines
 static constexpr uint64_t contentScanWindowSize = 1024 * 1024;
@@ -179,6 +186,64 @@ struct ContentSearchContext
 
 	return false;
 }
+
+// The query's roots without repeats. Spellings of one folder can differ by the trailing '/' and, on Windows, by letter case.
+class SearchRoots final
+{
+public:
+	explicit SearchRoots(const QStringList& roots)
+	{
+		for (const QString& root : roots)
+		{
+			QString folderPath = root.endsWith(u'/') ? root : QString{ root % u'/' };
+			QStringList& candidates = _foldersByCaseKey[caseKey(folderPath)];
+			if (std::ranges::none_of(candidates, [&folderPath](const QString& folder) { return isSameFolder(folder, folderPath); }))
+			{
+				candidates.push_back(std::move(folderPath));
+				_distinctRoots.push_back(root);
+			}
+		}
+	}
+
+	[[nodiscard]] const QStringList& distinct() const noexcept { return _distinctRoots; }
+
+	// folderPath ends with '/'
+	[[nodiscard]] bool contains(const QString& folderPath) const
+	{
+		const auto candidates = _foldersByCaseKey.find(caseKey(folderPath));
+		return candidates != _foldersByCaseKey.end()
+			&& std::ranges::any_of(candidates->second, [&folderPath](const QString& folder) { return isSameFolder(folder, folderPath); });
+	}
+
+private:
+	[[nodiscard]] static QString caseKey(const QString& folderPath)
+	{
+#ifdef _WIN32
+		return folderPath.toCaseFolded();
+#else
+		return folderPath;
+#endif
+	}
+
+	// Requires equal caseKey()
+	[[nodiscard]] static bool isSameFolder(const QString& left, const QString& right)
+	{
+		if (left == right)
+			return true;
+
+#ifdef _WIN32
+		// Only the filesystem decides: NTFS keeps apart names that case folding merges, such as k and the Kelvin sign, and a folder can be case-sensitive
+		const auto leftId = resolvedObjectId(left);
+		return leftId && leftId == resolvedObjectId(right);
+#else
+		return false;
+#endif
+	}
+
+private:
+	ankerl::unordered_dense::map<QString, QStringList, QStringHash> _foldersByCaseKey;
+	QStringList _distinctRoots;
+};
 } // namespace
 
 bool CFileSearchEngine::searchInProgress() const
@@ -280,7 +345,14 @@ void CFileSearchEngine::searchThread(const FileSearchQuery& query, FileSearchLis
 	ptrdiff_t contentTaskSlotCount = 0;
 	std::unique_ptr<CThreadPool> contentSearchPool;
 
-	for (const QString& pathToLookIn : query.roots)
+	// Each distinct root gets one scan, and the other scans report it without entering it.
+	// A root below another is not redundant: the higher scan misses it behind an excluded folder, or a folder that can be entered but not listed (POSIX mode --x, Windows traverse rights).
+	const SearchRoots roots{ query.roots };
+	std::function<bool (const QString&)> isAnotherRoot;
+	if (roots.distinct().size() > 1)
+		isAnotherRoot = [&roots](const QString& dirPath) { return roots.contains(dirPath); };
+
+	for (const QString& pathToLookIn : roots.distinct())
 	{
 		scanDirectory(CFileSystemObject(pathToLookIn).fullAbsolutePath(),
 			[&](const QString& parentPath, const thin_io::directory_entry& entry, bool reachedThroughLink) {
@@ -340,7 +412,7 @@ void CFileSearchEngine::searchThread(const FileSearchQuery& query, FileSearchLis
 				else
 					listener->matchFound(item, reachedThroughLink);
 
-			}, cancellationRequested, isFolderExcluded);
+			}, cancellationRequested, isFolderExcluded, true, isAnotherRoot);
 	}
 
 	if (contentSearchPool)

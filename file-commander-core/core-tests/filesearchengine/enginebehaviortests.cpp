@@ -1,5 +1,6 @@
 #include "searchenginetesthelpers.h"
 
+#include <algorithm>
 #include <semaphore>
 
 TEST_CASE("Search - a query with nowhere to look is refused", "[search][engine]")
@@ -68,6 +69,84 @@ TEST_CASE("Search - nothing in a tree without links is flagged as reached throug
 	REQUIRE(result.count() > 0); // Otherwise the check below passes for the wrong reason
 	CHECK(result.linkReachedMatches == 0);
 }
+
+TEST_CASE("Search - a root listed twice is scanned once", "[search][engine]")
+{
+	TempTree tree;
+	tree.makeFile(QSL("a.txt"));
+
+	CHECK(runSearch({ .roots = { tree.path(), tree.path(), QString{ tree.path() % '/' } } }).count() == 1);
+#ifdef _WIN32
+	CHECK(runSearch({ .roots = { tree.path(), tree.path().toUpper() } }).count() == 1);
+#endif
+}
+
+#ifdef _WIN32
+TEST_CASE("Search - roots whose names only Unicode case folding equates are different folders", "[search][engine]")
+{
+	TempTree tree;
+	const QString kelvinSignName = QString{ QChar{ 0x212A } } + u'x'; // Folds to "kx"
+	const QString first = tree.makeDir(kelvinSignName), second = tree.makeDir(QSL("kx"));
+	if (QDir{ tree.path() }.entryList(QDir::Dirs | QDir::NoDotAndDotDot).size() != 2)
+		return; // This volume's case table equates the two names
+
+	const QString firstFile = tree.makeFile(kelvinSignName + QSL("/a.txt")), secondFile = tree.makeFile(QSL("kx/b.txt"));
+	const SearchResult result = runSearch({ .roots = { first, second } });
+	CHECK(result.matched(firstFile));
+	CHECK(result.matched(secondFile));
+	CHECK(result.count() == 2);
+}
+#endif
+
+TEST_CASE("Search - overlapping roots report each item once, in either order", "[search][engine]")
+{
+	TempTree tree;
+	const QString sub = tree.makeDir(QSL("sub"));
+	const QString nested = tree.makeDir(QSL("sub/nested"));
+	const QString file = tree.makeFile(QSL("sub/nested/a.txt"));
+
+	for (const QStringList& roots : { QStringList{ tree.path(), nested }, QStringList{ nested, tree.path() }, QStringList{ sub, nested, tree.path() } })
+	{
+		INFO(roots.join(u';').toStdString());
+		const SearchResult result = runSearch({ .roots = roots });
+		CHECK(result.matched(sub));
+		CHECK(result.matched(nested));
+		CHECK(result.matched(file));
+		CHECK(result.count() == 3);
+		CHECK(result.itemsScanned == 3);
+	}
+}
+
+TEST_CASE("Search - a root inside an excluded folder is searched, though the higher root's scan skips that folder", "[search][engine]")
+{
+	TempTree tree;
+	const QString excluded = tree.makeDir(QSL("build"));
+	const QString inExcluded = tree.makeFile(QSL("build/a.txt"));
+	const QString outside = tree.makeFile(QSL("b.txt"));
+
+	const SearchResult result = runSearch({ .roots = { tree.path(), excluded }, .excludedFolders = excludedFolderFiltersFromSearchField(QSL("build")) });
+	CHECK(result.matched(inExcluded));
+	CHECK(result.matched(outside));
+	CHECK(result.count() == 2);
+}
+
+#ifndef _WIN32
+TEST_CASE("Search - a root below a folder that can be entered but not listed is searched", "[search][engine]")
+{
+	TempTree tree;
+	const QString locked = tree.makeDir(QSL("locked"));
+	const QString reachable = tree.makeDir(QSL("locked/reachable"));
+	const QString file = tree.makeFile(QSL("locked/reachable/a.txt"));
+
+	// FAT and exFAT refuse the change and leave the folder listable, and the search must find the file either way
+	const QFile::Permissions originalPermissions = QFile::permissions(locked);
+	QFile::setPermissions(locked, QFile::ExeOwner);
+	const SearchResult result = runSearch({ .roots = { tree.path(), reachable } });
+	QFile::setPermissions(locked, originalPermissions); // The temporary tree cannot be removed without them
+
+	CHECK(std::ranges::count(result.matches, file) == 1);
+}
+#endif
 
 TEST_CASE("Search - cancelling stops the traversal and reports the search as cancelled", "[search][engine]")
 {
