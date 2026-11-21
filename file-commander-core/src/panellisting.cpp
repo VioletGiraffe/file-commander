@@ -5,6 +5,7 @@
 
 // Submodule includes
 #include "directoryscan/thinioqstring.h"
+#include "paths/pathsyntax.h"
 
 
 #include <algorithm>
@@ -35,11 +36,6 @@ std::optional<FileListHashMap> listDirectoryForPanel(const QString& dirPath, con
 	}
 
 	return items;
-}
-
-static QString withTrailingSeparator(const QString& path)
-{
-	return path.endsWith('/') ? path : path + '/';
 }
 
 ListableFolderProbe::ListableFolderProbe(const std::atomic<bool>& cancelled, std::function<bool(const QString&)> canList) :

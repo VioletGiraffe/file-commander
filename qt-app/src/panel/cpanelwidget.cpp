@@ -27,6 +27,7 @@
 #include "fileoperations/fileoperationtypes.h"
 #include "fileoperations/inlinerename.h"
 #include "fileoperationsui/usermessagebox.h"
+#include "paths/pathsyntax.h"
 #include "qtcore_helpers/displayformatting.hpp"
 #include "shelloperations/cshelloperationrunner.h"
 #include "shelloperations/shellfileoperations.h"
@@ -1067,11 +1068,6 @@ void CPanelWidget::goToEnteredPath(const QString& path)
 		showUserMessage(this, *message);
 }
 
-static QString withTrailingSlash(const QString& path)
-{
-	return path.endsWith('/') ? path : path + '/';
-}
-
 void CPanelWidget::fillHistory()
 {
 	const std::vector<QString> folders = _controller->recentFolders(_panelPosition);
@@ -1081,13 +1077,13 @@ void CPanelWidget::fillHistory()
 	QStringList items;
 	items.reserve((qsizetype)folders.size());
 	for (const QString& folder : folders)
-		items.push_back(toNativeSeparators(withTrailingSlash(folder)));
+		items.push_back(toNativeSeparators(withTrailingSeparator(folder)));
 
 	// The active tab's current directory might not be in the list yet (e.g. a deferred save hasn't
 	// caught up) -- prepend it so it's still shown/highlighted correctly instead of defaulting to some
 	// unrelated entry.
 	const QString currentDir = _controller->panel(_panelPosition).currentDirPathPosix();
-	const QString currentDirDisplay = toNativeSeparators(withTrailingSlash(currentDir));
+	const QString currentDirDisplay = toNativeSeparators(withTrailingSeparator(currentDir));
 	qsizetype currentDirRow = items.indexOf(currentDirDisplay);
 	if (currentDirRow < 0)
 	{
@@ -1117,7 +1113,7 @@ void CPanelWidget::fillFolderMenu(QMenu* menu, const QString& folderPath)
 		if (seen.size() >= maxVisitedItems)
 			break;
 
-		const QString path = withTrailingSlash(visited);
+		const QString path = withTrailingSeparator(visited);
 		if (path.size() <= folderPath.size() || !path.startsWith(folderPath))
 			continue;
 

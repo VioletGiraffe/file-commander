@@ -10,6 +10,7 @@
 #include "assert/advanced_assert.h"
 #include "directoryscan/directoryscanner.h"
 #include "directoryscan/thinioqstring.h"
+#include "paths/pathsyntax.h"
 #include "std_helpers/qt_container_helpers.hpp"
 #include "timing/ctimeelapsed.h"
 
@@ -417,7 +418,7 @@ QString CPanel::currentDirName() const
 // that varies, and QDir::absolutePath() is the caller that omits it.
 static QString folderKey(const QString& path)
 {
-	return path.endsWith('/') ? path : path + '/';
+	return withTrailingSeparator(path);
 }
 
 void CPanel::setCurrentItemHashForFolder(const QString& dir, qulonglong currentItemHash, const bool notifyUi)

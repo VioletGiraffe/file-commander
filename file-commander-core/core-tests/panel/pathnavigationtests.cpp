@@ -1,6 +1,8 @@
 #include "paneltesthelpers.h"
 #include "panellisting.h"
 
+#include "paths/pathsyntax.h"
+
 #include <atomic>
 #include <vector>
 
@@ -242,8 +244,7 @@ TEST_CASE("CPanel - navigating up from the root only refreshes", "[panel][path]"
 {
 	return [&checked, unlistableFolder](const QString& folder) {
 		checked.push_back(folder);
-		const QString folderWithSeparator = folder.endsWith('/') ? folder : folder + '/';
-		return !folderWithSeparator.startsWith(unlistableFolder);
+		return !withTrailingSeparator(folder).startsWith(unlistableFolder);
 	};
 }
 

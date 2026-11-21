@@ -7,6 +7,7 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
+#include "paths/pathsyntax.h"
 #include "system/win_utils.hpp"
 #include "utility/on_scope_exit.hpp"
 
@@ -786,7 +787,7 @@ QStringList OsShell::trashFolders(const QStringList& volumeRoots)
 	const QString uid = QString::number(::getuid());
 	for (const QString& volumeRoot : volumeRoots)
 	{
-		const QString root = volumeRoot.endsWith('/') ? volumeRoot : volumeRoot + '/';
+		const QString root = withTrailingSeparator(volumeRoot);
 
 		// A shared .Trash counts only as a folder with the sticky bit, not a link: anyone could have made it
 		struct stat sharedTrash{};

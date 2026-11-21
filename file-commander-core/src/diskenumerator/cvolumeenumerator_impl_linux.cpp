@@ -2,6 +2,10 @@
 #include "volumeinfohelper.hpp"
 
 
+// Submodule includes
+#include "paths/pathsyntax.h"
+
+
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QFile>
@@ -86,7 +90,7 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl(std::vector<QStr
 	// "Home" is always shown as a convenience shortcut, even on setups where it isn't a mount point of its own.
 	{
 		VolumeInfo& homeInfo = volumes.emplace_back();
-		homeInfo.rootObjectInfo = homePath.endsWith('/') ? homePath : homePath + '/'; // homePath() is "/" where HOME is unset
+		homeInfo.rootObjectInfo = withTrailingSeparator(homePath); // homePath() is "/" where HOME is unset
 		homeInfo.volumeLabel = "home";
 		homeInfo.kind = VolumeInfo::Kind::Home;
 	}
