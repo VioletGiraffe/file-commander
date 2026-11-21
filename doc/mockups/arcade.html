@@ -67,7 +67,7 @@ h2 { font-family: var(--display); font-size: 1.15rem; margin: 32px 0 8px; }
 .fk em { font-style: normal; padding: 4px 4px 4px 8px; color: var(--txt); }
 .fk b { flex: 1; font-weight: 400; background: var(--accent); color: var(--accentFg); padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ---------- Arcade: a text-cell grid with a little air, on a darker bezel ---------- */
+/* ---------- Arcade: a text-cell grid with a little air, on a lighter bezel ---------- */
 .arcade { --cell: 20px; --winMargin: 1ch; --gap: 1ch; line-height: var(--cell); background: var(--bezel); }
 .arcade .menubar { background: transparent; color: var(--txt); padding: 3px 1ch 1px; }
 .arcade .menubar span { padding: 0 1ch; }
@@ -175,10 +175,10 @@ const rightPanel = {
 };
 
 // detail: the sizes and dates, dimmer than the names
-const palette = { bg: "#2b1b4a", txt: "#cbc1f0", detail: "#a397d3", dim: "#9285c6", accent: "#7cf3c8", accentFg: "#2b1b4a", selBg: "#4a2560", selFg: "#ff8ec4",
-	border: "#4f7c83", subtle: "#3d2c66", strong: "#5e4e8c", cursor: "#ff5fa8", cursorFg: "#2b1b4a", icur: "#5a4a85",
+const palette = { bg: "#0f0a1c", txt: "#cbc1f0", detail: "#a397d3", dim: "#9285c6", accent: "#7cf3c8", accentFg: "#0f0a1c", selBg: "#3f1f52", selFg: "#ff8ec4",
+	border: "#4f7c83", subtle: "#3a2a60", strong: "#5e4e8c", cursor: "#ff5fa8", cursorFg: "#0f0a1c", icur: "#47415c",
 	glowA: "rgba(124,243,200,.55)", glowB: "rgba(124,243,200,.28)", glowCursor: "rgba(255,95,168,.65)",
-	alt: "#3a2862", bezel: "#1a1030" };
+	alt: "#382458", bezel: "#1a1030" };
 
 function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
 

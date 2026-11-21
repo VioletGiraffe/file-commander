@@ -42,7 +42,7 @@ Meadow, Dusk, Greenbar, Departures, Notebook and Arcade come in one polarity eac
 - Departures, done: dark, flat, every row a strip of a split-flap board, yellow names.
 - Notebook, done: light, ruled rows with a red margin line between the icons and the names.
 - Arcade, done: dark, flat, text mode in arcade neon: tabs standing on glowing double-line mint frames, a pink cursor
-  bar, lavender names on aubergine, a darker bezel around the panels. The design: [mockups/arcade.html](mockups/arcade.html).
+  bar, lavender names on near-black violet, a lighter aubergine bezel around the panels. The design: [mockups/arcade.html](mockups/arcade.html).
 - Not scheduled: light, black and white, 2 px black rules, uppercase labels, one highlighter colour for the selection.
 
 Rejected: a dense grey look with square segmented controls. It resembles stock Linux styles.

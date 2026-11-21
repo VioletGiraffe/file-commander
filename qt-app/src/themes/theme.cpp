@@ -176,17 +176,17 @@ constexpr char kArcadeStyleSheet[] = R"(
 	CFunctionKeyButton { padding: 5px 8px; }
 )";
 
-// Text mode in arcade neon: lit double-line frames with the tabs standing on them, a pink cursor bar, lavender names on aubergine.
-// The panels sit on a darker bezel.
+// Text mode in arcade neon: lit double-line frames with the tabs standing on them, a pink cursor bar, lavender names on near-black violet.
+// The panels are darker than the aubergine bezel around them.
 [[nodiscard]] Theme arcadeTheme()
 {
 	const CBasePalette palette{
-		.windowBg = rgb(0x1a1030), .surface = rgb(0x2b1b4a), .surfaceAlt = rgb(0x3a2862),
+		.windowBg = rgb(0x1a1030), .surface = rgb(0x0f0a1c), .surfaceAlt = rgb(0x382458),
 		.text = rgb(0xcbc1f0), .textDim = rgb(0x9285c6),
 		.button = rgb(0x2b1b4a),
 		.accent = rgb(0x7cf3c8),
-		.selectionBg = rgb(0x4a2560), .selectionFg = rgb(0xff8ec4),
-		.border = rgb(0x4f7c83), .borderSubtle = rgb(0x3d2c66), .borderStrong = rgb(0x5e4e8c),
+		.selectionBg = rgb(0x3f1f52), .selectionFg = rgb(0xff8ec4),
+		.border = rgb(0x4f7c83), .borderSubtle = rgb(0x3a2a60), .borderStrong = rgb(0x5e4e8c),
 	};
 
 	Theme theme = flatMonospaceTheme(QStringLiteral("Arcade"), true, palette);

@@ -190,21 +190,22 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0x1A0F04,
 		.bottomBack = 0x120E0B, .hintText = 0x8C7A63, .hintKey = 0xE8A85A, .keyBack = 0xC9822B, .keyText = 0x1A0F04, .keyLabelBack = 0x33291F, .keyLabelText = 0xE0CDAA,
 		.keyBarBack = 0x120E0B } },
-	// True colour, in arcade neon: mint frames, a pink cursor bar, lavender names on aubergine, the menus and key buttons on a darker bezel.
+	// True colour, in arcade neon: mint frames, a pink cursor bar, lavender names on near-black violet, the menus and key buttons on a lighter aubergine bezel.
 	// As the GUI's Arcade: the column header a band with uppercase titles, the status line's numbers in pink below a divider line.
+	// The column header and the separators must round to 0x5F005F on a 256-colour terminal: darker purples round to navy, as dark as the panel's grey there.
 	{ "arcade", "Arcade", ColourTheme::Polarity::Dark, {
-		.menuBack = 0x1A1030, .menuText = 0xCBC1F0, .menuShortcut = 0x7CF3C8, .menuSelectedBack = 0xFF5FA8, .menuSelectedText = 0x2B1B4A, .menuSelectedShortcut = 0x00382B,
+		.menuBack = 0x1A1030, .menuText = 0xCBC1F0, .menuShortcut = 0x7CF3C8, .menuSelectedBack = 0xFF5FA8, .menuSelectedText = 0x0F0A1C, .menuSelectedShortcut = 0x00382B,
 		.disabledText = 0x5E4E8C,
-		.panelBack = 0x2B1B4A, .framePassive = 0x4F7C83, .frameActive = 0x7CF3C8, .frameIcons = 0xFF5FA8,
-		.fileText = 0xCBC1F0, .fileDetailText = 0xA397D3, .selectedText = 0xFF8EC4, .cursorBack = 0xFF5FA8, .cursorText = 0x2B1B4A, .cursorSelectedText = 0x00382B, .columnHeader = 0x7CF3C8,
-		.statusText = 0x9285C6, .separator = 0x3D2C66, .cursorSeparator = 0xC2457F,
-		.columnHeaderBack = 0x3A2862, .uppercaseColumnHeader = true, .statusValue = 0xFF5FA8, .statusDividerLine = true, .statusDivider = 0x5E4E8C,
+		.panelBack = 0x0F0A1C, .framePassive = 0x4F7C83, .frameActive = 0x7CF3C8, .frameIcons = 0xFF5FA8,
+		.fileText = 0xCBC1F0, .fileDetailText = 0xA397D3, .selectedText = 0xFF8EC4, .cursorBack = 0xFF5FA8, .cursorText = 0x0F0A1C, .cursorSelectedText = 0x00382B, .columnHeader = 0x7CF3C8,
+		.statusText = 0x9285C6, .separator = 0x3A2A60, .cursorSeparator = 0xC2457F,
+		.columnHeaderBack = 0x382458, .uppercaseColumnHeader = true, .statusValue = 0xFF5FA8, .statusDividerLine = true, .statusDivider = 0x5E4E8C,
 		.tabBack = 0x4A3878, .tabText = 0xE6E0FA,
 		.dialogBack = 0x3A2862, .dialogText = 0xC9BFEA, .dialogFrame = 0x7CF3C8, .dialogShortcut = 0x7CF3C8, .focusText = 0xFF8EC4,
 		.buttonBack = 0x4A3878, .buttonText = 0xFFFFFF, .buttonDefaultText = 0x7CF3C8, .buttonShortcut = 0xFF8EC4, .buttonShadow = 0x1A1030,
-		.controlBack = 0x33225A, .controlText = 0xC9BFEA, .inputBack = 0x1E1236, .inputText = 0xFFFFFF, .scrollBarText = 0x5E4E8C, .scrollBarBack = 0x33225A,
-		.selectionText = 0x2B1B4A,
-		.bottomBack = 0x1A1030, .hintText = 0x9285C6, .hintKey = 0x7CF3C8, .keyBack = 0x7CF3C8, .keyText = 0x2B1B4A, .keyLabelBack = 0x3A2862, .keyLabelText = 0xCBC1F0,
+		.controlBack = 0x33225A, .controlText = 0xC9BFEA, .inputBack = 0x0F0A1C, .inputText = 0xFFFFFF, .scrollBarText = 0x5E4E8C, .scrollBarBack = 0x33225A,
+		.selectionText = 0x0F0A1C,
+		.bottomBack = 0x1A1030, .hintText = 0x9285C6, .hintKey = 0x7CF3C8, .keyBack = 0x7CF3C8, .keyText = 0x0F0A1C, .keyLabelBack = 0x3A2862, .keyLabelText = 0xCBC1F0,
 		.keyBarBack = 0x1A1030 } },
 	{ "two-inks", "Two inks", ColourTheme::Polarity::Light, {
 		.menuBack = 0xFFFFFF, .menuText = 0x000000, .menuShortcut = 0xD70000, .menuSelectedBack = 0x000000, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFF5F5F,
