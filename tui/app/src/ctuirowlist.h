@@ -25,6 +25,8 @@ public:
 	[[nodiscard]] int cursorRow() const noexcept { return _cursorRow; }
 	// Clamps row to the list
 	void moveCursorTo(int row);
+	// Must be called for a press the owner window consumes to take the focus: the list does not receive it.
+	void recordFirstClick(const TEvent& mouseDown);
 
 	void handleEvent(TEvent& event) override;
 	void changeBounds(const TRect& bounds) override;
@@ -37,8 +39,14 @@ protected:
 
 	// Must be called after the rows change. Puts the cursor on cursorRow, clamped to the rows, and redraws.
 	void rowsChanged(int cursorRow);
+	// rowsChanged() for rows where cursorRow holds the item the cursor was on: a double click on that item stays possible
+	void rowsChangedKeepingCursorItem(int cursorRow);
 	// Must be called after emptying the rows when they stay on screen until the next draw. The scroll bar stays until rowsChanged().
-	void rowsEmptiedWithoutRedraw() noexcept { _cursorRow = _topRow = 0; }
+	void rowsEmptiedWithoutRedraw() noexcept
+	{
+		_cursorRow = _topRow = 0;
+		_firstClickRow = noRow;
+	}
 
 	// For draw(): the row on the view's first line, and whether the row is drawn as the cursor's
 	[[nodiscard]] int topRow() const noexcept { return _topRow; }
@@ -49,7 +57,11 @@ private:
 	void scrollToCursor();
 
 private:
+	static constexpr int noRow = -1;
+
 	TScrollBar* _verticalScrollBar;
 	int _cursorRow = 0;
 	int _topRow = 0;
+	// The row of the last left press: Turbo Vision flags a double click by button, screen cell and time, even when another view took the first press
+	int _firstClickRow = noRow;
 };

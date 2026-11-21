@@ -172,7 +172,10 @@ private:
 	void afterChange()
 	{
 		const int itemRow = _cursorFollowsItem ? _list.rowOf(_cursorItemHash) : 0;
-		rowsChanged(itemRow >= 0 ? itemRow : cursorRow());
+		if (_cursorFollowsItem && itemRow >= 0)
+			rowsChangedKeepingCursorItem(itemRow);
+		else
+			rowsChanged(itemRow >= 0 ? itemRow : cursorRow());
 		onCurrentItemChanged();
 	}
 

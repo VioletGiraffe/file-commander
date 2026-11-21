@@ -190,10 +190,17 @@ void CTuiFileList::setSortField(FileListSortField field)
 
 void CTuiFileList::setRows(std::vector<CFileSystemObject> rows, QString listedFolder, qulonglong cursorItemHash, int fallbackRow)
 {
+	const CFileSystemObject* previousCursorItem = currentRow();
+	const bool cursorStaysOnItem = previousCursorItem && previousCursorItem->hash() == cursorItemHash;
+
 	_rows = std::move(rows);
 	_listedFolder = std::move(listedFolder);
 	const auto cursorItem = std::ranges::find(_rows, cursorItemHash, &CFileSystemObject::hash);
-	rowsChanged(cursorItem != _rows.end() ? static_cast<int>(cursorItem - _rows.begin()) : fallbackRow);
+	const int newCursorRow = cursorItem != _rows.end() ? static_cast<int>(cursorItem - _rows.begin()) : fallbackRow;
+	if (cursorStaysOnItem && cursorItem != _rows.end())
+		rowsChangedKeepingCursorItem(newCursorRow);
+	else
+		rowsChanged(newCursorRow);
 }
 
 void CTuiFileList::clearRowsKeepingScreen()

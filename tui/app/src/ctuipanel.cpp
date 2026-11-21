@@ -415,6 +415,9 @@ void CTuiPanel::handleEvent(TEvent& event)
 		}
 	}
 
+	if (event.what == evMouseDown && !(state & sfSelected) && _fileList->mouseInView(event.mouse.where))
+		_fileList->recordFirstClick(event);
+
 	if (event.what == evBroadcast && event.message.command == cmTimerExpired && event.message.infoPtr == _showEmptyListTimer)
 	{
 		_showEmptyListTimer = nullptr;

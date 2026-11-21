@@ -31,11 +31,20 @@ void CTuiRowList::handleEvent(TEvent& event)
 	switch (event.what)
 	{
 	case evMouseDown:
-		moveCursorTo(_topRow + makeLocal(event.mouse.where).y);
-		if (event.mouse.eventFlags & meDoubleClick)
+	{
+		const int clickedRow = _topRow + makeLocal(event.mouse.where).y;
+		const bool secondClickOnRow = (event.mouse.eventFlags & meDoubleClick) && clickedRow == _firstClickRow;
+		moveCursorTo(clickedRow);
+		if (secondClickOnRow)
+		{
+			_firstClickRow = noRow;
 			message(owner, evCommand, cmActivateRowUnderCursor, this);
+		}
+		else
+			recordFirstClick(event);
 		clearEvent(event);
 		break;
+	}
 	case evMouseWheel:
 		if (event.mouse.wheel == mwUp || event.mouse.wheel == mwDown)
 		{
@@ -80,8 +89,16 @@ void CTuiRowList::changeBounds(const TRect& bounds)
 void CTuiRowList::setState(ushort aState, Boolean enable)
 {
 	TView::setState(aState, enable);
+	if ((aState & sfFocused) && !enable)
+		_firstClickRow = noRow;
 	if (aState & (sfSelected | sfActive))
 		drawView();
+}
+
+void CTuiRowList::recordFirstClick(const TEvent& mouseDown)
+{
+	const int row = _topRow + makeLocal(mouseDown.mouse.where).y;
+	_firstClickRow = (mouseDown.mouse.buttons & mbLeftButton) && row < rowCount() ? row : noRow;
 }
 
 void CTuiRowList::moveCursorTo(int row)
@@ -99,8 +116,16 @@ void CTuiRowList::moveCursorTo(int row)
 
 void CTuiRowList::rowsChanged(const int cursorRow)
 {
+	_firstClickRow = noRow;
 	_cursorRow = std::clamp(cursorRow, 0, std::max(rowCount() - 1, 0));
 	scrollToCursor();
+}
+
+void CTuiRowList::rowsChangedKeepingCursorItem(const int cursorRow)
+{
+	const int keptFirstClickRow = cursorRow == _cursorRow && _firstClickRow == _cursorRow ? _firstClickRow : noRow;
+	rowsChanged(cursorRow);
+	_firstClickRow = keptFirstClickRow;
 }
 
 bool CTuiRowList::cursorIsShownOn(const int row) const noexcept

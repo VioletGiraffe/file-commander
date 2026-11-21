@@ -100,6 +100,11 @@ const QString columnGap = QStringLiteral("[ ┆]+");
 	return QStringLiteral("\x1b[<0;%1;%2M\x1b[<0;%1;%2m").arg(column + 1).arg(row + 1);
 }
 
+[[nodiscard]] QString rightClick(int column, int row)
+{
+	return QStringLiteral("\x1b[<2;%1;%2M\x1b[<2;%1;%2m").arg(column + 1).arg(row + 1);
+}
+
 // One notch of the mouse wheel over a screen cell, as xterm's SGR mouse mode sends it
 [[nodiscard]] QString wheel(int column, int row, bool up)
 {
@@ -289,6 +294,26 @@ void moveCursorTo(CTerminalSession& session, const QString& name)
 		requireScreen(session, [&](const CTerminalScreen& screen) { return panelStatus(screen) != statusBefore; },
 			QStringLiteral("the cursor to move on its way to %1").arg(name));
 	}
+}
+
+// The screen row whose list entry starts with `name`; -1 for none
+[[nodiscard]] int panelRowOf(const CTerminalScreen& screen, const QString& name, Side side = Side::Left)
+{
+	for (int row = 2; row < panelStatusRow; ++row)
+	{
+		if (panelPart(screen.row(row), side).trimmed().startsWith(name))
+			return row;
+	}
+	return -1;
+}
+
+// Passes only while the focused left panel still lists firstItem right after [..]
+void requireFolderNotEntered(CTerminalSession& session, const QString& firstItem)
+{
+	session.send(Keys::Home);
+	requireScreen(session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("..")); }, QStringLiteral("the cursor on .."));
+	session.send(Keys::Down);
+	requireScreen(session, [&](const CTerminalScreen& screen) { return cursorIsOn(screen, firstItem); }, QStringLiteral("the cursor on ") + firstItem);
 }
 
 [[nodiscard]] QString canonical(const QString& path)
@@ -1290,6 +1315,76 @@ TEST_CASE("Space selects the item under the cursor and moves the cursor to the n
 	session->send(" "sv);
 	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(QStringLiteral("1 files, 1 folders selected")); },
 		QStringLiteral("the folder and a.txt selected"));
+}
+
+TEST_CASE("A double click on a row activates it, in the focused panel and in the other one", "[tui][double-click]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("folder")));
+	sandbox.createFile(QStringLiteral("work/folder/inside.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("folder"));
+
+	const bool otherPanelFocused = GENERATE(false, true);
+	if (otherPanelFocused)
+		session->send(Keys::Tab);
+
+	const QString click = leftClick(5, panelRowOf(session->screen(), QStringLiteral("folder")));
+	session->send(click + click);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelLists(screen, QStringLiteral("inside.txt")); }, QStringLiteral("the folder entered"));
+}
+
+TEST_CASE("A double click below the last row moves the cursor there and activates nothing", "[tui][double-click]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("folder")));
+	sandbox.createFile(QStringLiteral("work/folder/inside.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("folder"));
+
+	const QString click = leftClick(5, panelRowOf(session->screen(), QStringLiteral("folder")) + 2);
+	session->send(click + click);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("folder")); }, QStringLiteral("the cursor on the last row"));
+	requireFolderNotEntered(*session, QStringLiteral("folder"));
+}
+
+TEST_CASE("A right double click on a row activates nothing", "[tui][double-click]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("folder")));
+	sandbox.createFile(QStringLiteral("work/folder/inside.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("folder"));
+
+	const QString click = rightClick(5, panelRowOf(session->screen(), QStringLiteral("folder")));
+	session->send(click + click);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("folder")); }, QStringLiteral("the cursor on the folder"));
+	requireFolderNotEntered(*session, QStringLiteral("folder"));
+}
+
+TEST_CASE("A double click that closes a dialog does not activate the row under it", "[tui][double-click]")
+{
+	const Sandbox sandbox;
+	for (int i = 0; i < 24; ++i)
+	{
+		const QString folder = QStringLiteral("d%1").arg(i, 2, 10, QChar{ u'0' });
+		REQUIRE(QDir{ sandbox.work({}) }.mkpath(folder));
+		sandbox.createFile(QStringLiteral("work/%1/inside.txt").arg(folder));
+	}
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("d00"));
+
+	session->send(Keys::F7);
+	requirePromptInput(*session, QStringLiteral("Name of the new folder"));
+	const int cancelRow = rowWith(session->screen(), QStringLiteral("Cancel"));
+	REQUIRE(cancelRow >= 0);
+	const int cancelColumn = (int)session->screen().row(cancelRow).indexOf(QStringLiteral("Cancel"));
+	REQUIRE(cancelColumn < panelWidth); // Over the focused left panel's rows
+
+	const QString click = leftClick(cancelColumn + 1, cancelRow);
+	session->send(click + click);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Name of the new folder")); }, QStringLiteral("the dialog closed"));
+	requireFolderNotEntered(*session, QStringLiteral("d00"));
 }
 
 TEST_CASE("A dashed line separates the columns in the header and the rows, unless the GUI's setting turns it off", "[tui]")
