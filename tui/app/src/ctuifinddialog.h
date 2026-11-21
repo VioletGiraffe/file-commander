@@ -25,13 +25,14 @@ class CTuiTextView;
 class TButton;
 class TCheckBoxes;
 class TInputLine;
+class TScrollBar;
 
 // Finds files by name and contents, and lists them as they are found.
 // The application keeps it between uses, so it shows the last search's results again.
 class CTuiFindDialog final : public TDialog
 {
 public:
-	explicit CTuiFindDialog(const TRect& bounds);
+	explicit CTuiFindDialog(TPoint desktopSize);
 
 	struct GoToResult { QString path; };
 	struct SendResultsToPanel { QStringList paths; };
@@ -45,8 +46,12 @@ public:
 	// Shows what the search reported since the last time, at most once per display interval
 	void getEvent(TEvent& event) override;
 	void handleEvent(TEvent& event) override;
+	// Covers the desktop, down to a minimum size
+	void calcBounds(TRect& bounds, TPoint delta) override;
+	void changeBounds(const TRect& bounds) override;
 
 private:
+	void layOutViews();
 	void startSearch();
 	void showPendingResults(size_t maxMatches);
 	void showCompletion(const CFileSearchResultsBuffer::Completion& completion);
@@ -62,20 +67,23 @@ private:
 
 private:
 	// Owned by this dialog
-	TInputLine* _name;
+	FieldWithHistory _name;
 	TCheckBoxes* _nameOptions;
-	TInputLine* _contents;
+	FieldWithHistory _contents;
 	TCheckBoxes* _contentsOptions;
-	TInputLine* _searchIn;
+	FieldWithHistory _searchIn;
 	TInputLine* _excludedFolders;
 	TButton* _searchButton;
+	TButton* _sendButton;
 	CTuiColumnHeader* _resultsHeader;
+	TScrollBar* _resultsScrollBar;
 	CTuiFindResultsList* _results;
 	CTuiTextView* _currentResultPath;
 	CTuiTextView* _status;
 
 	CTuiSavedFieldHistory _nameHistory, _contentsHistory, _searchInHistory;
 
+	QString _statusText; // In full: a resize elides it again
 	QString _baseDir;
 	Outcome _outcome;
 

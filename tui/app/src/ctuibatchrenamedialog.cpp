@@ -162,15 +162,15 @@ CTuiBatchRenameDialog::CTuiBatchRenameDialog(const TRect& bounds, const std::vec
 	static constexpr int labelX = 2, fieldX = 20, listTop = 13, renameButtonWidth = 12, otherButtonWidth = 10;
 	const int right = size.x - 2, buttonY = size.y - 3, statusY = size.y - 2;
 
-	_nameMask = insertFieldWithHistory(*this, _nameMaskHistory, "~N~ame mask:", 2, labelX, fieldX, right, maskInputLimit, false);
-	_extensionMask = insertFieldWithHistory(*this, _extensionMaskHistory, "~E~xtension mask:", 3, labelX, fieldX, right, maskInputLimit, false);
+	_nameMask = insertFieldWithHistory(*this, _nameMaskHistory, "~N~ame mask:", 2, labelX, fieldX, right, maskInputLimit).input;
+	_extensionMask = insertFieldWithHistory(*this, _extensionMaskHistory, "~E~xtension mask:", 3, labelX, fieldX, right, maskInputLimit).input;
 	insert(new CTuiTextView({ fieldX, 4, right, 6 }, { QStringLiteral("[N] name, [N2-5] its characters 2 to 5, [E] extension, [P] parent folder,"),
 		QStringLiteral("[C] counter, [Y] [M] [D] [h] [m] [s] modification time") }));
 
 	// The "with" label starts in the middle, its field ends at the right
 	const int withX = fieldX + (right - fieldX) / 2;
-	_find = insertFieldWithHistory(*this, _findHistory, "Re~p~lace:", 6, labelX, fieldX, withX - 1, maskInputLimit, false);
-	_replaceWith = insertFieldWithHistory(*this, _replaceWithHistory, "~w~ith", 6, withX, withX + 6, right, maskInputLimit, false);
+	_find = insertFieldWithHistory(*this, _findHistory, "Re~p~lace:", 6, labelX, fieldX, withX - 1, maskInputLimit).input;
+	_replaceWith = insertFieldWithHistory(*this, _replaceWithHistory, "~w~ith", 6, withX, withX + 6, right, maskInputLimit).input;
 	_findOptions = new TCheckBoxes({ fieldX, 7, right, 8 }, new TSItem("Re~g~ular expression", new TSItem("Case-~s~ensitive", nullptr)));
 	insert(_findOptions);
 

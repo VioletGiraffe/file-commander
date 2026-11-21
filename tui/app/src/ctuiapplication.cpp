@@ -334,7 +334,7 @@ void CTuiApplication::setColourTheme(const ColourTheme& theme)
 void CTuiApplication::findFiles()
 {
 	if (!_findDialog)
-		_findDialog = new CTuiFindDialog(deskTop->getExtent());
+		_findDialog = new CTuiFindDialog(deskTop->size);
 
 	const Panel side = _controller.activePanelPosition();
 	const CPanel& panel = _controller.panel(side);

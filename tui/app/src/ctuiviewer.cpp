@@ -300,7 +300,7 @@ enum class FindOutcome { Found, FoundAfterWrapAround, NotFound };
 
 	auto* dialog = new TDialog({ 0, 0, 60, 9 }, "Find");
 	dialog->options |= ofCentered;
-	TInputLine* const input = insertFieldWithHistory(*dialog, history, "~T~ext:", 2, 2, 10, 58, findTextLimit, false);
+	TInputLine* const input = insertFieldWithHistory(*dialog, history, "~T~ext:", 2, 2, 10, 58, findTextLimit).input;
 	auto* const options = new TCheckBoxes({ 10, 4, 58, 5 }, new TSItem("Match ~c~ase", new TSItem("~W~hole words", new TSItem("Re~g~ex", nullptr))));
 	dialog->insert(options);
 	dialog->insert(new TButton({ 17, 6, 29, 8 }, "Find", cmOK, bfDefault));

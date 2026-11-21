@@ -97,19 +97,27 @@ THistory* CTuiSavedFieldHistory::newButton(const TRect& bounds, TInputLine* inpu
 	return new CTuiFieldHistory(bounds, input, _historyId);
 }
 
-TInputLine* insertFieldWithHistory(TGroup& owner, const CTuiSavedFieldHistory& history, const char* label, const int y, const int labelX, const int fieldX, const int fieldEnd,
-	const int maxBytes, const bool stretches)
+static constexpr int historyButtonWidth = 3;
+
+FieldWithHistory insertFieldWithHistory(TGroup& owner, const CTuiSavedFieldHistory& history, const char* label, const int y, const int labelX, const int fieldX, const int fieldEnd,
+	const int maxBytes)
 {
-	const int historyX = fieldEnd - 3;
+	const int historyX = fieldEnd - historyButtonWidth;
 	auto* input = new TInputLine({ fieldX, y, historyX, y + 1 }, maxBytes);
 	owner.insert(input);
 	owner.insert(new TLabel({ labelX, y, fieldX - 1, y + 1 }, label, input));
 	THistory* button = history.newButton({ historyX, y, fieldEnd, y + 1 }, input);
 	owner.insert(button);
-	if (stretches)
-	{
-		input->growMode = gfGrowHiX;
-		button->growMode = gfGrowLoX | gfGrowHiX;
-	}
-	return input;
+	return { input, button };
+}
+
+void setFieldEnd(const FieldWithHistory& field, const int fieldEnd)
+{
+	const int historyX = fieldEnd - historyButtonWidth;
+	TRect inputBounds = field.input->getBounds(), buttonBounds = field.historyButton->getBounds();
+	inputBounds.b.x = historyX;
+	buttonBounds.a.x = historyX;
+	buttonBounds.b.x = fieldEnd;
+	field.input->changeBounds(inputBounds);
+	field.historyButton->changeBounds(buttonBounds);
 }

@@ -58,6 +58,12 @@ private:
 	const FieldHistoryId _historyId;
 };
 
-// A labelled input line from fieldX to fieldEnd, the last 3 columns holding the history's button.
-// stretches: the input line widens with the owner, and the button keeps its distance from the owner's right edge.
-TInputLine* insertFieldWithHistory(TGroup& owner, const CTuiSavedFieldHistory& history, const char* label, int y, int labelX, int fieldX, int fieldEnd, int maxBytes, bool stretches);
+struct FieldWithHistory
+{
+	TInputLine* input;
+	THistory* historyButton;
+};
+
+// A labelled input line from fieldX to fieldEnd, the last 3 columns holding the history's button
+FieldWithHistory insertFieldWithHistory(TGroup& owner, const CTuiSavedFieldHistory& history, const char* label, int y, int labelX, int fieldX, int fieldEnd, int maxBytes);
+void setFieldEnd(const FieldWithHistory& field, int fieldEnd);

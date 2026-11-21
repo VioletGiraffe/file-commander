@@ -194,6 +194,7 @@ struct FctermStart
 	QString workingFolder; // The sandbox root when empty
 	QStringList extraArguments;
 	int columns = screenColumns;
+	int rows = screenRows;
 };
 
 // fcterm with its settings in the sandbox and no editor or desktop of the user's.
@@ -224,7 +225,7 @@ struct FctermStart
 	program.workingDir = start.workingFolder.isEmpty() ? sandbox.path({}) : start.workingFolder;
 	program.environment = environment;
 
-	auto session = std::make_unique<CTerminalSession>(program, screenRows, start.columns);
+	auto session = std::make_unique<CTerminalSession>(program, start.rows, start.columns);
 	REQUIRE(session->startError().isEmpty());
 	requireText(*session, QStringLiteral("F2 Rename"));
 	return session;
@@ -233,7 +234,7 @@ struct FctermStart
 // The first screen row holding the text; -1 for none
 [[nodiscard]] int rowWith(const CTerminalScreen& screen, const QString& text)
 {
-	for (int row = 0; row < screenRows; ++row)
+	for (int row = 0; row < screen.rows(); ++row)
 	{
 		if (screen.row(row).contains(text))
 			return row;
@@ -734,6 +735,54 @@ TEST_CASE("Ctrl+F5 sorts the search results by a column that a narrow terminal h
 	CHECK_FALSE(session->screen().row(headerRow).contains(QStringLiteral("Date")));
 	session->send(Keys::CtrlF5);
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return screen.row(headerRow).contains(QStringLiteral("Date ↑")); }, QStringLiteral("the Date title"));
+}
+
+TEST_CASE("The search dialog's controls stay whole and apart in a narrow terminal", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/needle.txt"));
+	for (const int columns : { 69, 68, 51 })
+	{
+		INFO(columns << " columns");
+		auto session = startFcterm(sandbox, { .workingFolder = sandbox.work({}), .columns = columns });
+		const int nameRow = openFindDialog(*session);
+		requireText(*session, QStringLiteral("Send to panel"));
+
+		const CTerminalScreen& screen = session->screen();
+		const int contentsOptionsRow = nameRow + 4, searchInRow = nameRow + 6, buttonsRow = columns >= 69 ? searchInRow : searchInRow + 2;
+		CHECK(screen.row(nameRow + 1).contains(QStringLiteral("Case sensitive")));
+		CHECK(screen.row(contentsOptionsRow).contains(QStringLiteral("Case sensitive")));
+		CHECK(screen.row(searchInRow).contains(QStringLiteral("Search in:")));
+		CHECK(screen.row(buttonsRow).contains(QStringLiteral("Search ")));
+		CHECK(screen.row(buttonsRow).contains(QStringLiteral("Send to panel")));
+
+		typeText(*session, QStringLiteral("needle"));
+		session->send(Keys::Enter);
+		requireScreen(*session, [](const CTerminalScreen& shown) {
+			const int headerRow = rowWith(shown, QStringLiteral("Name"));
+			return headerRow >= 0 && shown.row(headerRow + 1).contains(QStringLiteral("needle"));
+		}, QStringLiteral("the result under the column titles"));
+	}
+}
+
+TEST_CASE("A terminal below the search dialog's minimum size clips it instead of overlapping its controls", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/hay.txt"));
+
+	{
+		auto narrow = startFcterm(sandbox, { .workingFolder = sandbox.work({}), .columns = 40 });
+		const int nameRow = openFindDialog(*narrow);
+		requireText(*narrow, QStringLiteral("Exclude folders:"));
+		CHECK_FALSE(narrow->screen().row(nameRow + 6).contains(QStringLiteral("Send")));
+		CHECK(narrow->screen().row(nameRow + 8).contains(QStringLiteral("Search ")));
+	}
+
+	auto shortTerminal = startFcterm(sandbox, { .workingFolder = sandbox.work({}), .rows = 13 });
+	const int nameRow = openFindDialog(*shortTerminal);
+	requireText(*shortTerminal, QStringLiteral("Exclude folders:"));
+	CHECK(shortTerminal->screen().row(nameRow + 6).contains(QStringLiteral("Send to panel")));
+	CHECK(shortTerminal->screen().row(nameRow + 7).contains(QStringLiteral("Exclude folders:")));
 }
 
 TEST_CASE("A sort keeps the cursor on its search result and lasts through the next search", "[tui]")

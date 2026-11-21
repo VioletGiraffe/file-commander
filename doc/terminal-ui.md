@@ -88,7 +88,8 @@ dialog is open.
   The results start in arrival order, with the cursor following the newest one until the user moves it elsewhere. A click
   on a column title or the panel's sort keys (Ctrl+F3 to Ctrl+F6) take a column through ascending, descending and arrival
   order. The end of a search moves the focus to the results unless the user acted during it. The application keeps the
-  dialog, so its last results show again; closing it stops a running search.
+  dialog, so its last results show again; closing it stops a running search. On a narrow desktop its options and buttons
+  reflow, and below its minimum size the desktop clips it.
 - Favorites (Ctrl+D) and the folder history (Alt+F12) are the GUI's: the core's `CFavoriteLocations` and
   `CController::recentFolders`.
 - File comparison is the GUI's: the core's `filesToCompare` and `fileComparisonResultMessage` pick the files and word

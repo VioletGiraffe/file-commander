@@ -56,6 +56,26 @@ constexpr int inputLimit = 32 * 1024;
 constexpr auto resultsDisplayInterval = 100ms;
 constexpr size_t maxResultsPerDisplay = 10'000;
 
+constexpr int labelX = 2, fieldX = 20;
+// Below this width the options start under the labels, and the buttons move to the row below the fields
+constexpr int sideBySideMinWidth = 69;
+// Fits the contents options, the widest row
+constexpr int minDialogWidth = 51;
+
+[[nodiscard]] constexpr int resultsHeaderRow(const int dialogWidth) noexcept
+{
+	return dialogWidth >= sideBySideMinWidth ? 11 : 12;
+}
+
+// The desktop, or the minimum size that keeps every control whole: a smaller desktop clips the dialog
+[[nodiscard]] TRect findDialogBounds(const TPoint desktopSize)
+{
+	static constexpr int minResultRows = 3, rowsBelowResults = 3; // The current path, the status and the frame
+	const int width = std::max(desktopSize.x, minDialogWidth);
+	const int height = std::max(desktopSize.y, resultsHeaderRow(width) + 1 + minResultRows + rowsBelowResults);
+	return { 0, 0, width, height };
+}
+
 // The dialog palette's list viewer entries
 constexpr uchar resultsNormalEntry = 0x1A, resultsFocusedEntry = 0x1B;
 
@@ -219,67 +239,59 @@ private:
 	qulonglong _cursorItemHash = 0; // From beforeChange() to afterChange()
 };
 
-CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
+CTuiFindDialog::CTuiFindDialog(const TPoint desktopSize) :
 	TWindowInit(&TDialog::initFrame),
-	TDialog(bounds, "Find files"),
+	TDialog(findDialogBounds(desktopSize), "Find files"),
 	_nameHistory(KEY_FILE_SEARCH_NAME_HISTORY, findNameHistoryId),
 	_contentsHistory(KEY_FILE_SEARCH_CONTENTS_HISTORY, findContentsHistoryId),
 	_searchInHistory(KEY_FILE_SEARCH_ROOT_HISTORY, findSearchInHistoryId)
 {
 	flags &= ~wfMove;
-	growMode = gfGrowHiX | gfGrowHiY;
 
-	static constexpr int labelX = 2, fieldX = 20, listTop = 11, searchButtonWidth = 12, sendButtonWidth = 17;
-	const int right = size.x - 2, statusY = size.y - 2, currentPathY = statusY - 1;
-
-	const auto addField = [this](int y, int fieldEnd, const char* label, const CTuiSavedFieldHistory& history) {
-		return insertFieldWithHistory(*this, history, label, y, labelX, fieldX, fieldEnd, inputLimit, true);
+	// layOutViews() sets the real bounds
+	// Must be one column wide: TScrollBar takes its orientation from its initial width
+	const TRect unplaced{ 0, 0, 1, 1 };
+	const auto addField = [this](int y, const char* label, const CTuiSavedFieldHistory& history) {
+		return insertFieldWithHistory(*this, history, label, y, labelX, fieldX, size.x - 2, inputLimit);
 	};
 
-	_name = addField(2, right, "Search ~f~or:", _nameHistory);
-	_nameOptions = new TCheckBoxes({ fieldX, 3, right, 4 }, new TSItem("~P~artial match", new TSItem("Case sensi~t~ive", nullptr)));
-	_nameOptions->growMode = gfGrowHiX;
+	_name = addField(2, "Search ~f~or:", _nameHistory);
+	_nameOptions = new TCheckBoxes(unplaced, new TSItem("~P~artial match", new TSItem("Case sensi~t~ive", nullptr)));
 	insert(_nameOptions);
 
-	_contents = addField(5, right, "With c~o~ntents:", _contentsHistory); // Alt+C copies a result's path, as in the panel
-	_contentsOptions = new TCheckBoxes({ fieldX, 6, right, 7 }, new TSItem("~W~hole words", new TSItem("~R~egex", new TSItem("Case sensiti~v~e", nullptr))));
-	_contentsOptions->growMode = gfGrowHiX;
+	_contents = addField(5, "With c~o~ntents:", _contentsHistory); // Alt+C copies a result's path, as in the panel
+	_contentsOptions = new TCheckBoxes(unplaced, new TSItem("~W~hole words", new TSItem("~R~egex", new TSItem("Case sensiti~v~e", nullptr))));
 	insert(_contentsOptions);
 
-	const int sendButtonX = right - sendButtonWidth, searchButtonX = sendButtonX - searchButtonWidth;
-	_searchIn = addField(8, searchButtonX - 1, "Search ~i~n:", _searchInHistory);
-	_excludedFolders = new TInputLine({ fieldX, 9, searchButtonX - 1, 10 }, inputLimit);
-	_excludedFolders->growMode = gfGrowHiX;
+	_searchIn = addField(8, "Search ~i~n:", _searchInHistory);
+	_excludedFolders = new TInputLine(unplaced, inputLimit);
 	insert(_excludedFolders);
 	insert(new TLabel({ labelX, 9, fieldX - 1, 10 }, "~E~xclude folders:", _excludedFolders));
-	_searchButton = new TButton({ searchButtonX, 8, sendButtonX, 10 }, "Search", cmStartOrStopSearch, bfDefault);
-	_searchButton->growMode = gfGrowLoX | gfGrowHiX;
+	_searchButton = new TButton(unplaced, "Search", cmStartOrStopSearch, bfDefault);
 	insert(_searchButton);
-	auto* sendButton = new TButton({ sendButtonX, 8, right, 10 }, "Send to pa~n~el", cmSendResultsToPanel, bfNormal);
-	sendButton->growMode = gfGrowLoX | gfGrowHiX;
-	insert(sendButton);
+	_sendButton = new TButton(unplaced, "Send to pa~n~el", cmSendResultsToPanel, bfNormal);
+	insert(_sendButton);
 
-	_resultsHeader = new CTuiColumnHeader({ labelX, listTop, right - 1, listTop + 1 }, { FileTimeTextLength::Long, resultsNormalEntry, resultsNormalEntry });
+	_resultsHeader = new CTuiColumnHeader(unplaced, { FileTimeTextLength::Long, resultsNormalEntry, resultsNormalEntry });
 	_resultsHeader->clearSorting();
 	_resultsHeader->onColumnClicked = [this](const FileListSortField field) { sortResultsBy(field); };
 	insert(_resultsHeader);
-	auto* scrollBar = new TScrollBar({ right - 1, listTop + 1, right, currentPathY });
-	scrollBar->growMode = gfGrowLoX | gfGrowHiX | gfGrowHiY;
-	insert(scrollBar);
-	_results = new CTuiFindResultsList({ labelX, listTop + 1, right - 1, currentPathY }, scrollBar);
+	_resultsScrollBar = new TScrollBar(unplaced);
+	insert(_resultsScrollBar);
+	_results = new CTuiFindResultsList(unplaced, _resultsScrollBar);
 	_results->onCurrentItemChanged = [this] { showCurrentResultPath(); };
 	insert(_results);
 
-	_currentResultPath = new CTuiTextView({ labelX, currentPathY, right, currentPathY + 1 }, {});
-	_currentResultPath->growMode = gfGrowLoY | gfGrowHiY | gfGrowHiX;
+	_currentResultPath = new CTuiTextView(unplaced, {});
 	insert(_currentResultPath);
-	_status = new CTuiTextView({ labelX, statusY, right, statusY + 1 }, {});
-	_status->growMode = gfGrowLoY | gfGrowHiY | gfGrowHiX;
+	_status = new CTuiTextView(unplaced, {});
 	insert(_status);
+
+	layOutViews();
 
 	// The contents field starts empty: a pattern left in it would silently restrict the search
 	const QSettings settings;
-	setInputText(_name, _nameHistory.mostRecent());
+	setInputText(_name.input, _nameHistory.mostRecent());
 	setInputText(_excludedFolders, settings.value(KEY_FILE_SEARCH_EXCLUDED_FOLDERS).toString());
 	setChecked(_nameOptions, { settings.value(KEY_FILE_SEARCH_NAME_PARTIAL_MATCH, FILE_SEARCH_NAME_PARTIAL_MATCH_DEFAULT).toBool(),
 		settings.value(KEY_FILE_SEARCH_NAME_CASE_SENSITIVE, false).toBool() });
@@ -287,17 +299,57 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 		settings.value(KEY_FILE_SEARCH_CONTENTS_IS_REGEX, false).toBool(), settings.value(KEY_FILE_SEARCH_CONTENTS_CASE_SENSITIVE, false).toBool() });
 }
 
+void CTuiFindDialog::calcBounds(TRect& bounds, TPoint)
+{
+	bounds = findDialogBounds(owner->size);
+}
+
+void CTuiFindDialog::changeBounds(const TRect& bounds)
+{
+	TDialog::changeBounds(bounds);
+	layOutViews();
+}
+
+void CTuiFindDialog::layOutViews()
+{
+	static constexpr int searchButtonWidth = 12, sendButtonWidth = 17;
+	const bool sideBySide = size.x >= sideBySideMinWidth;
+	const int right = size.x - 2, statusY = size.y - 2, currentPathY = statusY - 1;
+	const int sendButtonX = right - sendButtonWidth, searchButtonX = sendButtonX - searchButtonWidth;
+	const int optionsX = sideBySide ? fieldX : labelX;
+	const int pathFieldsEnd = sideBySide ? searchButtonX - 1 : right;
+	const int buttonsY = sideBySide ? 8 : 10;
+	const int headerY = resultsHeaderRow(size.x), listTop = headerY + 1;
+
+	setFieldEnd(_name, right);
+	_nameOptions->changeBounds({ optionsX, 3, right, 4 });
+	setFieldEnd(_contents, right);
+	_contentsOptions->changeBounds({ optionsX, 6, right, 7 });
+	setFieldEnd(_searchIn, pathFieldsEnd);
+	_excludedFolders->changeBounds({ fieldX, 9, pathFieldsEnd, 10 });
+	_searchButton->changeBounds({ searchButtonX, buttonsY, sendButtonX, buttonsY + 2 });
+	_sendButton->changeBounds({ sendButtonX, buttonsY, right, buttonsY + 2 });
+
+	_resultsHeader->changeBounds({ labelX, headerY, right - 1, listTop });
+	_resultsScrollBar->changeBounds({ right - 1, listTop, right, currentPathY });
+	_results->changeBounds({ labelX, listTop, right - 1, currentPathY });
+	_currentResultPath->changeBounds({ labelX, currentPathY, right, currentPathY + 1 });
+	_status->changeBounds({ labelX, statusY, right, statusY + 1 });
+
+	setStatus(_statusText);
+	showCurrentResultPath();
+	// Each view drew itself as it moved, but not where another one still covered it then
+	redraw();
+}
+
 CTuiFindDialog::Outcome CTuiFindDialog::exec(const QString& searchInText, const QString& baseDir)
 {
-	if (const TRect desktopArea = TProgram::deskTop->getExtent(); getBounds() != desktopArea)
-	{
-		changeBounds(desktopArea);
-		showCurrentResultPath(); // Elided to the new width
-	}
+	if (const TRect fittedBounds = findDialogBounds(TProgram::deskTop->size); getBounds() != fittedBounds)
+		changeBounds(fittedBounds);
 
-	setInputText(_searchIn, searchInText);
+	setInputText(_searchIn.input, searchInText);
 	_baseDir = baseDir;
-	_name->select();
+	_name.input->select();
 
 	TProgram::deskTop->execView(this);
 
@@ -392,7 +444,7 @@ void CTuiFindDialog::handleEvent(TEvent& event)
 
 void CTuiFindDialog::startSearch()
 {
-	const QString nameText = inputText(_name), contentsText = inputText(_contents), searchInText = inputText(_searchIn);
+	const QString nameText = inputText(_name.input), contentsText = inputText(_contents.input), searchInText = inputText(_searchIn.input);
 	const FileSearchQuery query{
 		.roots = rootsFromSearchInField(searchInText, _baseDir),
 		.excludedFolders = excludedFolderFiltersFromSearchField(inputText(_excludedFolders)),
@@ -459,6 +511,7 @@ void CTuiFindDialog::setSearchActive(const bool active)
 
 void CTuiFindDialog::setStatus(const QString& text)
 {
+	_statusText = text;
 	_status->setLines({ elidedInTheMiddle(text, _status->size.x) });
 }
 
