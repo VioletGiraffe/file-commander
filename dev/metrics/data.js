@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795276367189,
+  "lastUpdate": 1795290934678,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -40148,6 +40148,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "fcterm.exe size",
             "value": 1146,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1183,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 488.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 56,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 33.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "81bb5bd974c04eb7cf6cff3b2fb280f471942565",
+          "message": "The terminal UI's theme list separates dark themes from light: rows carry a polarity mark and sort by polarity, then name",
+          "timestamp": "2026-11-21T21:42:07+02:00",
+          "tree_id": "07cef09acfe603c42a018000a29b6c2da6928f72",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/81bb5bd974c04eb7cf6cff3b2fb280f471942565"
+        },
+        "date": 1795290930816,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 26504,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 37713,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1850,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1150.5,
             "unit": "KB"
           },
           {
