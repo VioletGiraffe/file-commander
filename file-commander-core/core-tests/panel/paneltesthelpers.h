@@ -34,6 +34,7 @@ RESTORE_COMPILER_WARNINGS
 #endif
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
@@ -276,7 +277,7 @@ class PanelHarness
 {
 public:
 	explicit PanelHarness(Panel position = Panel::LeftPanel, qulonglong tabId = 1) :
-		_panel{ position, _pool, _pool, tabId }
+		_panel{ position, _pool, _pool, tabId, [this] { ++_uiThreadWakeUps; } }
 	{
 		waitUntilChangesAreReported();
 		_panel.addPanelContentsChangedListener(&_listener);
@@ -288,6 +289,7 @@ public:
 	[[nodiscard]] RecordingListener& listener() { return _listener; }
 	[[nodiscard]] WorkerGate& worker() { return _gate; }
 	[[nodiscard]] CThreadPool& pool() { return _pool; }
+	[[nodiscard]] int uiThreadWakeUps() const { return _uiThreadWakeUps; }
 
 	// One UI-queue drain, exactly what the application's timer does.
 	void tick() { _panel.uiThreadTimerTick(); }
@@ -337,5 +339,6 @@ private:
 	CThreadPool _pool{ 1, "Panel test pool" };
 	WorkerGate _gate{ _pool };
 	RecordingListener _listener;
+	std::atomic<int> _uiThreadWakeUps{ 0 };
 	CPanel _panel;
 };

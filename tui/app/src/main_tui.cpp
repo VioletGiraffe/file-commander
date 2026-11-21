@@ -6,7 +6,9 @@
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
 
+#define Uses_TEventQueue
 DISABLE_COMPILER_WARNINGS
+#include <tvision/tv.h>
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDir>
@@ -16,6 +18,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <mutex>
@@ -78,11 +81,17 @@ int main(int argc, char* argv[])
 	AdvancedAssert::setLoggingFunc([](const char* message) { qInfo() << message; });
 
 	{
-		CController controller;
+		// TEventQueue::wakeUp requires a constructed TApplication: the first listing can finish before that
+		std::atomic<bool> eventQueueReady{ false };
+		CController controller{ [&eventQueueReady] {
+			if (eventQueueReady)
+				TEventQueue::wakeUp();
+		} };
 		controller.showFolderInItsTabOrActiveTab(Panel::LeftPanel, startFolder); // The terminal UI starts on the left side
 		// Before the application allocates the block: the default 1 KiB holds few entries for all the dialogs' fields
 		historySize = 8 * 1024;
 		CTuiApplication tui{ controller };
+		eventQueueReady = true;
 		tui.run();
 
 		controller.shutdown();

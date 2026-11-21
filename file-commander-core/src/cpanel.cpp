@@ -28,14 +28,15 @@ enum {
 	ContentsChangedNotificationTag
 };
 
-CPanel::CPanel(Panel position, CThreadPool& listingThreadPool, CThreadPool& workerThreadPool, qulonglong id) :
+CPanel::CPanel(Panel position, CThreadPool& listingThreadPool, CThreadPool& workerThreadPool, qulonglong id, std::function<void()> wakeUiThread) :
 	_panelPosition(position),
 	_id(id),
 	// The panel's own address is a unique, non-zero pool tag. Reuse-safe: ~CPanel retires all of this tag's tasks
 	// before the address can be recycled by another CPanel, so a reused address never inherits stale tasks.
 	_taskTag(reinterpret_cast<uint64_t>(this)),
 	_listingThreadPool(listingThreadPool),
-	_workerThreadPool(workerThreadPool)
+	_workerThreadPool(workerThreadPool),
+	_wakeUiThread(std::move(wakeUiThread))
 {
 }
 
@@ -771,9 +772,11 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 
 void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, FileListRefreshCause operation)
 {
-	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	std::unique_lock locker(_fileListAndCurrentDirMutex);
 	if (!fileListUpdateIsCurrentLocked(request))
 		return;
+
+	const bool replacesWithdrawnList = !fileListBelongsToCurrentViewLocked();
 
 	std::erase_if(_calculatedDirSizes, [&items](const auto& calculated) {
 		const auto item = items.find(calculated.first);
@@ -795,6 +798,11 @@ void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, File
 	_itemsSourcePath = request.path;
 	_itemsSourceDisplayMode = request.displayMode;
 	enqueueContentsChangedNotificationLocked(operation, request.generation);
+	locker.unlock();
+
+	// A refresh of the same view never wakes the UI thread: the UI loop's wait paces repeated refills
+	if (replacesWithdrawnList && _wakeUiThread)
+		_wakeUiThread();
 }
 
 void CPanel::recoverFromInaccessibleFolder(const FileListUpdateRequest& request)

@@ -40,7 +40,8 @@ public:
 		virtual void currentVolumeChanged(Panel p) noexcept = 0;
 	};
 
-	CController();
+	// wakeUiThread: see CPanel's constructor
+	explicit CController(std::function<void()> wakeUiThread = {});
 	~CController();
 	[[nodiscard]] static CController& get();
 
@@ -262,6 +263,7 @@ private:
 	// General-purpose pool: plugin tasks and panel folder size calculations.
 	// Stopped in ~CController, not shutdown(), so its users can still run and retire tasks while they're alive.
 	CThreadPool             _workerPool;
+	const std::function<void()> _wakeUiThread;
 	std::array<TabList, 2> _panels;
 	std::array<std::vector<QString>, 2> _closedTabPaths; // Most recent last; see takeLastClosedTabPath()
 	// Listeners attached to every tab of a side; recorded so tabs created later also get them.

@@ -25,8 +25,10 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | `calculateStatsFor` | transient scan-thread team | Parallel directory statistics, joined before returning |
 | `CShellCommand` | `QProcess` owned by the UI thread | One command-line command; Qt reads its pipe and signals the owning thread |
 
-`CMainWindow` periodically drains every tab's panel queue, the icon provider's queue, and the controller UI queue. Tagged queue entries can
-replace older pending entries with the same tag; work queued during a drain waits for the next tick. The volume
+`CMainWindow` drains every tab's panel queue, the icon provider's queue, and the controller UI queue on a timer.
+`CTuiApplication::getEvent` drains the panel and controller queues before every Turbo Vision event, and a listing that
+replaces a withdrawn list wakes that event loop from its wait. Tagged queue entries can
+replace older pending entries with the same tag; work queued during a drain waits for the next drain. The volume
 enumerator drains its own notification queue on its own timer. Which listener each queue feeds is in
 [notifications.md](notifications.md).
 

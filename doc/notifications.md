@@ -9,7 +9,7 @@ queue drain; [threading.md](threading.md) lists the queues and who drains them.
 
 | Interface (declared in) | Fires when | Delivery | Implemented by |
 |-------------------------|------------|----------|----------------|
-| `PanelContentsChangedListener` (`cpanel.h`) | a tab's list is committed (`onPanelContentsChanged`) or withdrawn (`onPanelContentsInvalidated`) | deferred via the tab's UI queue; both share one queue tag, so a commit within the same drain replaces the withdrawal | `CPanelWidget` (refills the model), `CMainWindow` (path bar, title), `CController` (persists tab state) |
+| `PanelContentsChangedListener` (`cpanel.h`) | a tab's list is committed (`onPanelContentsChanged`) or withdrawn (`onPanelContentsInvalidated`) | deferred via the tab's UI queue; both share one queue tag, so a commit within the same drain replaces the withdrawal | `CPanelWidget` (refills the model), `CMainWindow` (path bar, title), `CTuiPanel` (refills its list, title and status line), `CController` (persists tab state) |
 | `CurrentItemChangedListener` (`cpanel.h`) | the core designates a tab's cursor item | deferred via the tab's UI queue | `CPanelWidget` |
 | `CurrentPathChangedListener` (`cpanel.h`) | a tab's directory changes; not on refresh | synchronous, inside `CPanel::setPath` on the caller's thread | `CController` (visited-locations log) |
 | `CController::IVolumeListObserver` (`ccontroller.h`) | a volume changes, flagged significant for the list, readiness or a label; a side's current volume changes | volume list: deferred via the enumerator's own queue and timer; current volume: synchronous from the controller's navigation call | `CPanelWidget` |
@@ -33,9 +33,11 @@ activation take a fresh snapshot and continue from step 3.
    worker resolve another one as in step 2, and the main thread then moves the panel there, from the mutex part of
    step 2 on.
 4. Worker, `publishFileListIfCurrent`: commits under the list mutex only if generation, path, and mode still match,
-   then queues `onPanelContentsChanged`.
-5. Main thread, timer drain (`CMainWindow` -> `CController::uiThreadTimerTick`): the listeners run. `CPanelWidget`
-   refills the active tab's model from the panel and copies the tab's selection into the view, `CMainWindow` updates the path bar and
-   title, `CController` saves tab state, and plugin subscribers receive the committed list.
+   then queues `onPanelContentsChanged`. A list that replaces a withdrawn one also calls the wake-up callback given to
+   `CController`, which `fcterm` uses to end its event wait.
+5. Main thread, queue drain (`CController::uiThreadTimerTick`, called by `CMainWindow`'s timer or `CTuiApplication::getEvent`):
+   the listeners run. In the GUI, `CPanelWidget` refills the active tab's model from the panel and copies the tab's selection
+   into the view, and `CMainWindow` updates the path bar and title. In the terminal UI, `CTuiPanel` refills its list, title and
+   status line. `CController` saves tab state, and plugin subscribers receive the committed list.
 
 The rules behind steps 2 and 4 are in [core-engine.md](core-engine.md), "File-list publication".

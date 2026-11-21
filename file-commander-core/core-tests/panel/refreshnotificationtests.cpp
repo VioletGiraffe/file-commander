@@ -55,6 +55,35 @@ TEST_CASE("CPanel - a listing that completes within the drain never blanks the v
 	CHECK(contentsChanged.cause == refreshCauseForwardNavigation);
 }
 
+TEST_CASE("CPanel - only a listing that replaces a withdrawn list wakes the UI thread", "[panel][notifications]")
+{
+	TempTree tree;
+	const QString first = tree.makeDir(QStringLiteral("first"));
+	const QString second = tree.makeDir(QStringLiteral("second"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	CHECK(h.uiThreadWakeUps() == 1);
+
+	h.panel().refreshFileList(refreshCauseOther);
+	h.settle();
+	CHECK(h.uiThreadWakeUps() == 1);
+
+	REQUIRE(h.panel().setPath(first, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
+	h.settle();
+	CHECK(h.uiThreadWakeUps() == 2);
+
+	// The listing of the folder left at once is discarded
+	h.worker().close();
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseCdUp) == FileOperationResultCode::Ok);
+	REQUIRE(h.panel().setPath(second, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
+	h.worker().open();
+	h.settle();
+	CHECK(h.uiThreadWakeUps() == 3);
+}
+
 TEST_CASE("CPanel - a superseded file list update is discarded", "[panel][notifications]")
 {
 	TempTree tree;

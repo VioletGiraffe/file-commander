@@ -102,10 +102,11 @@ namespace {
 	}
 }
 
-CController::CController() :
+CController::CController(std::function<void()> wakeUiThread) :
 	_favoriteLocations{KEY_FAVORITES},
 	_listingThreadPool{ 4, "Panel file list pool" },
-	_workerPool{ optimalCpuCount(), "Application pool"}
+	_workerPool{ optimalCpuCount(), "Application pool"},
+	_wakeUiThread{ std::move(wakeUiThread) }
 {
 	assert_r(_instance == nullptr); // Only makes sense to create one controller
 	_instance = this;
@@ -315,7 +316,7 @@ void CController::refreshPanelsOnRemovedDrive(const QChar driveLetter)
 CPanel& CController::createTab(Panel p, qulonglong id)
 {
 	auto& tabList = _panels[(size_t)p];
-	CPanel& tab = *tabList.tabs.emplace_back(std::make_unique<CPanel>(p, _listingThreadPool, _workerPool, id));
+	CPanel& tab = *tabList.tabs.emplace_back(std::make_unique<CPanel>(p, _listingThreadPool, _workerPool, id, _wakeUiThread));
 	attachListenersToTab(p, tab);
 	return tab;
 }
