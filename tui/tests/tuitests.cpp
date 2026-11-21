@@ -52,7 +52,7 @@ enum class Side { Left, Right };
 	return panelPart(screen.row(panelStatusRow), side).trimmed();
 }
 
-// The status line is the current item's name, followed by two spaces and its details except on [..]
+// The status line is the current item's name, followed by two spaces and its details, if any
 [[nodiscard]] bool cursorIsOn(const CTerminalScreen& screen, const QString& name, Side side = Side::Left)
 {
 	const QString status = panelStatus(screen, side);
@@ -1315,6 +1315,25 @@ TEST_CASE("Space selects the item under the cursor and moves the cursor to the n
 	session->send(" "sv);
 	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(QStringLiteral("1 files, 1 folders selected")); },
 		QStringLiteral("the folder and a.txt selected"));
+}
+
+TEST_CASE("Space on [..] shows the parent folder's size in its row and the status line", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("sub")));
+	sandbox.createFile(QStringLiteral("work/sub/f.bin"), QByteArray(100, 'x'));
+	sandbox.createFile(QStringLiteral("work/g.bin"), QByteArray(200, 'x'));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work(QStringLiteral("sub")), QStringLiteral("f.bin"));
+	session->send(Keys::Home);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("..")); }, QStringLiteral("the cursor on .."));
+
+	session->send(" "sv);
+	const QRegularExpression rowPattern{ QStringLiteral("^\\.\\.%1%2(?:[ ┆]|$)").arg(columnGap, QStringLiteral("300")) };
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelHasRowMatching(screen, rowPattern); }, QStringLiteral("[..] listed with the size 300"));
+	session->send(Keys::Home);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(QStringLiteral("..  300")); },
+		QStringLiteral("the size of [..] in the status line"));
 }
 
 TEST_CASE("A double click on a row activates it, in the focused panel and in the other one", "[tui][double-click]")

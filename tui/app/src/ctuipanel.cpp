@@ -643,7 +643,10 @@ void CTuiPanel::updateStatusLine()
 	}
 	if (row->isCdUp())
 	{
-		_statusLine->setText({ { QStringLiteral("..") } });
+		if (row->size() == 0)
+			_statusLine->setText({ { QStringLiteral("..") } });
+		else
+			_statusLine->setText({ { QStringLiteral("..  ") }, { locale.formattedDataSize((qint64)row->size()), true } });
 		return;
 	}
 

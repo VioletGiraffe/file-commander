@@ -96,10 +96,10 @@ QString fileListCellText(const CFileSystemObject& item, FileListSortField field,
 	case FileListSortField::Name: return fileListFolderPrefix(item, listedFolder) % (extensionShown ? fileListDisplayName(item) : item.fullName());
 	case FileListSortField::Extension: return item.extension().toString();
 	case FileListSortField::Size:
-		if (item.isCdUp())
-			return QStringLiteral("<UP>");
 		// A folder has a size once Space has calculated it
-		return item.isDir() && item.size() == 0 ? QStringLiteral("<DIR>") : compactFileSizeText(item.size(), FileSizeUnitSpacing::Joined);
+		if (item.isDir() && item.size() == 0)
+			return item.isCdUp() ? QStringLiteral("<UP>") : QStringLiteral("<DIR>");
+		return compactFileSizeText(item.size(), FileSizeUnitSpacing::Joined);
 	case FileListSortField::Date:
 		return item.isCdUp() ? QString{} : fileTimeText(item.modificationTime(), dateTextLength);
 	}
