@@ -182,19 +182,17 @@ CTuiFileList::CTuiFileList(const TRect& bounds, TScrollBar* verticalScrollBar) n
 {
 }
 
-void CTuiFileList::setSortField(FileListSortField field)
-{
-	_sortField = field;
-	drawView();
-}
-
-void CTuiFileList::setRows(std::vector<CFileSystemObject> rows, QString listedFolder, qulonglong cursorItemHash, int fallbackRow)
+void CTuiFileList::setRows(std::vector<CFileSystemObject> rows, QString listedFolder, const FileListSortField sortField, const std::vector<qulonglong>& selectedItemHashes,
+	const qulonglong cursorItemHash, const int fallbackRow)
 {
 	const CFileSystemObject* previousCursorItem = currentRow();
 	const bool cursorStaysOnItem = previousCursorItem && previousCursorItem->hash() == cursorItemHash;
 
 	_rows = std::move(rows);
 	_listedFolder = std::move(listedFolder);
+	_sortField = sortField;
+	_selectedItemHashes.clear();
+	_selectedItemHashes.insert(selectedItemHashes.begin(), selectedItemHashes.end());
 	const auto cursorItem = std::ranges::find(_rows, cursorItemHash, &CFileSystemObject::hash);
 	const int newCursorRow = cursorItem != _rows.end() ? static_cast<int>(cursorItem - _rows.begin()) : fallbackRow;
 	if (cursorStaysOnItem && cursorItem != _rows.end())

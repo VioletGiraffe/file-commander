@@ -585,7 +585,7 @@ void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 
 void CTuiPanel::showEmptyListWhileListing()
 {
-	_fileList->setRows({}, {}, 0, 0);
+	_fileList->setRows({}, {}, _controller.panel(_side).sortField(), {}, 0, 0);
 	updateStatusLine();
 	updateTitle();
 	updateTabStrip();
@@ -601,13 +601,12 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 	// The core's current item is always the row under the cursor.
 	const bool navigated = cause == refreshCauseForwardNavigation || cause == refreshCauseCdUp;
 	_columnHeader->setSorting(panel.sortField(), panel.sortOrder());
-	_fileList->setSortField(panel.sortField());
-	_fileList->setRows(panel.visibleItems(), panel.currentDirPathPosix(), _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()),
-		navigated ? 0 : _fileList->cursorRow());
+	_fileList->setRows(panel.visibleItems(), panel.currentDirPathPosix(), panel.sortField(), panel.selectedItemHashes(),
+		_controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()), navigated ? 0 : _fileList->cursorRow());
 	if (const CFileSystemObject* row = _fileList->currentRow())
 		_controller.setCurrentItemHashForCurrentFolder(_side, row->hash(), false);
 
-	showCoreSelection();
+	updateStatusLine();
 	updateTitle();
 	updateTabStrip();
 	if (onCurrentItemChanged)

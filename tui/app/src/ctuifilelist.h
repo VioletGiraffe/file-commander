@@ -66,12 +66,11 @@ class CTuiFileList final : public CTuiRowList
 public:
 	CTuiFileList(const TRect& bounds, TScrollBar* verticalScrollBar) noexcept;
 
-	// The sorted column stays shown however narrow the list is
-	void setSortField(FileListSortField field);
-
 	// The cursor goes to the row whose hash is cursorItemHash, or to fallbackRow (clamped to the rows) when no row has it.
 	// listedFolder: see fileListFolderPrefix().
-	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder, qulonglong cursorItemHash, int fallbackRow);
+	// sortField: this column stays shown however narrow the list is.
+	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder, FileListSortField sortField, const std::vector<qulonglong>& selectedItemHashes,
+		qulonglong cursorItemHash, int fallbackRow);
 	// Removes the rows and the selection. The screen keeps showing them until the next draw.
 	void clearRowsKeepingScreen();
 	[[nodiscard]] const CFileSystemObject* currentRow() const noexcept; // nullptr when there are no rows
