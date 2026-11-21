@@ -49,6 +49,8 @@ public:
 	[[nodiscard]] static CMainWindow* get();
 
 	void updateInterface();
+	// Thread-safe. Drains the UI queues on the main thread without waiting for the timer.
+	void drainUiQueuesSoon();
 
 	void initButtons();
 	void initActions();

@@ -34,7 +34,7 @@ activation take a fresh snapshot and continue from step 3.
    step 2 on.
 4. Worker, `publishFileListIfCurrent`: commits under the list mutex only if generation, path, and mode still match,
    then queues `onPanelContentsChanged`. A list that replaces a withdrawn one also calls the wake-up callback given to
-   `CController`, which `fcterm` uses to end its event wait.
+   `CController`, so the front end drains its queues without waiting for its timer or event timeout.
 5. Main thread, queue drain (`CController::uiThreadTimerTick`, called by `CMainWindow`'s timer or `CTuiApplication::getEvent`):
    the listeners run. In the GUI, `CPanelWidget` refills the active tab's model from the panel and copies the tab's selection
    into the view, and `CMainWindow` updates the path bar and title. In the terminal UI, `CTuiPanel` refills its list, title and

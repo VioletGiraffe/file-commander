@@ -32,6 +32,7 @@ RESTORE_COMPILER_WARNINGS
 #endif
 
 #include <algorithm>
+#include <atomic>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
@@ -184,12 +185,19 @@ int main(int argc, char *argv[])
 	installTheme(app);
 
 	CShellOperationRunner shellOperations;
-	CController controller;
+	// Null until the window exists: the first listing can finish before that.
+	// controller.shutdown() ends every listing before the window is destroyed.
+	std::atomic<CMainWindow*> windowToWake{ nullptr };
+	CController controller{ [&windowToWake] {
+		if (CMainWindow* window = windowToWake.load())
+			window->drainUiQueuesSoon();
+	} };
 	CPluginEngine pluginEngine{controller};
 	// Must outlive the window: its panel widgets unsubscribe from it when destroyed
 	CIconProvider iconProvider;
 
 	CMainWindow w{controller, pluginEngine, shellOperations, iconProvider};
+	windowToWake = &w;
 	w.updateInterface();
 
 	// For checking the themes against every stock control

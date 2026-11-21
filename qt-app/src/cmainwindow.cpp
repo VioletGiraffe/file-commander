@@ -771,6 +771,11 @@ void CMainWindow::uiThreadTimerTick()
 	_iconProvider.uiThreadTimerTick();
 }
 
+void CMainWindow::drainUiQueuesSoon()
+{
+	QMetaObject::invokeMethod(this, [this] { uiThreadTimerTick(); }, Qt::QueuedConnection);
+}
+
 // Window title management (#143)
 void CMainWindow::updateWindowTitleWithCurrentFolderNames()
 {
