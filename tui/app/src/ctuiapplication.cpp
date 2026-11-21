@@ -248,47 +248,36 @@ void CTuiApplication::handleEvent(TEvent& event)
 		return;
 	}
 
-	// The volume of the left or the right panel, from either panel
-	if (event.what == evCommand && (event.message.command == cmChooseLeftPanelVolume || event.message.command == cmChooseRightPanelVolume))
-	{
-		const Panel side = event.message.command == cmChooseLeftPanelVolume ? Panel::LeftPanel : Panel::RightPanel;
-		CTuiPanel* panel = _panels[(size_t)side];
-		clearEvent(event);
-		endQuickViewOver(side);
-		panel->select();
-		panel->chooseVolume();
-		return;
-	}
-
-	if (event.what == evCommand && event.message.command == cmFindFiles)
+	if (event.what == evCommand && runCommand(event.message.command))
 	{
 		clearEvent(event);
-		findFiles();
-		return;
-	}
-
-	if (event.what == evCommand && event.message.command == cmCompareFolders)
-	{
-		clearEvent(event);
-		compareFolders();
-		return;
-	}
-
-	if (event.what == evCommand && event.message.command == cmToggleQuickView)
-	{
-		clearEvent(event);
-		toggleQuickView();
-		return;
-	}
-
-	if (event.what == evCommand && event.message.command == cmChooseColourTheme)
-	{
-		clearEvent(event);
-		chooseColourTheme();
 		return;
 	}
 
 	TApplication::handleEvent(event);
+}
+
+bool CTuiApplication::runCommand(const ushort command)
+{
+	switch (command)
+	{
+	case cmChooseLeftPanelVolume: chooseVolumeOn(Panel::LeftPanel); break;
+	case cmChooseRightPanelVolume: chooseVolumeOn(Panel::RightPanel); break;
+	case cmFindFiles: findFiles(); break;
+	case cmCompareFolders: compareFolders(); break;
+	case cmToggleQuickView: toggleQuickView(); break;
+	case cmChooseColourTheme: chooseColourTheme(); break;
+	default: return false;
+	}
+	return true;
+}
+
+void CTuiApplication::chooseVolumeOn(const Panel side)
+{
+	endQuickViewOver(side);
+	CTuiPanel* panel = _panels[(size_t)side];
+	panel->select();
+	panel->chooseVolume();
 }
 
 void CTuiApplication::chooseColourTheme()

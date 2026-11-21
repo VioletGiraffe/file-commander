@@ -49,6 +49,10 @@ private:
 	static TStatusLine* initHintLine(TRect r);
 	static TDeskTop* initDeskTop(TRect r);
 
+	// False for a command the application does not carry out
+	bool runCommand(ushort command);
+	// Focuses the side and lists the volumes for it, from either panel
+	void chooseVolumeOn(Panel side);
 	// Searches from the active panel's folder or selection, and goes to the result chosen
 	void findFiles();
 	// Goes to the difference chosen, in the panel that holds it
