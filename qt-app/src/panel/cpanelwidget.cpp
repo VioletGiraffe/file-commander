@@ -64,6 +64,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QSizePolicy>
 #include <QSpacerItem>
 #include <QStyle>
+#include <QTimer>
 #include <QToolTip>
 #include <QUrl>
 #include <QWheelEvent>
@@ -157,6 +158,11 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	ui->_list->installEventFilter(_filterDialog);
 
 	ui->_list->addEventObserver(this);
+
+	_oldFrameHoldTimer = new QTimer{ this };
+	_oldFrameHoldTimer->setSingleShot(true);
+	_oldFrameHoldTimer->setInterval(100);
+	assert_r(connect(_oldFrameHoldTimer, &QTimer::timeout, this, &CPanelWidget::endOldFrameHold));
 
 	_frameGlow = std::make_unique<CGlowUnderlay>(*this, [this] { return frameGlow(); });
 	// A TabsOnFrame frame runs around the current tab
@@ -768,6 +774,7 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 {
 	const auto fillStart = std::chrono::steady_clock::now();
 
+	endOldFrameHold();
 	const bool modelReset = fillFromList(operation);
 	// After an update too: what the view's selection does through moves and removals is Qt's to decide
 	applyCoreSelection();
@@ -779,6 +786,16 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 	// Only a reset is sure to repaint the list
 	if (modelReset)
 		ui->_list->logTimeToNextPaint(fillStart);
+}
+
+void CPanelWidget::endOldFrameHold()
+{
+	_oldFrameHoldTimer->stop();
+	if (updatesEnabled())
+		return;
+
+	setUpdatesEnabled(true);
+	updateFrame();
 }
 
 void CPanelWidget::showContextMenuForItems()
@@ -1293,8 +1310,13 @@ void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	if (!displaysTab(p, tabId))
 		return;
 
-	// Display only - see PanelContentsChangedListener. The tab is already at the new folder, so its name is shown
-	// right away instead of lagging behind for however long the listing takes.
+	// The old frame stays up briefly: a listing that arrives by then replaces it with no blank frame between them
+	setUpdatesEnabled(false);
+	if (!_oldFrameHoldTimer->isActive())
+		_oldFrameHoldTimer->start();
+
+	// Display only - see PanelContentsChangedListener.
+	// The tab is already at the new folder: its name does not wait for the listing.
 	_model->setRows({}, {});
 	PanelTab& tab = activeTab();
 	tab.navigationId.reset();
@@ -1421,6 +1443,10 @@ void CPanelWidget::applyTheme()
 
 void CPanelWidget::updateFrame()
 {
+	// endOldFrameHold() calls this again: an ancestor paints the glow, and its repaint would erase a panel that is not painting
+	if (!updatesEnabled())
+		return;
+
 	update();
 	_frameGlow->refresh();
 }

@@ -31,6 +31,10 @@ widgets and their display controllers. Its current/other panel pointers follow f
 position. It routes commands, converts UI state into core requests, owns the resulting dialogs, and materializes plugin
 menus. A UI timer drains the controller, panel and icon provider execution queues.
 
+When the core withdraws a list, `CPanelWidget` empties its model at once but stops painting briefly, so a listing that
+arrives in time replaces the old frame with no blank frame. The whole panel stops: an ancestor paints the panel's glow
+across its area.
+
 After the application event loop and native shell operations finish, `main()` explicitly shuts down the controller
 while the window and plugin modules remain alive. Stack declaration order then destroys the window, icon provider,
 plugin engine, controller, shell runner, and application in that order. The main window destroys the viewer windows

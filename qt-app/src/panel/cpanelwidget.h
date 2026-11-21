@@ -28,6 +28,7 @@ class CPanelWidget;
 class QItemSelectionModel;
 class QMenu;
 class QStandardItem;
+class QTimer;
 class QUrl;
 
 class CFileListModel;
@@ -133,6 +134,8 @@ private:
 	// Returns true if it reset the model
 	bool fillFromList(FileListRefreshCause operation);
 	void fillFromPanel(FileListRefreshCause operation);
+	// Repaints the panel if onPanelContentsInvalidated() stopped its painting
+	void endOldFrameHold();
 	// The core's cursor target once listed; after a refresh, the cursor's item, or its row when the item is gone; after a navigation, the item
 	// remembered for the folder. previousRow: the cursor's row before the refill, -1 for none.
 	void placeCursorAfterFill(FileListRefreshCause operation, bool modelReset, int previousRow, qulonglong previousHash);
@@ -228,4 +231,5 @@ private:
 	bool                            _refillingList = false; // Stops currentItemChanged() from taking the refill's cursor moves for the user's
 	Panel                           _panelPosition = Panel::UnknownPanel;
 	std::unique_ptr<CGlowUnderlay>  _frameGlow;
+	QTimer                        * _oldFrameHoldTimer = nullptr; // Active while the screen shows rows the model no longer holds
 };
