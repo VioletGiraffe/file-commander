@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795303589371,
+  "lastUpdate": 1795305209045,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -40346,6 +40346,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 1185,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 489.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 56,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "11459ba3a51cc696a9455b928dcaeefde29ea704",
+          "message": "The terminal UI's search dialog stays usable in small terminals: its controls reflow below 69 columns, and below its minimum size it is clipped instead of overlapping",
+          "timestamp": "2026-11-22T01:42:02+02:00",
+          "tree_id": "0993759649d55a86fdbbebcaee1ffefd15173b99",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/11459ba3a51cc696a9455b928dcaeefde29ea704"
+        },
+        "date": 1795305205488,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 26793,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 37726,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1852,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1154,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1183.5,
             "unit": "KB"
           },
           {
