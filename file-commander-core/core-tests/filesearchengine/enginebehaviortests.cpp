@@ -148,6 +148,68 @@ TEST_CASE("Search - a root below a folder that can be entered but not listed is 
 }
 #endif
 
+TEST_CASE("Search - a root that is a file is examined like a listed file", "[search][engine]")
+{
+	TempTree tree;
+	const QString selected = tree.makeFile(QSL("selected.txt"), "the needle");
+	tree.makeFile(QSL("sibling.txt"), "the needle");
+
+	const SearchResult byNameOnly = runSearch({ .roots = { selected } });
+	CHECK(byNameOnly.matched(selected));
+	CHECK(byNameOnly.count() == 1);
+	CHECK(byNameOnly.itemsScanned == 1);
+
+	CHECK(runSearch({ .roots = { selected }, .nameFilters = { QSL("selected") } }).count() == 1);
+	CHECK(runSearch({ .roots = { selected }, .nameFilters = { QSL("sibling") } }).count() == 0);
+	CHECK(runSearch({ .roots = { selected }, .contents = QSL("needle") }).matched(selected));
+	CHECK(runSearch({ .roots = { selected }, .contents = QSL("absent") }).count() == 0);
+}
+
+TEST_CASE("Search - a file root below a folder root is reported once, in either order", "[search][engine]")
+{
+	TempTree tree;
+	const QString file = tree.makeFile(QSL("sub/a.txt"), "the needle");
+	const QString sibling = tree.makeFile(QSL("sub/b.txt"));
+
+	for (const QStringList& roots : { QStringList{ tree.path(), file }, QStringList{ file, tree.path() } })
+	{
+		INFO(roots.join(u';').toStdString());
+		const SearchResult byName = runSearch({ .roots = roots });
+		CHECK(std::ranges::count(byName.matches, file) == 1);
+		CHECK(byName.matched(sibling));
+		CHECK(byName.count() == 3); // sub, a.txt and b.txt
+		CHECK(byName.itemsScanned == 3);
+
+		const SearchResult byContents = runSearch({ .roots = roots, .contents = QSL("needle") });
+		CHECK(byContents.matches == std::vector<QString>{ file });
+	}
+
+#ifdef _WIN32
+	CHECK(std::ranges::count_if(runSearch({ .roots = { tree.path(), file.toUpper() } }).matches, [&file](const QString& match) {
+		return match.compare(file, Qt::CaseInsensitive) == 0;
+	}) == 1);
+#endif
+}
+
+TEST_CASE("Search - a file root inside an excluded folder is examined", "[search][engine]")
+{
+	TempTree tree;
+	const QString file = tree.makeFile(QSL("build/a.txt"));
+	tree.makeFile(QSL("build/b.txt"));
+
+	const SearchResult result = runSearch({ .roots = { tree.path(), file }, .excludedFolders = excludedFolderFiltersFromSearchField(QSL("build")) });
+	CHECK(result.matches == std::vector<QString>{ file });
+}
+
+TEST_CASE("Search - a root that does not exist reports nothing", "[search][engine]")
+{
+	TempTree tree;
+	const SearchResult result = runSearch({ .roots = { tree.path(QSL("missing.txt")) } });
+	CHECK(result.count() == 0);
+	CHECK(result.itemsScanned == 0);
+	CHECK(result.status == CFileSearchEngine::SearchFinished);
+}
+
 TEST_CASE("Search - cancelling stops the traversal and reports the search as cancelled", "[search][engine]")
 {
 	TempTree tree;

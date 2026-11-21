@@ -13,7 +13,7 @@ class CPanel;
 
 struct FileSearchQuery
 {
-	QStringList roots; // Absolute
+	QStringList roots; // Absolute: folders to search through, or single files to examine
 	// Name filters (see FileNameFilter), matched ignoring case.
 	// A folder below the roots that matches one of them is skipped with its contents.
 	QStringList excludedFolders;

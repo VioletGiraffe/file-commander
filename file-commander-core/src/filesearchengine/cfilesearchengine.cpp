@@ -11,6 +11,7 @@
 #include "directoryscan/directoryscanner.h"
 #include "directoryscan/thinioqstring.h"
 #include "file.hpp"
+#include "paths/pathsyntax.h"
 #include "qt_paths.hpp" // thin_io
 #include "qtcore_helpers/qstring_hash.hpp"
 #include "qtcore_helpers/qstring_helpers.hpp"
@@ -26,7 +27,6 @@ DISABLE_COMPILER_WARNINGS
 
 #include <QByteArrayView>
 #include <QRegularExpression>
-#include <QStringBuilder>
 #include <QStringDecoder>
 #include <QStringList>
 #include <QStringView>
@@ -187,7 +187,7 @@ struct ContentSearchContext
 	return false;
 }
 
-// The query's roots without repeats. Spellings of one folder can differ by the trailing '/' and, on Windows, by letter case.
+// The query's roots without repeats. Spellings of one root can differ by the trailing '/' and, on Windows, by letter case.
 class SearchRoots final
 {
 public:
@@ -195,11 +195,11 @@ public:
 	{
 		for (const QString& root : roots)
 		{
-			QString folderPath = root.endsWith(u'/') ? root : QString{ root % u'/' };
-			QStringList& candidates = _foldersByCaseKey[caseKey(folderPath)];
-			if (std::ranges::none_of(candidates, [&folderPath](const QString& folder) { return isSameFolder(folder, folderPath); }))
+			QString path = normalizedAbsolutePath(root);
+			QStringList& candidates = _pathsByCaseKey[caseKey(path)];
+			if (std::ranges::none_of(candidates, [&path](const QString& candidate) { return isSameEntry(candidate, path); }))
 			{
-				candidates.push_back(std::move(folderPath));
+				candidates.push_back(std::move(path));
 				_distinctRoots.push_back(root);
 			}
 		}
@@ -207,26 +207,26 @@ public:
 
 	[[nodiscard]] const QStringList& distinct() const noexcept { return _distinctRoots; }
 
-	// folderPath ends with '/'
-	[[nodiscard]] bool contains(const QString& folderPath) const
+	[[nodiscard]] bool contains(const QString& entryPath) const
 	{
-		const auto candidates = _foldersByCaseKey.find(caseKey(folderPath));
-		return candidates != _foldersByCaseKey.end()
-			&& std::ranges::any_of(candidates->second, [&folderPath](const QString& folder) { return isSameFolder(folder, folderPath); });
+		const QString path = normalizedAbsolutePath(entryPath);
+		const auto candidates = _pathsByCaseKey.find(caseKey(path));
+		return candidates != _pathsByCaseKey.end()
+			&& std::ranges::any_of(candidates->second, [&path](const QString& candidate) { return isSameEntry(candidate, path); });
 	}
 
 private:
-	[[nodiscard]] static QString caseKey(const QString& folderPath)
+	[[nodiscard]] static QString caseKey(const QString& path)
 	{
 #ifdef _WIN32
-		return folderPath.toCaseFolded();
+		return path.toCaseFolded();
 #else
-		return folderPath;
+		return path;
 #endif
 	}
 
 	// Requires equal caseKey()
-	[[nodiscard]] static bool isSameFolder(const QString& left, const QString& right)
+	[[nodiscard]] static bool isSameEntry(const QString& left, const QString& right)
 	{
 		if (left == right)
 			return true;
@@ -241,7 +241,7 @@ private:
 	}
 
 private:
-	ankerl::unordered_dense::map<QString, QStringList, QStringHash> _foldersByCaseKey;
+	ankerl::unordered_dense::map<QString, QStringList, QStringHash> _pathsByCaseKey;
 	QStringList _distinctRoots;
 };
 } // namespace
@@ -345,74 +345,90 @@ void CFileSearchEngine::searchThread(const FileSearchQuery& query, FileSearchLis
 	ptrdiff_t contentTaskSlotCount = 0;
 	std::unique_ptr<CThreadPool> contentSearchPool;
 
-	// Each distinct root gets one scan, and the other scans report it without entering it.
+	const auto examineItem = [&](const CFileSystemObject& item, const bool reachedThroughLink) {
+		if (cancellationRequested)
+			return;
+
+		if (itemCounter % 128 == 0)
+		{
+			// No need to report every single item and waste CPU cycles
+			listener->itemScanned(item.fullAbsolutePath());
+		}
+
+		++itemCounter;
+
+		if (searchByContents && !item.isFile())
+			return;
+
+		if (!nameFilter.matches(item.fullName()))
+			return;
+
+		if (searchByContents)
+		{
+			if (cancellationRequested)
+				return;
+
+			if (!contentSearchPool)
+			{
+				static constexpr uint32_t maximumContentWorkers = 8;
+				const uint32_t contentWorkerCount = std::clamp(std::thread::hardware_concurrency(), 1u, maximumContentWorkers);
+				contentTaskSlotCount = (ptrdiff_t)contentWorkerCount * 2;
+				availableContentTaskSlots = std::make_unique<std::counting_semaphore<>>(contentTaskSlotCount);
+				contentSearchContext.availableTaskSlots = availableContentTaskSlots.get();
+				contentSearchPool = std::make_unique<CThreadPool>(contentWorkerCount, "File search by contents thread pool");
+			}
+
+			if (!acquireContentTaskSlotUnlessCancelled(*contentSearchContext.availableTaskSlots, cancellationRequested))
+				return;
+
+			contentSearchPool->enqueue([item, reachedThroughLink, &contentSearchContext] {
+				EXEC_ON_SCOPE_EXIT([&contentSearchContext] { contentSearchContext.availableTaskSlots->release(); });
+				if (*contentSearchContext.cancellationRequested)
+					return;
+
+				const ContentMatch contentMatch = fileContentsMatches(item.fullAbsolutePath(), *contentSearchContext.regex,
+					*contentSearchContext.plainText, *contentSearchContext.cancellationRequested);
+				if (*contentSearchContext.cancellationRequested)
+					return;
+
+				if (contentMatch == ContentMatch::Yes)
+					contentSearchContext.listener->matchFound(item, reachedThroughLink);
+				else if (contentMatch == ContentMatch::Inconclusive)
+					contentSearchContext.inconclusiveItems.fetch_add(1, std::memory_order_relaxed);
+			});
+		}
+		else
+			listener->matchFound(item, reachedThroughLink);
+	};
+
+	// Each distinct root is handled once: a folder by its own scan, anything else by examining it here. The other scans do not cover it again.
 	// A root below another is not redundant: the higher scan misses it behind an excluded folder, or a folder that can be entered but not listed (POSIX mode --x, Windows traverse rights).
 	const SearchRoots roots{ query.roots };
+	QStringList rootFolders;
+	bool anyRootIsNotFolder = false;
+	for (const QString& root : roots.distinct())
+	{
+		const CFileSystemObject rootItem{ root };
+		if (rootItem.exists() && !rootItem.isDir())
+		{
+			anyRootIsNotFolder = true;
+			examineItem(rootItem, false);
+		}
+		else
+			rootFolders.push_back(rootItem.fullAbsolutePath());
+	}
+
 	std::function<bool (const QString&)> isAnotherRoot;
 	if (roots.distinct().size() > 1)
 		isAnotherRoot = [&roots](const QString& dirPath) { return roots.contains(dirPath); };
 
-	for (const QString& pathToLookIn : roots.distinct())
+	for (const QString& rootFolder : rootFolders)
 	{
-		scanDirectory(CFileSystemObject(pathToLookIn).fullAbsolutePath(),
-			[&](const QString& parentPath, const thin_io::directory_entry& entry, bool reachedThroughLink) {
-				if (cancellationRequested)
-					return;
-
-				const CFileSystemObject item{ parentPath, entry };
-
-				if (itemCounter % 128 == 0)
-				{
-					// No need to report every single item and waste CPU cycles
-					listener->itemScanned(item.fullAbsolutePath());
-				}
-
-				++itemCounter;
-
-				if (searchByContents && !item.isFile())
-					return;
-
-				if (!nameFilter.matches(item.fullName()))
-					return;
-
-				if (searchByContents)
-				{
-					if (cancellationRequested)
-						return;
-
-					if (!contentSearchPool)
-					{
-						static constexpr uint32_t maximumContentWorkers = 8;
-						const uint32_t contentWorkerCount = std::clamp(std::thread::hardware_concurrency(), 1u, maximumContentWorkers);
-						contentTaskSlotCount = (ptrdiff_t)contentWorkerCount * 2;
-						availableContentTaskSlots = std::make_unique<std::counting_semaphore<>>(contentTaskSlotCount);
-						contentSearchContext.availableTaskSlots = availableContentTaskSlots.get();
-						contentSearchPool = std::make_unique<CThreadPool>(contentWorkerCount, "File search by contents thread pool");
-					}
-
-					if (!acquireContentTaskSlotUnlessCancelled(*contentSearchContext.availableTaskSlots, cancellationRequested))
-						return;
-
-					contentSearchPool->enqueue([item, reachedThroughLink, &contentSearchContext] {
-						EXEC_ON_SCOPE_EXIT([&contentSearchContext] { contentSearchContext.availableTaskSlots->release(); });
-						if (*contentSearchContext.cancellationRequested)
-							return;
-
-						const ContentMatch contentMatch = fileContentsMatches(item.fullAbsolutePath(), *contentSearchContext.regex,
-							*contentSearchContext.plainText, *contentSearchContext.cancellationRequested);
-						if (*contentSearchContext.cancellationRequested)
-							return;
-
-						if (contentMatch == ContentMatch::Yes)
-							contentSearchContext.listener->matchFound(item, reachedThroughLink);
-						else if (contentMatch == ContentMatch::Inconclusive)
-							contentSearchContext.inconclusiveItems.fetch_add(1, std::memory_order_relaxed);
-					});
-				}
-				else
-					listener->matchFound(item, reachedThroughLink);
-
-			}, cancellationRequested, isFolderExcluded, true, isAnotherRoot);
+		scanDirectory(rootFolder, [&](const QString& parentPath, const thin_io::directory_entry& entry, const bool reachedThroughLink) {
+			const CFileSystemObject item{ parentPath, entry };
+			if (!anyRootIsNotFolder || item.isDir() || !roots.contains(item.fullAbsolutePath()))
+				examineItem(item, reachedThroughLink);
+		}, cancellationRequested, isFolderExcluded, true, isAnotherRoot);
 	}
 
 	if (contentSearchPool)
