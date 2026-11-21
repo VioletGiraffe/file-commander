@@ -149,20 +149,12 @@ void CFilesSearchWindow::displayPendingResults()
 	if (!batch.lastScannedItem.isEmpty())
 		setProgressText(batch.lastScannedItem, Qt::ElideMiddle);
 
-	std::vector<CFileSystemObject> rows;
-	rows.reserve(batch.matches.size());
-	for (CFileSearchResultsBuffer::Match& match : batch.matches)
-	{
-		// The same item can also be listed under its direct path: marking this one keeps the pair from reading as a duplicate
-		if (match.reachedThroughLink)
-			_results->markReachedThroughLink(match.item.hash());
-		rows.push_back(std::move(match.item));
-	}
+	_results->markReachedThroughLink(batch.hashesReachedThroughLink);
 
 	// A current row on screen stops the scrolling: the rows must not move under a double click
 	const QScrollBar* scrollBar = ui->resultsList->verticalScrollBar();
 	const bool followNewestRows = _results->sortColumn() < 0 && scrollBar->value() == scrollBar->maximum() && !currentResultIsOnScreen();
-	_results->addRows(std::move(rows));
+	_results->addRows(std::move(batch.matches));
 	if (followNewestRows)
 		ui->resultsList->scrollToBottom();
 

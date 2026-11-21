@@ -23,11 +23,6 @@ RESTORE_COMPILER_WARNINGS
 class CFileSearchResultsBuffer final : public CFileSearchEngine::FileSearchListener
 {
 public:
-	struct Match {
-		CFileSystemObject item;
-		bool reachedThroughLink;
-	};
-
 	struct Completion {
 		CFileSearchEngine::SearchStatus status;
 		uint64_t itemsScanned;
@@ -36,7 +31,9 @@ public:
 	};
 
 	struct Batch {
-		std::vector<Match> matches;
+		std::vector<CFileSystemObject> matches;
+		// The matches found through a directory link: the same item can also be listed under its direct path
+		std::vector<uint64_t> hashesReachedThroughLink;
 		QString lastScannedItem; // Empty when no item was reported since the previous batch
 		std::optional<Completion> completion; // Never before the search's last match
 	};
@@ -49,6 +46,11 @@ public:
 	void searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed) override;
 
 private:
+	struct Match {
+		CFileSystemObject item;
+		bool reachedThroughLink;
+	};
+
 	std::mutex _mutex;
 	// Guarded by _mutex
 	std::deque<Match> _matches;

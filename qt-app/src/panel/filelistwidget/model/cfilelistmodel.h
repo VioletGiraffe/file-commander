@@ -23,6 +23,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <functional>
+#include <stdint.h>
 #include <vector>
 
 enum Role {
@@ -65,8 +66,8 @@ public:
 	void addRows(std::vector<CFileSystemObject> rows);
 	void setNameFilter(const QString& filterText);
 
-	// The item's row is in italics, with a tooltip: a search found the item by following a directory link
-	void markReachedThroughLink(qulonglong itemHash);
+	// The items' rows are in italics, with a tooltip: a search found the items by following a directory link
+	void markReachedThroughLink(const std::vector<uint64_t>& itemHashes);
 
 	void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 	[[nodiscard]] int sortColumn() const noexcept; // -1 in arrival order

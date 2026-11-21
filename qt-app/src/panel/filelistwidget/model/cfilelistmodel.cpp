@@ -106,9 +106,9 @@ void CFileListModel::setNameFilter(const QString& filterText)
 	_list.setNameFilter(filterText);
 }
 
-void CFileListModel::markReachedThroughLink(qulonglong itemHash)
+void CFileListModel::markReachedThroughLink(const std::vector<uint64_t>& itemHashes)
 {
-	_hashesReachedThroughLink.insert(itemHash);
+	_hashesReachedThroughLink.insert(itemHashes.begin(), itemHashes.end());
 }
 
 void CFileListModel::sort(int column, Qt::SortOrder order)

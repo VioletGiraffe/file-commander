@@ -5,7 +5,6 @@
 
 
 #include <algorithm>
-#include <iterator>
 #include <utility>
 
 CFileSearchResultsBuffer::Batch CFileSearchResultsBuffer::take(const size_t maxMatches)
@@ -15,7 +14,13 @@ CFileSearchResultsBuffer::Batch CFileSearchResultsBuffer::take(const size_t maxM
 	Batch batch;
 	std::lock_guard lock{ _mutex };
 	const auto sliceEnd = _matches.begin() + (ptrdiff_t)std::min(_matches.size(), maxMatches);
-	batch.matches.assign(std::make_move_iterator(_matches.begin()), std::make_move_iterator(sliceEnd));
+	batch.matches.reserve((size_t)(sliceEnd - _matches.begin()));
+	for (auto match = _matches.begin(); match != sliceEnd; ++match)
+	{
+		if (match->reachedThroughLink)
+			batch.hashesReachedThroughLink.push_back(match->item.hash());
+		batch.matches.push_back(std::move(match->item));
+	}
 	_matches.erase(_matches.begin(), sliceEnd);
 
 	batch.lastScannedItem = std::exchange(_lastScannedItem, {});

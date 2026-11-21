@@ -3,6 +3,8 @@
 #include "filesearchengine/cfilesearchresultsbuffer.h"
 
 #include <stddef.h>
+#include <stdint.h>
+#include <vector>
 
 TEST_CASE("Results buffer - matches come out in batches, oldest first, and the completion with the last of them", "[search][buffer]")
 {
@@ -16,19 +18,19 @@ TEST_CASE("Results buffer - matches come out in batches, oldest first, and the c
 
 	CFileSearchResultsBuffer::Batch batch = buffer.take(2);
 	REQUIRE(batch.matches.size() == 2);
-	CHECK(batch.matches[0].item.fullAbsolutePath() == paths[0]);
-	CHECK_FALSE(batch.matches[0].reachedThroughLink);
-	CHECK(batch.matches[1].item.fullAbsolutePath() == paths[1]);
-	CHECK(batch.matches[1].reachedThroughLink);
+	CHECK(batch.matches[0].fullAbsolutePath() == paths[0]);
+	CHECK(batch.matches[1].fullAbsolutePath() == paths[1]);
+	CHECK(batch.hashesReachedThroughLink == std::vector<uint64_t>{ batch.matches[1].hash() });
 	CHECK_FALSE(batch.completion.has_value());
 
 	batch = buffer.take(2);
 	CHECK(batch.matches.size() == 2);
+	CHECK(batch.hashesReachedThroughLink.empty());
 	CHECK_FALSE(batch.completion.has_value());
 
 	batch = buffer.take(2);
 	REQUIRE(batch.matches.size() == 1);
-	CHECK(batch.matches[0].item.fullAbsolutePath() == paths[4]);
+	CHECK(batch.matches[0].fullAbsolutePath() == paths[4]);
 	REQUIRE(batch.completion.has_value());
 	CHECK(batch.completion->status == CFileSearchEngine::SearchCancelled);
 	CHECK(batch.completion->itemsScanned == 7);

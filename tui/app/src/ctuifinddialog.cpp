@@ -101,7 +101,7 @@ public:
 
 	// Requires items not listed yet
 	void add(std::vector<CFileSystemObject> items) { _list.addRows(std::move(items)); }
-	void markReachedThroughLink(qulonglong itemHash) { _hashesReachedThroughLink.insert(itemHash); }
+	void markReachedThroughLink(const std::vector<uint64_t>& itemHashes) { _hashesReachedThroughLink.insert(itemHashes.begin(), itemHashes.end()); }
 
 	// Takes the column from ascending to descending to arrival order. Returns the new order: empty for arrival order.
 	std::optional<Qt::SortOrder> sortBy(const FileListSortField field)
@@ -435,18 +435,12 @@ void CTuiFindDialog::showPendingResults(const size_t maxMatches)
 	if (!batch.lastScannedItem.isEmpty())
 		setStatus(toNativeSeparators(batch.lastScannedItem));
 
-	std::vector<CFileSystemObject> items;
-	items.reserve(batch.matches.size());
-	for (CFileSearchResultsBuffer::Match& match : batch.matches)
-	{
-		if (match.reachedThroughLink)
-			_results->markReachedThroughLink(match.item.hash());
-		items.push_back(std::move(match.item));
-	}
-	_results->add(std::move(items));
+	const bool batchIsFull = batch.matches.size() == maxMatches;
+	_results->markReachedThroughLink(batch.hashesReachedThroughLink);
+	_results->add(std::move(batch.matches));
 
 	// A full batch leaves more waiting
-	_nextResultsDisplayTime = std::chrono::steady_clock::now() + (batch.matches.size() < maxMatches ? resultsDisplayInterval : 0ms);
+	_nextResultsDisplayTime = std::chrono::steady_clock::now() + (batchIsFull ? 0ms : resultsDisplayInterval);
 
 	if (batch.completion)
 		showCompletion(*batch.completion);
