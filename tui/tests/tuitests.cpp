@@ -1171,7 +1171,7 @@ TEST_CASE("A colour theme chosen in View > Theme is marked there, in the next se
 	{
 		auto session = startFcterm(sandbox);
 		openThemeList(*session);
-		CHECK(session->screen().contains(QStringLiteral("• Classic blue")));
+		CHECK(session->screen().contains(QStringLiteral("☾ • Classic blue")));
 		session->send(Keys::Down);
 		session->send(Keys::Enter);
 		requireThemeListClosed(*session);
@@ -1185,7 +1185,7 @@ TEST_CASE("A colour theme chosen in View > Theme is marked there, in the next se
 
 		openThemeList(*session);
 		CHECK(session->screen().contains(QStringLiteral("• Dark")));
-		CHECK_FALSE(session->screen().contains(QStringLiteral("• Amber")));
+		CHECK_FALSE(session->screen().contains(QStringLiteral("• Deep teal")));
 		session->send(Keys::Escape);
 		requireThemeListClosed(*session);
 		session->send(Keys::AltX);
@@ -1196,6 +1196,9 @@ TEST_CASE("A colour theme chosen in View > Theme is marked there, in the next se
 	openThemeList(*session);
 	CHECK(session->screen().contains(QStringLiteral("• Dark")));
 	CHECK_FALSE(session->screen().contains(QStringLiteral("• Classic blue")));
+
+	session->send(Keys::CtrlPgDn);
+	requireText(*session, QStringLiteral("☼   Two inks"));
 }
 
 TEST_CASE("Tabs open, switch with their own filter, and close", "[tui]")

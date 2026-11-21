@@ -55,5 +55,5 @@ struct ColourTheme
 	ThemeParameters parameters;
 };
 
-// In the order the theme list shows them, dark themes first. The first theme is the default.
 [[nodiscard]] std::span<const ColourTheme> colourThemes();
+[[nodiscard]] const ColourTheme& defaultColourTheme();

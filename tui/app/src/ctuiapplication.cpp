@@ -38,8 +38,10 @@ RESTORE_COMPILER_WARNINGS
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -222,7 +224,7 @@ CTuiApplication::CTuiApplication(CController& controller) :
 	const std::string themeId = QSettings{}.value(KEY_TUI_COLOUR_THEME).toString().toStdString();
 	const std::span<const ColourTheme> themes = colourThemes();
 	const auto savedTheme = std::ranges::find_if(themes, [&themeId](const ColourTheme& theme) { return themeId == theme.id; });
-	setColourTheme(savedTheme != themes.end() ? *savedTheme : themes.front());
+	setColourTheme(savedTheme != themes.end() ? *savedTheme : defaultColourTheme());
 }
 
 void CTuiApplication::getEvent(TEvent& event)
@@ -282,15 +284,24 @@ void CTuiApplication::chooseVolumeOn(const Panel side)
 
 void CTuiApplication::chooseColourTheme()
 {
-	const std::span<const ColourTheme> themes = colourThemes();
+	std::vector<const ColourTheme*> themes;
+	for (const ColourTheme& theme : colourThemes())
+		themes.push_back(&theme);
+	std::ranges::sort(themes, {}, [](const ColourTheme* theme) { return std::pair{ theme->polarity, std::string_view{ theme->name } }; });
+
 	const ColourTheme& themeBefore = appliedColourTheme();
 	QStringList names;
-	for (const ColourTheme& theme : themes)
-		names.push_back((&theme == &themeBefore ? QStringLiteral("• ") : QStringLiteral("  ")) + QLatin1String{ theme.name });
+	for (const ColourTheme* theme : themes)
+	{
+		const QString polarityMark = theme->polarity == ColourTheme::Polarity::Dark ? QStringLiteral("☾ ") : QStringLiteral("☼ ");
+		const QString currentMark = theme == &themeBefore ? QStringLiteral("• ") : QStringLiteral("  ");
+		names.push_back(polarityMark + currentMark + QLatin1String{ theme->name });
+	}
 
-	const auto showTheme = [this, themes](const size_t item) { setColourTheme(themes[item]); };
-	if (const std::optional<size_t> chosen = chooseFromListWithPreview(QStringLiteral("Theme"), names, (size_t)(&themeBefore - themes.data()), showTheme))
-		QSettings{}.setValue(KEY_TUI_COLOUR_THEME, QString::fromLatin1(themes[*chosen].id));
+	const auto initialItem = (size_t)(std::ranges::find(themes, &themeBefore) - themes.begin());
+	const auto showTheme = [this, &themes](const size_t item) { setColourTheme(*themes[item]); };
+	if (const std::optional<size_t> chosen = chooseFromListWithPreview(QStringLiteral("Theme"), names, initialItem, showTheme))
+		QSettings{}.setValue(KEY_TUI_COLOUR_THEME, QString::fromLatin1(themes[*chosen]->id));
 	else
 		setColourTheme(themeBefore);
 }

@@ -163,7 +163,7 @@ template <size_t count>
 	return TPalette{ entries.data(), (ushort)entries.size() };
 }
 
-const ColourTheme* appliedTheme = &colourThemes().front();
+const ColourTheme* appliedTheme = &defaultColourTheme();
 
 } // namespace
 
@@ -180,7 +180,7 @@ const ColourTheme& appliedColourTheme()
 
 TPalette& applicationPalette()
 {
-	static TPalette palette = applicationPaletteFor(colourThemes().front().parameters);
+	static TPalette palette = applicationPaletteFor(defaultColourTheme().parameters);
 	return palette;
 }
 

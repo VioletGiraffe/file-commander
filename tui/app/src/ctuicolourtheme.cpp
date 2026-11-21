@@ -335,7 +335,6 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0xF6EAEF, .hintText = 0x8C7480, .hintKey = 0x8E3B6B, .keyBack = 0x8E3B6B, .keyText = 0xFFFFFF, .keyLabelBack = 0xEDD5DF, .keyLabelText = 0x3A2E34,
 		.keyBarBack = 0xF6EAEF } },
 };
-static_assert(std::ranges::is_sorted(themes, {}, &ColourTheme::polarity));
 static_assert(std::ranges::all_of(themes, [](const ColourTheme& theme) { return theme.parameters.rowsPerBand > 0; }));
 
 } // namespace
@@ -343,4 +342,9 @@ static_assert(std::ranges::all_of(themes, [](const ColourTheme& theme) { return 
 std::span<const ColourTheme> colourThemes()
 {
 	return themes;
+}
+
+const ColourTheme& defaultColourTheme()
+{
+	return themes[0];
 }
