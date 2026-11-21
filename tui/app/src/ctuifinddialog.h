@@ -18,6 +18,8 @@ RESTORE_COMPILER_WARNINGS
 #include <stddef.h>
 #include <variant>
 
+enum class FileListSortField;
+class CTuiColumnHeader;
 class CTuiFindResultsList;
 class CTuiTextView;
 class TButton;
@@ -52,6 +54,7 @@ private:
 	void setStatus(const QString& text);
 	// Under the list, elided only past the dialog's width: the rows show paths relative to the folder searched in
 	void showCurrentResultPath();
+	void sortResultsBy(FileListSortField field);
 	void goToCurrentResult();
 	// Unless there are none
 	void sendResultsToPanel();
@@ -66,6 +69,7 @@ private:
 	TInputLine* _searchIn;
 	TInputLine* _excludedFolders;
 	TButton* _searchButton;
+	CTuiColumnHeader* _resultsHeader;
 	CTuiFindResultsList* _results;
 	CTuiTextView* _currentResultPath;
 	CTuiTextView* _status;

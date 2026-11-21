@@ -24,7 +24,6 @@
 #define Uses_TInputLine
 #define Uses_TKeys
 #define Uses_TLabel
-#define Uses_TPalette
 #define Uses_TProgram
 #define Uses_TScrollBar
 #define Uses_TSItem
@@ -36,6 +35,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <functional>
+#include <optional>
 #include <stdint.h>
 #include <utility>
 #include <vector>
@@ -61,32 +61,25 @@ constexpr size_t maxResultsPerDisplay = 10'000;
 	return count == 1 ? QStringLiteral("1 item") : QStringLiteral("%1 items").arg(count);
 }
 
-// The dialog palette's list viewer entries: normal, focused
-TPalette& resultsPalette()
+// The dialog palette's list viewer entries
+constexpr uchar resultsNormalEntry = 0x1A, resultsFocusedEntry = 0x1B;
+
+// The panel's sort keys: the menus that bind them receive no keys under a modal view
+[[nodiscard]] std::optional<FileListSortField> sortFieldForKey(const ushort key)
 {
-	static TPalette palette("\x1A\x1B", 2);
-	return palette;
+	switch (key)
+	{
+	case kbCtrlF3: return FileListSortField::Name;
+	case kbCtrlF4: return FileListSortField::Extension;
+	case kbCtrlF5: return FileListSortField::Date;
+	case kbCtrlF6: return FileListSortField::Size;
+	default: return std::nullopt;
+	}
 }
 
 } // namespace
 
-// The results' column titles, above them
-class CTuiFindResultsHeader final : public TView
-{
-public:
-	explicit CTuiFindResultsHeader(const TRect& bounds) noexcept : TView(bounds) { growMode = gfGrowHiX; }
-
-	void draw() override
-	{
-		TDrawBuffer line;
-		drawFileListHeader(line, size.x, FileListSortField::Name, Qt::AscendingOrder, FileTimeTextLength::Long, mapColor(1), mapColor(1));
-		writeLine(0, 0, (short)size.x, 1, line);
-	}
-
-	TPalette& getPalette() const override { return resultsPalette(); }
-};
-
-// The results, sorted by name as they arrive. A link mark starts the row of an item found through a directory link.
+// The results, sorted as they arrive. A link mark starts the row of an item found through a directory link.
 // The cursor stays on the first row until the user moves it, then on its item.
 class CTuiFindResultsList final : public CTuiRowList, private SortedFileListObserver
 {
@@ -108,6 +101,14 @@ public:
 	void add(std::vector<CFileSystemObject> items) { _list.addRows(std::move(items)); }
 	void markReachedThroughLink(qulonglong itemHash) { _hashesReachedThroughLink.insert(itemHash); }
 
+	// Ascending, or the reverse of the current order when field is already the sorted one. Returns the new order.
+	Qt::SortOrder sortBy(const FileListSortField field)
+	{
+		const Qt::SortOrder order = _list.sortField() == field && _list.sortOrder() == Qt::AscendingOrder ? Qt::DescendingOrder : Qt::AscendingOrder;
+		_list.setSorting(field, order);
+		return order;
+	}
+
 	void handleEvent(TEvent& event) override
 	{
 		CTuiRowList::handleEvent(event);
@@ -128,8 +129,8 @@ public:
 
 	void draw() override
 	{
-		const TColorAttr normalColor = mapColor(1), cursorColor = mapColor(2);
-		const std::vector<FileListColumn> columns = fileListColumns(size.x, FileListSortField::Name, FileTimeTextLength::Long);
+		const TColorAttr normalColor = mapColor(resultsNormalEntry), cursorColor = mapColor(resultsFocusedEntry);
+		const std::vector<FileListColumn> columns = fileListColumns(size.x, _list.sortField(), FileTimeTextLength::Long);
 		const bool extensionShown = std::ranges::any_of(columns, [](const FileListColumn& column) { return column.field == FileListSortField::Extension; });
 		for (int y = 0; y < size.y; ++y)
 		{
@@ -155,8 +156,6 @@ public:
 			writeLine(0, (short)y, (short)size.x, 1, line);
 		}
 	}
-
-	TPalette& getPalette() const override { return resultsPalette(); }
 
 private:
 	[[nodiscard]] int rowCount() const noexcept override { return _list.rowCount(); }
@@ -238,7 +237,9 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	sendButton->growMode = gfGrowLoX | gfGrowHiX;
 	insert(sendButton);
 
-	insert(new CTuiFindResultsHeader({ labelX, listTop, right - 1, listTop + 1 }));
+	_resultsHeader = new CTuiColumnHeader({ labelX, listTop, right - 1, listTop + 1 }, { FileTimeTextLength::Long, resultsNormalEntry, resultsNormalEntry });
+	_resultsHeader->onColumnClicked = [this](const FileListSortField field) { sortResultsBy(field); };
+	insert(_resultsHeader);
 	auto* scrollBar = new TScrollBar({ right - 1, listTop + 1, right, currentPathY });
 	scrollBar->growMode = gfGrowLoX | gfGrowHiX | gfGrowHiY;
 	insert(scrollBar);
@@ -328,6 +329,12 @@ void CTuiFindDialog::handleEvent(TEvent& event)
 		{
 			if (const CFileSystemObject* item = _results->currentItem())
 				CTuiApplication::copyToClipboard(shellQuotedPath(toNativeSeparators(item->fullAbsolutePath())));
+			clearEvent(event);
+			return;
+		}
+		if (const std::optional<FileListSortField> field = sortFieldForKey(key))
+		{
+			sortResultsBy(*field);
 			clearEvent(event);
 			return;
 		}
@@ -452,6 +459,11 @@ void CTuiFindDialog::showCurrentResultPath()
 {
 	const CFileSystemObject* item = _results->currentItem();
 	_currentResultPath->setLines({ item ? elidedInTheMiddle(toNativeSeparators(item->fullAbsolutePath()), _currentResultPath->size.x) : QString{} });
+}
+
+void CTuiFindDialog::sortResultsBy(const FileListSortField field)
+{
+	_resultsHeader->setSorting(field, _results->sortBy(field));
 }
 
 void CTuiFindDialog::goToCurrentResult()

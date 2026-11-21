@@ -662,6 +662,85 @@ TEST_CASE("Alt+F7 finds files by name under the panel's folder, and Enter on a r
 	CHECK(showsResultRow(session->screen()));
 }
 
+TEST_CASE("A click on a column title sorts the search results, and a second click reverses them", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/needle_a.txt"), "the larger file");
+	sandbox.createFile(QStringLiteral("work/needle_b.txt"), "small");
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("needle_a.txt"));
+	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed, 2 items found"));
+
+	const int headerRow = rowWith(session->screen(), QStringLiteral("Name ↑"));
+	REQUIRE(headerRow >= 0);
+	const auto requireSorted = [&](const QString& title, const QString& firstRow, const QString& secondRow) {
+		requireScreen(*session, [&](const CTerminalScreen& screen) {
+			const int first = rowWith(screen, firstRow);
+			return screen.row(headerRow).contains(title) && first >= 0 && first < rowWith(screen, secondRow);
+		}, QStringLiteral("\"%1\" in the header, %2 above %3").arg(title, firstRow, secondRow));
+	};
+	const auto clickTitle = [&](const QString& title) { session->send(leftClick((int)session->screen().row(headerRow).indexOf(title), headerRow)); };
+	const QString larger = QStringLiteral("needle_a"), smaller = QStringLiteral("needle_b");
+
+	requireSorted(QStringLiteral("Name ↑"), larger, smaller);
+	// The click on Name reverses the order only if the right click on Size left the sorting on Name
+	session->send(rightClick((int)session->screen().row(headerRow).indexOf(QStringLiteral("Size")), headerRow));
+	clickTitle(QStringLiteral("Name"));
+	requireSorted(QStringLiteral("Name ↓"), smaller, larger);
+	clickTitle(QStringLiteral("Size"));
+	requireSorted(QStringLiteral("Size ↑"), smaller, larger);
+	clickTitle(QStringLiteral("Size"));
+	requireSorted(QStringLiteral("Size ↓"), larger, smaller);
+	clickTitle(QStringLiteral("Name"));
+	requireSorted(QStringLiteral("Name ↑"), larger, smaller);
+}
+
+TEST_CASE("Ctrl+F5 sorts the search results by a column that a narrow terminal hides", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/needle.txt"));
+	// Wide enough for the dialog's fields, too narrow for the Date column
+	auto session = startFcterm(sandbox, { .workingFolder = sandbox.work({}), .columns = 58 });
+	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed"));
+
+	const int headerRow = rowWith(session->screen(), QStringLiteral("Name ↑"));
+	REQUIRE(headerRow >= 0);
+	CHECK_FALSE(session->screen().row(headerRow).contains(QStringLiteral("Date")));
+	session->send(Keys::CtrlF5);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return screen.row(headerRow).contains(QStringLiteral("Date ↑")); }, QStringLiteral("the Date title"));
+}
+
+TEST_CASE("A sort keeps the cursor on its search result and lasts through the next search", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/needle_a.txt"), "the largest of the three");
+	sandbox.createFile(QStringLiteral("work/needle_b.txt"), "small");
+	sandbox.createFile(QStringLiteral("work/needle_c.txt"), "a middle size");
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("needle_a.txt"));
+	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed, 3 items found"));
+
+	// The full names below show only in the current result's path: the rows split off the extension
+	session->send(Keys::CtrlF6);
+	requireText(*session, QStringLiteral("needle_b.txt"));
+	session->send(Keys::Down);
+	session->send(Keys::Down);
+	requireText(*session, QStringLiteral("needle_a.txt"));
+
+	// The reverse order puts the cursor's item on top: Down reaches the middle one only from there
+	session->send(Keys::CtrlF6);
+	session->send(Keys::Down);
+	requireText(*session, QStringLiteral("needle_c.txt"));
+
+	sandbox.createFile(QStringLiteral("work/needle_d.txt"), "the largest of the four files by far");
+	session->send(Keys::Escape);
+	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed, 4 items found"));
+	const CTerminalScreen& screen = session->screen();
+	CHECK(rowWith(screen, QStringLiteral("Size ↓")) >= 0);
+	const int largestRow = rowWith(screen, QStringLiteral("needle_d"));
+	CHECK((largestRow >= 0 && largestRow < rowWith(screen, QStringLiteral("needle_a"))));
+}
+
 TEST_CASE("F3 on a search result shows it in the viewer, and Esc returns to the results", "[tui]")
 {
 	const Sandbox sandbox;

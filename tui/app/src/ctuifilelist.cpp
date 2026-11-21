@@ -123,24 +123,7 @@ void drawFileListColumnSeparators(TDrawBuffer& line, const std::vector<FileListC
 		line.moveStr((ushort)(columns[i].x - 1), "┆", color);
 }
 
-void drawFileListHeader(TDrawBuffer& line, int width, FileListSortField sortField, Qt::SortOrder sortOrder, FileTimeTextLength dateTextLength,
-	TColorAttr color, TColorAttr separatorColor)
-{
-	line.moveChar(0, ' ', color, (ushort)width);
-	const std::vector<FileListColumn> columns = fileListColumns(width, sortField, dateTextLength);
-	for (const FileListColumn& column : columns)
-	{
-		QString title = columnTitle(column.field);
-		if (appliedColourTheme().parameters.uppercaseColumnHeader)
-			title = title.toUpper();
-		if (column.field == sortField)
-			title += sortOrder == Qt::AscendingOrder ? QStringLiteral(" ↑") : QStringLiteral(" ↓");
-		drawFileListCell(line, column, title, color);
-	}
-	drawFileListColumnSeparators(line, columns, separatorColor);
-}
-
-CTuiColumnHeader::CTuiColumnHeader(const TRect& bounds) noexcept : TView(bounds)
+CTuiColumnHeader::CTuiColumnHeader(const TRect& bounds, const Look& look) noexcept : TView(bounds), _look(look)
 {
 	growMode = gfGrowHiX;
 }
@@ -154,8 +137,20 @@ void CTuiColumnHeader::setSorting(FileListSortField field, Qt::SortOrder order)
 
 void CTuiColumnHeader::draw()
 {
+	const TColorAttr color = mapColor(_look.textColourEntry);
 	TDrawBuffer line;
-	drawFileListHeader(line, size.x, _sortField, _sortOrder, FileTimeTextLength::Short, mapColor(ppColumnHeader), mapColor(ppHeaderColumnSeparator));
+	line.moveChar(0, ' ', color, (ushort)size.x);
+	const std::vector<FileListColumn> columns = fileListColumns(size.x, _sortField, _look.dateTextLength);
+	for (const FileListColumn& column : columns)
+	{
+		QString title = columnTitle(column.field);
+		if (appliedColourTheme().parameters.uppercaseColumnHeader)
+			title = title.toUpper();
+		if (column.field == _sortField)
+			title += _sortOrder == Qt::AscendingOrder ? QStringLiteral(" ↑") : QStringLiteral(" ↓");
+		drawFileListCell(line, column, title, color);
+	}
+	drawFileListColumnSeparators(line, columns, mapColor(_look.separatorColourEntry));
 	writeLine(0, 0, (short)size.x, 1, line);
 }
 
@@ -166,14 +161,10 @@ void CTuiColumnHeader::handleEvent(TEvent& event)
 		return;
 
 	const int x = makeLocal(event.mouse.where).x;
-	for (const FileListColumn& column : fileListColumns(size.x, _sortField, FileTimeTextLength::Short))
-	{
-		if (x >= column.x && x < column.x + column.width)
-		{
-			onColumnClicked(column.field);
-			break;
-		}
-	}
+	const std::vector<FileListColumn> columns = fileListColumns(size.x, _sortField, _look.dateTextLength);
+	const auto clicked = std::ranges::find_if(columns, [x](const FileListColumn& column) { return x >= column.x && x < column.x + column.width; });
+	if (clicked != columns.end() && (event.mouse.buttons & mbLeftButton))
+		onColumnClicked(clicked->field);
 	clearEvent(event);
 }
 

@@ -39,15 +39,18 @@ struct FileListColumn
 void drawFileListCell(TDrawBuffer& line, const FileListColumn& column, const QString& text, TColorAttr color);
 // In the cell before each column but the first, if the GUI's setting shows them
 void drawFileListColumnSeparators(TDrawBuffer& line, const std::vector<FileListColumn>& columns, TColorAttr color);
-// The whole line: every column's title, with an arrow for the order on the sorted one
-void drawFileListHeader(TDrawBuffer& line, int width, FileListSortField sortField, Qt::SortOrder sortOrder, FileTimeTextLength dateTextLength,
-	TColorAttr color, TColorAttr separatorColor);
 
-// The titles of the file list's columns, with an arrow for the order on the sorted one
+// The titles of a file list's columns, with an arrow for the order on the sorted one
 class CTuiColumnHeader final : public TView
 {
 public:
-	explicit CTuiColumnHeader(const TRect& bounds) noexcept;
+	struct Look
+	{
+		FileTimeTextLength dateTextLength; // Must match the rows': it sets the columns' widths
+		uchar textColourEntry, separatorColourEntry; // In the owner's palette
+	};
+
+	CTuiColumnHeader(const TRect& bounds, const Look& look) noexcept;
 
 	void setSorting(FileListSortField field, Qt::SortOrder order);
 	// Called with the column whose title was clicked
@@ -57,6 +60,7 @@ public:
 	void handleEvent(TEvent& event) override;
 
 private:
+	const Look _look;
 	FileListSortField _sortField = FileListSortField::Name;
 	Qt::SortOrder _sortOrder = Qt::AscendingOrder;
 };

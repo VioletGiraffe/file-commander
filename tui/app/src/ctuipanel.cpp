@@ -354,7 +354,7 @@ CTuiPanel::CTuiPanel(TPoint desktopSize, CController& controller, Panel side) :
 	insert(_tabStrip);
 	_tabStrip->hide();
 
-	_columnHeader = new CTuiColumnHeader({});
+	_columnHeader = new CTuiColumnHeader({}, { FileTimeTextLength::Short, ppColumnHeader, ppHeaderColumnSeparator });
 	_columnHeader->onColumnClicked = [this](FileListSortField field) { sortBy(field); };
 	insert(_columnHeader);
 
