@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795174559976,
+  "lastUpdate": 1795276367189,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -40099,6 +40099,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "87b69a5222fad3e46ed84dd4af96d3576016e9cb",
+          "message": "The GUI shows a folder as soon as its listing finishes: the listing triggers the UI queue drain instead of waiting for the next timer tick",
+          "timestamp": "2026-11-21T17:27:08+02:00",
+          "tree_id": "003cb5f564bc8e053af62e2155eda32282cf01c1",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/87b69a5222fad3e46ed84dd4af96d3576016e9cb"
+        },
+        "date": 1795276363689,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 26490,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 37713,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1850,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1146,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1183,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 488.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 56,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 33.5,
             "unit": "KB"
           },
           {
