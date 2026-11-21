@@ -415,6 +415,14 @@ void CTuiPanel::handleEvent(TEvent& event)
 		}
 	}
 
+	if (event.what == evBroadcast && event.message.command == cmTimerExpired && event.message.infoPtr == _showEmptyListTimer)
+	{
+		_showEmptyListTimer = nullptr;
+		showEmptyListWhileListing();
+		clearEvent(event);
+		return;
+	}
+
 	TWindow::handleEvent(event);
 
 	const ushort command = event.what == evKeyDown ? commandForPanelKey(event.keyDown) : event.what == evCommand ? event.message.command : 0;
@@ -565,8 +573,16 @@ void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	if (!isActiveTab(p, tabId))
 		return;
 
+	// The old frame stays up briefly: a listing that arrives by then replaces it with no blank frame between them
+	static constexpr uint oldFrameHoldMs = 100;
+	_fileList->clearRowsKeepingScreen();
+	if (!_showEmptyListTimer)
+		_showEmptyListTimer = setTimer(oldFrameHoldMs);
+}
+
+void CTuiPanel::showEmptyListWhileListing()
+{
 	_fileList->setRows({}, {}, 0, 0);
-	_fileList->setSelectedItems({});
 	updateStatusLine();
 	updateTitle();
 	updateTabStrip();
@@ -574,6 +590,9 @@ void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 
 void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 {
+	killTimer(_showEmptyListTimer);
+	_showEmptyListTimer = nullptr;
+
 	const CPanel& panel = _controller.panel(_side);
 	// The cursor stays on its row when its item is gone or hidden by the filter, and starts on the first row of a folder just entered.
 	// The core's current item is always the row under the cursor.

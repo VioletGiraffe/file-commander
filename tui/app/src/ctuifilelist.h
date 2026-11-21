@@ -72,6 +72,8 @@ public:
 	// The cursor goes to the row whose hash is cursorItemHash, or to fallbackRow (clamped to the rows) when no row has it.
 	// listedFolder: see fileListFolderPrefix().
 	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder, qulonglong cursorItemHash, int fallbackRow);
+	// Removes the rows and the selection. The screen keeps showing them until the next draw.
+	void clearRowsKeepingScreen();
 	[[nodiscard]] const CFileSystemObject* currentRow() const noexcept; // nullptr when there are no rows
 	[[nodiscard]] std::optional<int> firstFileRow() const; // nullopt when no row is a file
 

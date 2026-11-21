@@ -37,6 +37,8 @@ protected:
 
 	// Must be called after the rows change. Puts the cursor on cursorRow, clamped to the rows, and redraws.
 	void rowsChanged(int cursorRow);
+	// Must be called after emptying the rows when they stay on screen until the next draw. The scroll bar stays until rowsChanged().
+	void rowsEmptiedWithoutRedraw() noexcept { _cursorRow = _topRow = 0; }
 
 	// For draw(): the row on the view's first line, and whether the row is drawn as the cursor's
 	[[nodiscard]] int topRow() const noexcept { return _topRow; }

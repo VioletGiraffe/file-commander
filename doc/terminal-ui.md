@@ -42,6 +42,8 @@ dialog is open.
   keep the active tab in view, or by the mouse wheel; a mark in its last column shows hidden rows. [tabs.md](tabs.md) has the core's side.
 - The rows are a copy of `CPanel::visibleItems()`. Sorting, the name filter and the selection belong to the `CPanel`,
   as in the Qt UI; the list shows a copy of the selection, refreshed after every change made through the core.
+- When the core withdraws a list, the panel empties its rows at once but keeps the old frame on screen briefly, so a
+  listing that arrives in time replaces it with no blank frame.
 - `CTuiFileList` builds on `CTuiRowList`, a plain `TView` with a cursor, not on `TListViewer`: that counts rows in
   `short`, and a folder can hold more.
 - The columns are Name, Ext, Size and Date, as many as the panel's width fits. Name and the sorted column always stay.

@@ -105,7 +105,7 @@ void CTuiRowList::rowsChanged(const int cursorRow)
 
 bool CTuiRowList::cursorIsShownOn(const int row) const noexcept
 {
-	return row == _cursorRow && (state & (sfSelected | sfActive)) == (sfSelected | sfActive);
+	return row == _cursorRow && row < rowCount() && (state & (sfSelected | sfActive)) == (sfSelected | sfActive);
 }
 
 void CTuiRowList::scrollToCursor()

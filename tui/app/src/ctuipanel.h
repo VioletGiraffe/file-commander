@@ -61,6 +61,8 @@ private:
 	bool runCommand(ushort command);
 
 	void fillFromPanel(FileListRefreshCause cause = refreshCauseOther);
+	// For a listing that is still running when _showEmptyListTimer expires
+	void showEmptyListWhileListing();
 	// Copies the core's selection into the list
 	void showCoreSelection();
 	void updateStatusLine();
@@ -120,4 +122,5 @@ private:
 	CTuiFileList* _fileList;
 	CTuiFilterLine* _filterLine;
 	CTuiStatusLine* _statusLine;
+	TTimerId _showEmptyListTimer = nullptr; // Non-null while the screen shows rows the list no longer holds
 };

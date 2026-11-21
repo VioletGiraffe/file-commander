@@ -196,6 +196,14 @@ void CTuiFileList::setRows(std::vector<CFileSystemObject> rows, QString listedFo
 	rowsChanged(cursorItem != _rows.end() ? static_cast<int>(cursorItem - _rows.begin()) : fallbackRow);
 }
 
+void CTuiFileList::clearRowsKeepingScreen()
+{
+	_rows.clear();
+	_listedFolder.clear();
+	_selectedItemHashes.clear();
+	rowsEmptiedWithoutRedraw();
+}
+
 const CFileSystemObject* CTuiFileList::currentRow() const noexcept
 {
 	return _rows.empty() ? nullptr : &_rows[(size_t)cursorRow()];
