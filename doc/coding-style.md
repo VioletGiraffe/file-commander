@@ -7,6 +7,8 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
 
 ## C++ / Qt
 
+- **Qt 6.8 is the minimum version: Raspberry Pi OS sets it.** Raise the minimum when Raspberry Pi OS moves to a newer Qt. CI builds only a newer Qt, so it does not catch an API added after the minimum. Check `\since` in the Qt docs, for overloads and operators too.
+
 - **QVariant with a built-in type** (int, uint64_t, QString, ...): pass it directly, e.g.
   `item->setData(column, Qt::UserRole, path)`. `QVariant::fromValue` / `.value<T>()` is machinery for non-built-in and
   registered types. Reading back, prefer the direct named accessor (`.toULongLong()`) over the template form.
