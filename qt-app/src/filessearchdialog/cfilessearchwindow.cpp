@@ -27,21 +27,26 @@ DISABLE_COMPILER_WARNINGS
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
+#include <QEvent>
 #include <QFileDialog>
+#include <QHeaderView>
 #include <QKeySequence>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
+#include <QScrollBar>
 #include <QSettings>
+#include <QShowEvent>
 #include <QStringList>
 #include <QTimer>
+#include <QTreeView>
 RESTORE_COMPILER_WARNINGS
 
 #include <chrono>
 #include <stdint.h>
 #include <utility>
 
-// Each batch of results merges into the list once, a pass over all its rows: often enough to look immediate, rarely enough to stay cheap
+// Often enough to look immediate, rarely enough to keep cheap a sorted list's merge of each batch, a pass over all its rows
 static constexpr std::chrono::milliseconds resultsDisplayInterval{ 100 };
 
 // "1 item", "2 items"
@@ -61,8 +66,8 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 
 	enablePersistence(this, QSL("UI/FileSearchWindow"));
 
-	_results = new CFileListModel(&_iconProvider, { .dateLength = FileTimeTextLength::Long }, this);
-	showFileListInTreeView(*_results, *ui->resultsList, NameColumn, Qt::AscendingOrder);
+	_results = new CFileListModel(&_iconProvider, { .dateLength = FileTimeTextLength::Long }, this, SortedFileList::InitialOrder::Arrival);
+	showFileListInTreeView(*_results, *ui->resultsList, -1, Qt::AscendingOrder);
 	_iconProvider.addIconsChangedListener(this);
 
 	_resultsTimer = new QTimer(this);
@@ -153,15 +158,63 @@ void CFilesSearchWindow::displayPendingResults()
 			_results->markReachedThroughLink(match.item.hash());
 		rows.push_back(std::move(match.item));
 	}
+
+	// A current row on screen stops the scrolling: the rows must not move under a double click
+	const QScrollBar* scrollBar = ui->resultsList->verticalScrollBar();
+	const bool followNewestRows = _results->sortColumn() < 0 && scrollBar->value() == scrollBar->maximum() && !currentResultIsOnScreen();
 	_results->addRows(std::move(rows));
+	if (followNewestRows)
+		ui->resultsList->scrollToBottom();
 
 	if (batch.completion)
 		showSearchCompletion(*batch.completion);
 }
 
+bool CFilesSearchWindow::currentResultIsOnScreen() const
+{
+	const QTreeView* list = ui->resultsList;
+	const int currentRow = list->currentIndex().row();
+	const QModelIndex top = list->indexAt({ 0, 0 }), bottom = list->indexAt({ 0, list->viewport()->height() - 1 });
+	return currentRow >= 0 && currentRow >= top.row() && (!bottom.isValid() || currentRow <= bottom.row());
+}
+
+bool CFilesSearchWindow::eventFilter(QObject* watched, QEvent* event)
+{
+	switch (event->type())
+	{
+	case QEvent::KeyPress:
+	case QEvent::InputMethod:
+	case QEvent::MouseButtonPress:
+	case QEvent::Wheel:
+		if (const auto* widget = qobject_cast<const QWidget*>(watched); widget && widget->window() == this)
+			_userActedDuringSearch = true;
+		break;
+	default:
+		break;
+	}
+
+	return QMainWindow::eventFilter(watched, event);
+}
+
+void CFilesSearchWindow::showEvent(QShowEvent* event)
+{
+	QMainWindow::showEvent(event);
+
+	// Spontaneous: the window is coming back from being minimized, and keeps its sorting
+	if (event->spontaneous())
+		return;
+
+	// CPersistenceEnabler's filter restored the header before this: its state holds a sort indicator and the clearable flag.
+	// A sorting lasts only as long as its window.
+	QHeaderView* header = ui->resultsList->header();
+	header->setSortIndicatorClearable(true);
+	header->setSortIndicator(-1, Qt::AscendingOrder);
+}
+
 void CFilesSearchWindow::showSearchCompletion(const CFileSearchResultsBuffer::Completion& completion)
 {
 	_searchActive = false;
+	qApp->removeEventFilter(this);
 	_resultsTimer->stop();
 	ui->btnSearch->setText(tr("Start"));
 
@@ -190,9 +243,13 @@ void CFilesSearchWindow::showSearchCompletion(const CFileSearchResultsBuffer::Co
 
 	setProgressText(message, Qt::ElideRight);
 
+	if (_userActedDuringSearch || _results->rowCount() == 0)
+		return;
+
 	ui->resultsList->setFocus();
-	if (_results->rowCount() > 0)
-		ui->resultsList->setCurrentIndex(_results->index(0, NameColumn));
+	// The row already on screen: the newest one in arrival order, or the first one of a sorted list
+	const int rowOnScreen = _results->sortColumn() < 0 ? _results->rowCount() - 1 : 0;
+	ui->resultsList->setCurrentIndex(_results->index(rowOnScreen, NameColumn));
 }
 
 // This label alternates between scanned paths and status sentences, which want different ends of the text kept
@@ -227,6 +284,12 @@ void CFilesSearchWindow::search()
 	if (_engine.search(query, &_pendingResults))
 	{
 		_searchActive = true;
+		_userActedDuringSearch = false;
+		// Queued: a line edit ignores the Enter that started the search, so that key is still on its way through the parent widgets
+		QMetaObject::invokeMethod(this, [this] {
+			if (_searchActive)
+				qApp->installEventFilter(this);
+		}, Qt::QueuedConnection);
 		ui->nameToFind->addToHistory(ui->nameToFind->currentText());
 		ui->fileContentsToFind->addToHistory(ui->fileContentsToFind->currentText());
 		if (searchInFieldTextBelongsInHistory(ui->searchRoot->currentText()))

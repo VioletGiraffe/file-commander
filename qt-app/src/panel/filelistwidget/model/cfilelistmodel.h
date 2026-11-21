@@ -50,7 +50,9 @@ public:
 	using DropHandler = std::function<bool (const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath)>;
 
 	// iconProvider: null leaves the rows without icons
-	explicit CFileListModel(CIconProvider* iconProvider, FileListCellFormat cellFormat = {}, QObject* parent = nullptr);
+	// initialOrder: Arrival also lets sort() with no column return to arrival order
+	explicit CFileListModel(CIconProvider* iconProvider, FileListCellFormat cellFormat = {}, QObject* parent = nullptr,
+		SortedFileList::InitialOrder initialOrder = SortedFileList::InitialOrder::Sorted);
 
 	void setDropHandler(DropHandler handler);
 
@@ -67,7 +69,7 @@ public:
 	void markReachedThroughLink(qulonglong itemHash);
 
 	void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
-	[[nodiscard]] int sortColumn() const noexcept;
+	[[nodiscard]] int sortColumn() const noexcept; // -1 in arrival order
 	[[nodiscard]] Qt::SortOrder sortOrder() const noexcept;
 
 	[[nodiscard]] const CFileSystemObject& rowAt(int row) const;
@@ -118,7 +120,7 @@ private:
 	void afterReorder(SortedFileListReorderCause cause) override;
 
 private:
-	SortedFileList _list{ *this };
+	SortedFileList _list;
 	// From beforeReorder() to afterReorder(): the persistent indexes and the hashes of their rows
 	QModelIndexList _indexesBeforeReorder;
 	std::vector<qulonglong> _hashesBeforeReorder;
@@ -126,8 +128,10 @@ private:
 	DropHandler _dropHandler;
 	CIconProvider* const _iconProvider;
 	const FileListCellFormat _cellFormat;
+	const bool _canReturnToArrivalOrder;
 };
 
 // Shows the model in a plain tree view, outside the panels: Name takes the width the other columns leave, each fitted to the rows on screen.
 // No row can be renamed there.
+// A negative sortColumn requires a model in arrival order: a third click on a column title returns to that order.
 void showFileListInTreeView(CFileListModel& model, QTreeView& view, int sortColumn, Qt::SortOrder sortOrder);

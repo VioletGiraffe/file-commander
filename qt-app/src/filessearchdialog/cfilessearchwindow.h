@@ -36,6 +36,10 @@ private:
 
 	void displayPendingResults();
 	void showSearchCompletion(const CFileSearchResultsBuffer::Completion& completion);
+	[[nodiscard]] bool currentResultIsOnScreen() const;
+	// Installed on the application while a search runs: records input to this window
+	bool eventFilter(QObject* watched, QEvent* event) override;
+	void showEvent(QShowEvent* event) override;
 
 	void setProgressText(const QString& text, Qt::TextElideMode elideMode);
 
@@ -62,6 +66,8 @@ private:
 	QTimer* _resultsTimer = nullptr;
 	// Set from a started search until its completion is shown: the engine's own flag clears before its results are all shown
 	bool _searchActive = false;
+	// The end of a search leaves the focus and the current row alone after input during it
+	bool _userActedDuringSearch = false;
 
 	QAction* _copyPathAction = nullptr;
 

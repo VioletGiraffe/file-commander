@@ -103,7 +103,10 @@ Drag/drop uses the same operation launch boundary as commands.
 
 The file search and Statistics windows each list their files in a `CFileListModel` of their own, dated to the second, in a
 plain `QTreeView` (`showFileListInTreeView()`). The Statistics window's sizes have four significant digits.
-Each batch a search reports merges into its list in one pass.
+A search window starts in arrival order, whatever sorting its saved header state holds. Its list stays on the newest rows
+while scrolled to the bottom, unless the current row is on screen. A third click on a column title returns to arrival
+order. A sorted list merges each batch in one pass. The end of a search moves the focus to the results unless the user
+acted during it.
 
 The selection belongs to the tab's `CPanel`, and the selection model shows a copy. Gestures push their changes into
 the core from `selectionChanged`. After every refill and every change made through the core, the widget copies the

@@ -71,10 +71,12 @@ static QAbstractItemModel::LayoutChangeHint layoutChangeHint(SortedFileListReord
 	return cause == SortedFileListReorderCause::Sort ? QAbstractItemModel::VerticalSortHint : QAbstractItemModel::NoLayoutChangeHint;
 }
 
-CFileListModel::CFileListModel(CIconProvider* iconProvider, FileListCellFormat cellFormat, QObject* parent) :
+CFileListModel::CFileListModel(CIconProvider* iconProvider, FileListCellFormat cellFormat, QObject* parent, const SortedFileList::InitialOrder initialOrder) :
 	QAbstractItemModel(parent),
+	_list(*this, initialOrder),
 	_iconProvider(iconProvider),
-	_cellFormat(cellFormat)
+	_cellFormat(cellFormat),
+	_canReturnToArrivalOrder(initialOrder == SortedFileList::InitialOrder::Arrival)
 {
 }
 
@@ -113,16 +115,18 @@ void CFileListModel::sort(int column, Qt::SortOrder order)
 {
 	assert_and_return_r(column < NumberOfColumns, );
 
-	// A negative column is QTreeView asking for no sort column: the rows keep their order
+	// A negative column is QTreeView asking for no sort column
 	if (column >= 0)
 		_list.setSorting(sortFieldOf(column), order);
+	else if (_canReturnToArrivalOrder)
+		_list.showInArrivalOrder();
 
 	emit sorted();
 }
 
 int CFileListModel::sortColumn() const noexcept
 {
-	return columnOf(_list.sortField());
+	return _list.isInArrivalOrder() ? -1 : columnOf(_list.sortField());
 }
 
 Qt::SortOrder CFileListModel::sortOrder() const noexcept
@@ -418,6 +422,8 @@ void CFileListModel::afterReorder(SortedFileListReorderCause cause)
 
 void showFileListInTreeView(CFileListModel& model, QTreeView& view, const int sortColumn, const Qt::SortOrder sortOrder)
 {
+	assert_r((sortColumn < 0) == (model.sortColumn() < 0));
+
 	view.setModel(&model);
 	view.setRootIsDecorated(false);
 	view.setUniformRowHeights(true);
@@ -428,6 +434,7 @@ void showFileListInTreeView(CFileListModel& model, QTreeView& view, const int so
 	for (int column = 0; column < NumberOfColumns; ++column)
 		header->setSectionResizeMode(column, column == NameColumn ? QHeaderView::Stretch : QHeaderView::ResizeToContents);
 	header->setResizeContentsPrecision(0); // The rows on screen only: a long list would be measured again at every change
+	header->setSortIndicatorClearable(sortColumn < 0);
 	// Enabling sorting sorts by the indicator, which starts as descending
 	header->setSortIndicator(sortColumn, sortOrder);
 	view.setSortingEnabled(true);

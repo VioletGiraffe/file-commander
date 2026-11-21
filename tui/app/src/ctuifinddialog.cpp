@@ -14,6 +14,7 @@
 #include "filesystemhelperfunctions.h"
 #include "settings.h"
 
+#include "assert/advanced_assert.h"
 #include "hash/hash_functors.hpp"
 
 #define Uses_TButton
@@ -79,8 +80,9 @@ constexpr uchar resultsNormalEntry = 0x1A, resultsFocusedEntry = 0x1B;
 
 } // namespace
 
-// The results, sorted as they arrive. A link mark starts the row of an item found through a directory link.
-// The cursor stays on the first row until the user moves it, then on its item.
+// The results, in arrival order or sorted. A link mark starts the row of an item found through a directory link.
+// The cursor stays on the newest row in arrival order, and on the first row of a sorted list, until the user moves it.
+// A moved cursor stays on its item. In arrival order, a key or the wheel that reaches the last row makes it follow the newest row again.
 class CTuiFindResultsList final : public CTuiRowList, private SortedFileListObserver
 {
 public:
@@ -101,10 +103,17 @@ public:
 	void add(std::vector<CFileSystemObject> items) { _list.addRows(std::move(items)); }
 	void markReachedThroughLink(qulonglong itemHash) { _hashesReachedThroughLink.insert(itemHash); }
 
-	// Ascending, or the reverse of the current order when field is already the sorted one. Returns the new order.
-	Qt::SortOrder sortBy(const FileListSortField field)
+	// Takes the column from ascending to descending to arrival order. Returns the new order: empty for arrival order.
+	std::optional<Qt::SortOrder> sortBy(const FileListSortField field)
 	{
-		const Qt::SortOrder order = _list.sortField() == field && _list.sortOrder() == Qt::AscendingOrder ? Qt::DescendingOrder : Qt::AscendingOrder;
+		const bool sortedByField = !_list.isInArrivalOrder() && _list.sortField() == field;
+		if (sortedByField && _list.sortOrder() == Qt::DescendingOrder)
+		{
+			_list.showInArrivalOrder();
+			return std::nullopt;
+		}
+
+		const Qt::SortOrder order = sortedByField ? Qt::DescendingOrder : Qt::AscendingOrder;
 		_list.setSorting(field, order);
 		return order;
 	}
@@ -162,36 +171,55 @@ private:
 
 	void cursorMovedByUser() override
 	{
-		_cursorFollowsItem = true;
+		_cursorFollowsItem = !_list.isInArrivalOrder() || cursorRow() < _list.rowCount() - 1;
 		onCurrentItemChanged();
 	}
 
-	void beforeChange() { _cursorItemHash = _cursorFollowsItem && currentItem() ? currentItem()->hash() : 0; }
+	void rowClicked() override { _cursorFollowsItem = true; }
+
+	void beforeChange() { _cursorItemHash = _cursorFollowsItem ? currentItem()->hash() : 0; }
+
+	[[nodiscard]] int cursorRowAfterChange() const
+	{
+		if (!_cursorFollowsItem)
+			return _list.isInArrivalOrder() ? _list.rowCount() - 1 : 0;
+
+		// Only clear() removes rows, and it stops the cursor following its item
+		const int itemRow = _list.rowOf(_cursorItemHash);
+		assert_r(itemRow >= 0);
+		return itemRow;
+	}
 
 	void afterChange()
 	{
-		const int itemRow = _cursorFollowsItem ? _list.rowOf(_cursorItemHash) : 0;
-		if (_cursorFollowsItem && itemRow >= 0)
-			rowsChangedKeepingCursorItem(itemRow);
+		const int row = cursorRowAfterChange();
+		if (_cursorFollowsItem)
+			rowsChangedKeepingCursorItem(row);
 		else
-			rowsChanged(itemRow >= 0 ? itemRow : cursorRow());
+			rowsChanged(row);
+		onCurrentItemChanged();
+	}
+
+	void afterAddition()
+	{
+		rowsAdded(cursorRowAfterChange());
 		onCurrentItemChanged();
 	}
 
 	void beforeReset() override { beforeChange(); }
 	void afterReset() override { afterChange(); }
 	void beforeInsert(int, int) override { beforeChange(); }
-	void afterInsert() override { afterChange(); }
+	void afterInsert() override { afterAddition(); }
 	void beforeRemove(int, int) override { beforeChange(); }
 	void afterRemove() override { afterChange(); }
 	void beforeMove(int, int) override { beforeChange(); }
 	void afterMove() override { afterChange(); }
 	void rowChanged(int) override { drawView(); }
 	void beforeReorder(SortedFileListReorderCause) override { beforeChange(); }
-	void afterReorder(SortedFileListReorderCause) override { afterChange(); }
+	void afterReorder(const SortedFileListReorderCause cause) override { cause == SortedFileListReorderCause::Addition ? afterAddition() : afterChange(); }
 
 private:
-	SortedFileList _list{ *this };
+	SortedFileList _list{ *this, SortedFileList::InitialOrder::Arrival };
 	ankerl::unordered_dense::set<qulonglong, identity_hash> _hashesReachedThroughLink;
 	bool _cursorFollowsItem = false;
 	qulonglong _cursorItemHash = 0; // From beforeChange() to afterChange()
@@ -238,6 +266,7 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	insert(sendButton);
 
 	_resultsHeader = new CTuiColumnHeader({ labelX, listTop, right - 1, listTop + 1 }, { FileTimeTextLength::Long, resultsNormalEntry, resultsNormalEntry });
+	_resultsHeader->clearSorting();
 	_resultsHeader->onColumnClicked = [this](const FileListSortField field) { sortResultsBy(field); };
 	insert(_resultsHeader);
 	auto* scrollBar = new TScrollBar({ right - 1, listTop + 1, right, currentPathY });
@@ -301,6 +330,9 @@ void CTuiFindDialog::getEvent(TEvent& event)
 
 void CTuiFindDialog::handleEvent(TEvent& event)
 {
+	if (_searchActive && (event.what & (evKeyDown | evMouseDown | evMouseWheel)))
+		_userActedDuringSearch = true;
+
 	// Before the base class: it gives Enter to the default button, and turns Esc into closing the dialog
 	if (event.what == evKeyDown)
 	{
@@ -391,6 +423,7 @@ void CTuiFindDialog::startSearch()
 
 	_results->clear(deepestFolderHolding(query.roots));
 	setStatus({});
+	_userActedDuringSearch = false;
 	setSearchActive(true);
 	_nextResultsDisplayTime = std::chrono::steady_clock::now() + resultsDisplayInterval;
 }
@@ -437,8 +470,7 @@ void CTuiFindDialog::showCompletion(const CFileSearchResultsBuffer::Completion& 
 	message += QStringLiteral(": %1 scanned in %2 sec").arg(itemCountText(completion.itemsScanned)).arg((double)completion.msElapsed * 1e-3, 0, 'f', 1);
 	setStatus(message);
 
-	// Unless the user is already going through them
-	if (_results->itemCount() > 0 && !(_results->state & sfFocused))
+	if (_results->itemCount() > 0 && !_userActedDuringSearch)
 		_results->select();
 }
 
@@ -463,7 +495,10 @@ void CTuiFindDialog::showCurrentResultPath()
 
 void CTuiFindDialog::sortResultsBy(const FileListSortField field)
 {
-	_resultsHeader->setSorting(field, _results->sortBy(field));
+	if (const std::optional<Qt::SortOrder> order = _results->sortBy(field))
+		_resultsHeader->setSorting(field, *order);
+	else
+		_resultsHeader->clearSorting();
 }
 
 void CTuiFindDialog::goToCurrentResult()

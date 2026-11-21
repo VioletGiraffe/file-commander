@@ -67,18 +67,20 @@ class NullSortedFileListObserver final : public SortedFileListObserver
 	void afterReorder(SortedFileListReorderCause) override {}
 };
 
-// A file list's items as displayed: the ones the name filter lets through, sorted by FileListSorter's rules.
+// A file list's items as displayed: the ones the name filter lets through, sorted by FileListSorter's rules or in arrival order.
 // A row is a displayed item, numbered from the top.
 class SortedFileList
 {
 public:
+	enum class InitialOrder { Sorted, Arrival };
+
 	// updateRows() resets past this many changed displayed rows: from there on a reset is cheaper, per the timing case in the filelist suite.
 	// A count, not a share of the rows: an update's cost per change grows with the row count as a reset's does.
 	// At the high end of the measured break-evens: an update keeps the scroll position and an open editor, a reset does not.
 	static constexpr size_t MaxChangesForUpdate = 5000;
 
 	// The observer must outlive this list
-	explicit SortedFileList(SortedFileListObserver& observer);
+	explicit SortedFileList(SortedFileListObserver& observer, InitialOrder initialOrder = InitialOrder::Sorted);
 
 	// A reset. listedFolder: see fileListFolderPrefix().
 	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder);
@@ -88,12 +90,16 @@ public:
 	bool updateRows(std::vector<CFileSystemObject> rows);
 	// Each row where it sorts, in one reorder; none if the filter hides them all. Requires rows not listed yet.
 	// One merge: linear in the rows already listed, whatever the number added.
+	// In arrival order: one insertion at the end.
 	void addRows(std::vector<CFileSystemObject> rows);
 	// filterText: a filter field's text (see splitNameFilterField()), matched against full names ignoring case. Empty shows every row.
 	void setNameFilter(const QString& filterText);
-	// Re-sorts only when the sorting changes
+	// Ends arrival order. Re-sorts only when the sorting changes.
 	void setSorting(FileListSortField field, Qt::SortOrder order);
+	// The rows in the order setRows() and addRows() received them. sortField() and sortOrder() then read Name, ascending.
+	void showInArrivalOrder();
 
+	[[nodiscard]] bool isInArrivalOrder() const noexcept;
 	[[nodiscard]] FileListSortField sortField() const noexcept;
 	[[nodiscard]] Qt::SortOrder sortOrder() const noexcept;
 	[[nodiscard]] const QString& listedFolder() const noexcept;
@@ -101,7 +107,7 @@ public:
 	[[nodiscard]] int rowCount() const noexcept;
 	[[nodiscard]] const CFileSystemObject& rowAt(int row) const;
 	[[nodiscard]] int rowOf(qulonglong hash) const; // -1 if no row has it, or the filter hides it
-	// The topmost row holding a file (folders always sort above files), or -1 if there are no files
+	// The topmost row holding a file (folders always sort above files), or -1 if there are no files. Requires sorted rows.
 	[[nodiscard]] int firstFileRow() const;
 	// Totals over every item, the hidden ones included
 	[[nodiscard]] const FolderContentsSummary& contentsSummary() const noexcept;
@@ -121,6 +127,7 @@ private:
 	std::vector<CFileSystemObject> _rows;
 	std::vector<FileListSortKeys> _sortKeys; // Parallel to _rows
 	FileListSorter _sorter; // Caches the key of every extension seen since the last setRows()
+	bool _inArrivalOrder;
 	QString _nameFilterText;
 	FileNameFilter _nameFilter;
 	// Indices into _rows: the rows the filter lets through, in display order

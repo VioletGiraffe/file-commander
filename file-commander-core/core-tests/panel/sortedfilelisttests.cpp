@@ -138,10 +138,10 @@ private:
 
 struct ObservedList
 {
-	ObservedList() { observer.list = &list; }
+	explicit ObservedList(const SortedFileList::InitialOrder initialOrder = SortedFileList::InitialOrder::Sorted) : list{ observer, initialOrder } { observer.list = &list; }
 
 	ReplayingObserver observer;
-	SortedFileList list{ observer };
+	SortedFileList list;
 };
 
 // The rows the list must show, worked out without it
@@ -292,6 +292,69 @@ TEST_CASE("Sorted file list - addRows() of rows the filter hides changes no row,
 	CHECK(o.observer.changes == QStringList{ "addition" });
 	o.observer.checkRows();
 	CHECK(o.list.rowCount() == 2);
+}
+
+TEST_CASE("Sorted file list - arrival order lists rows as they were added, through additions, filters and updates", "[sortedfilelist]")
+{
+	ObservedList o{ SortedFileList::InitialOrder::Arrival };
+	const auto names = [&o] {
+		QStringList shown;
+		for (int row = 0; row < o.list.rowCount(); ++row)
+			shown.push_back(o.list.rowAt(row).fullName().toString());
+		return shown;
+	};
+
+	o.list.setRows({ makeItem(File, "c", "txt"), makeItem(Directory, "z"), makeItem(File, "a", "txt") }, itemsFolder);
+	CHECK(names() == QStringList{ "c.txt", "z", "a.txt" });
+
+	o.observer.changes.clear();
+	o.list.addRows({ makeItem(File, "b", "txt"), makeItem(Directory, "d") });
+	CHECK(o.observer.changes == QStringList{ "insert" });
+	o.observer.checkRows();
+	CHECK(names() == QStringList{ "c.txt", "z", "a.txt", "b.txt", "d" });
+
+	o.list.setNameFilter(QStringLiteral("a;b"));
+	CHECK(names() == QStringList{ "a.txt", "b.txt" });
+	o.list.addRows({ makeItem(File, "hidden", "doc"), makeItem(File, "ab", "txt") });
+	o.observer.checkRows();
+	CHECK(names() == QStringList{ "a.txt", "b.txt", "ab.txt" });
+	o.list.setNameFilter({});
+	CHECK(names() == QStringList{ "c.txt", "z", "a.txt", "b.txt", "d", "hidden.doc", "ab.txt" });
+
+	// A changed row keeps its place, a removed one closes up, and a new one goes last
+	o.list.updateRows({ makeItem(File, "c", "txt"), makeItem(File, "a", "txt", 9u), makeItem(File, "b", "txt"), makeItem(Directory, "d"),
+		makeItem(File, "hidden", "doc"), makeItem(File, "ab", "txt"), makeItem(File, "new", "txt") });
+	o.observer.checkRows();
+	CHECK(names() == QStringList{ "c.txt", "a.txt", "b.txt", "d", "hidden.doc", "ab.txt", "new.txt" });
+}
+
+TEST_CASE("Sorted file list - a sorting ends arrival order, even the default one, and arrival order can return", "[sortedfilelist]")
+{
+	ObservedList o{ SortedFileList::InitialOrder::Arrival };
+	o.list.setRows({ makeItem(File, "c", "txt"), makeItem(File, "a", "txt"), makeItem(File, "b", "txt") }, itemsFolder);
+	const auto firstName = [&o] { return o.list.rowAt(0).fullName().toString(); };
+	REQUIRE(o.list.isInArrivalOrder());
+	REQUIRE(firstName() == "c.txt");
+
+	o.list.setSorting(FileListSortField::Name, Qt::AscendingOrder);
+	CHECK_FALSE(o.list.isInArrivalOrder());
+	CHECK(firstName() == "a.txt");
+
+	o.list.addRows({ makeItem(File, "0", "txt") });
+	CHECK(firstName() == "0.txt");
+
+	o.list.setSorting(FileListSortField::Size, Qt::DescendingOrder);
+	o.list.showInArrivalOrder();
+	o.observer.checkRows();
+	CHECK(o.list.isInArrivalOrder());
+	CHECK(o.list.sortField() == FileListSortField::Name);
+	CHECK(o.list.sortOrder() == Qt::AscendingOrder);
+	CHECK(firstName() == "c.txt");
+	CHECK(o.list.rowAt(3).fullName() == QStringLiteral("0.txt"));
+
+	o.observer.changes.clear();
+	o.list.showInArrivalOrder();
+	CHECK(o.observer.changes.isEmpty());
 }
 
 TEST_CASE("Sorted file list - lookups skip the rows the filter hides; the totals count them", "[sortedfilelist]")

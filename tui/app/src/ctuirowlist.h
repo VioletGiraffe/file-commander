@@ -36,11 +36,15 @@ protected:
 	[[nodiscard]] virtual int rowCount() const noexcept = 0;
 	// Called when the user moves the cursor to another row
 	virtual void cursorMovedByUser() {}
+	// Called after a click on a row, once the cursor is on it
+	virtual void rowClicked() {}
 
 	// Must be called after the rows change. Puts the cursor on cursorRow, clamped to the rows, and redraws.
 	void rowsChanged(int cursorRow);
 	// rowsChanged() for rows where cursorRow holds the item the cursor was on: a double click on that item stays possible
 	void rowsChangedKeepingCursorItem(int cursorRow);
+	// rowsChangedKeepingCursorItem() for added rows. Scrolls only if the cursor was on screen: a view the scroll bar moved stays there.
+	void rowsAdded(int cursorRow);
 	// Must be called after emptying the rows when they stay on screen until the next draw. The scroll bar stays until rowsChanged().
 	void rowsEmptiedWithoutRedraw() noexcept
 	{
@@ -55,6 +59,7 @@ protected:
 private:
 	// Scrolls the minimum needed to show the cursor row, then redraws
 	void scrollToCursor();
+	void updateScrollBarAndRedraw();
 
 private:
 	static constexpr int noRow = -1;

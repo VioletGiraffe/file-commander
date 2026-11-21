@@ -84,5 +84,7 @@ private:
 	CFileSearchEngine _engine;
 	// Set from a started search until its completion is shown: the engine's own flag clears before its results are all shown
 	bool _searchActive = false;
+	// The end of a search leaves the focus alone after input during it
+	bool _userActedDuringSearch = false;
 	std::chrono::steady_clock::time_point _nextResultsDisplayTime;
 };

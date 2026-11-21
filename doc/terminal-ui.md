@@ -85,7 +85,9 @@ dialog is open.
 - Find files (Alt+F7) runs the core's `CFileSearchEngine` with the GUI's fields, options and settings keys. The dialog
   takes the results from a `CFileSearchResultsBuffer` in its `getEvent`, at most every 100 ms, into a `SortedFileList`
   it draws with the panel's columns in its own colours: `CTuiFileList` takes its colours from the panel window's palette.
-  A click on a column title or the panel's sort keys (Ctrl+F3 to Ctrl+F6) sort the results. The application keeps the
+  The results start in arrival order, with the cursor following the newest one until the user moves it elsewhere. A click
+  on a column title or the panel's sort keys (Ctrl+F3 to Ctrl+F6) take a column through ascending, descending and arrival
+  order. The end of a search moves the focus to the results unless the user acted during it. The application keeps the
   dialog, so its last results show again; closing it stops a running search.
 - Favorites (Ctrl+D) and the folder history (Alt+F12) are the GUI's: the core's `CFavoriteLocations` and
   `CController::recentFolders`.

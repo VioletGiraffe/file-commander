@@ -13,9 +13,12 @@ DISABLE_COMPILER_WARNINGS
 #include "qtcore_helpers/catch_qt.hpp" // qtutils
 
 #include <QDir>
+#include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QMimeData>
 #include <QStringList>
+#include <QTest>
+#include <QTreeView>
 RESTORE_COMPILER_WARNINGS
 
 #include <memory>
@@ -147,4 +150,48 @@ TEST_CASE("Rows are found by hash and by kind", "[filelist]")
 	std::unique_ptr<QMimeData> mime{ model.mimeData({ x }) };
 	REQUIRE(mime->urls().size() == 1);
 	CHECK(mime->urls().front().toLocalFile() == "/folder/x.txt");
+}
+
+TEST_CASE("A column title of a list in arrival order cycles through ascending, descending and arrival order", "[filelist][sort]")
+{
+	CFileListModel model{ nullptr, {}, nullptr, SortedFileList::InitialOrder::Arrival };
+	QAbstractItemModelTester tester{ &model, QAbstractItemModelTester::FailureReportingMode::Fatal };
+	model.setRows({ makeItem(File, "b", "txt"), makeItem(File, "a", "txt") }, itemsFolder);
+	model.addRows({ makeItem(File, "c", "txt") });
+	const QStringList arrivalOrder{ "b.txt", "a.txt", "c.txt" };
+
+	QTreeView view;
+	showFileListInTreeView(model, view, -1, Qt::AscendingOrder);
+	CHECK(model.sortColumn() == -1);
+	CHECK(displayedNames(model) == arrivalOrder);
+
+	view.resize(400, 200);
+	view.show();
+	REQUIRE(QTest::qWaitForWindowExposed(&view));
+	QHeaderView* header = view.header();
+	const auto clickNameTitle = [header] {
+		QTest::mouseClick(header->viewport(), Qt::LeftButton, {}, { header->sectionViewportPosition(NameColumn) + 5, header->height() / 2 });
+	};
+
+	clickNameTitle();
+	CHECK(model.sortColumn() == NameColumn);
+	CHECK(displayedNames(model) == QStringList{ "a.txt", "b.txt", "c.txt" });
+	clickNameTitle();
+	CHECK(displayedNames(model) == QStringList{ "c.txt", "b.txt", "a.txt" });
+	clickNameTitle();
+	CHECK(model.sortColumn() == -1);
+	CHECK(header->sortIndicatorSection() == -1);
+	CHECK(displayedNames(model) == arrivalOrder);
+}
+
+TEST_CASE("A sorted model ignores a request for no sort column", "[filelist][sort]")
+{
+	TestedModel tested;
+	CFileListModel& model = tested.model;
+	model.setRows({ makeItem(File, "b", "txt"), makeItem(File, "a", "txt") }, itemsFolder);
+	model.sort(NameColumn, Qt::DescendingOrder);
+
+	model.sort(-1, Qt::AscendingOrder);
+	CHECK(model.sortColumn() == NameColumn);
+	CHECK(displayedNames(model) == QStringList{ "b.txt", "a.txt" });
 }

@@ -35,6 +35,8 @@ void CTuiRowList::handleEvent(TEvent& event)
 		const int clickedRow = _topRow + makeLocal(event.mouse.where).y;
 		const bool secondClickOnRow = (event.mouse.eventFlags & meDoubleClick) && clickedRow == _firstClickRow;
 		moveCursorTo(clickedRow);
+		if (clickedRow < rowCount())
+			rowClicked();
 		if (secondClickOnRow)
 		{
 			_firstClickRow = noRow;
@@ -128,6 +130,19 @@ void CTuiRowList::rowsChangedKeepingCursorItem(const int cursorRow)
 	_firstClickRow = keptFirstClickRow;
 }
 
+void CTuiRowList::rowsAdded(const int cursorRow)
+{
+	const bool cursorWasOnScreen = _cursorRow >= _topRow && _cursorRow < _topRow + std::max(size.y, 1);
+	if (cursorRow != _cursorRow || _firstClickRow != _cursorRow)
+		_firstClickRow = noRow;
+
+	_cursorRow = std::clamp(cursorRow, 0, std::max(rowCount() - 1, 0));
+	if (cursorWasOnScreen)
+		scrollToCursor();
+	else
+		updateScrollBarAndRedraw();
+}
+
 bool CTuiRowList::cursorIsShownOn(const int row) const noexcept
 {
 	return row == _cursorRow && row < rowCount() && (state & (sfSelected | sfActive)) == (sfSelected | sfActive);
@@ -138,9 +153,14 @@ void CTuiRowList::scrollToCursor()
 	const int visibleRows = std::max(size.y, 1);
 	const int maxTopRow = std::max(rowCount() - visibleRows, 0);
 	_topRow = std::clamp(_topRow, std::max(_cursorRow - visibleRows + 1, 0), std::min(_cursorRow, maxTopRow));
+	updateScrollBarAndRedraw();
+}
 
+void CTuiRowList::updateScrollBarAndRedraw()
+{
+	const int visibleRows = std::max(size.y, 1);
 	if (_verticalScrollBar)
-		_verticalScrollBar->setParams(_topRow, 0, maxTopRow, visibleRows - 1, 1);
+		_verticalScrollBar->setParams(_topRow, 0, std::max(rowCount() - visibleRows, 0), visibleRows - 1, 1);
 
 	drawView();
 }

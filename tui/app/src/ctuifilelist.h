@@ -53,6 +53,8 @@ public:
 	CTuiColumnHeader(const TRect& bounds, const Look& look) noexcept;
 
 	void setSorting(FileListSortField field, Qt::SortOrder order);
+	// No title shows an arrow, and the columns are those of a list sorted by name
+	void clearSorting();
 	// Called with the column whose title was clicked
 	std::function<void(FileListSortField field)> onColumnClicked;
 
@@ -62,7 +64,7 @@ public:
 private:
 	const Look _look;
 	FileListSortField _sortField = FileListSortField::Name;
-	Qt::SortOrder _sortOrder = Qt::AscendingOrder;
+	std::optional<Qt::SortOrder> _sortOrder = Qt::AscendingOrder; // Empty after clearSorting()
 };
 
 // A panel's rows

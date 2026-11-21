@@ -662,7 +662,7 @@ TEST_CASE("Alt+F7 finds files by name under the panel's folder, and Enter on a r
 	CHECK(showsResultRow(session->screen()));
 }
 
-TEST_CASE("A click on a column title sorts the search results, and a second click reverses them", "[tui]")
+TEST_CASE("A click on a column title takes the search results through ascending, descending and arrival order", "[tui]")
 {
 	const Sandbox sandbox;
 	sandbox.createFile(QStringLiteral("work/needle_a.txt"), "the larger file");
@@ -671,8 +671,10 @@ TEST_CASE("A click on a column title sorts the search results, and a second clic
 	goTo(*session, sandbox.work({}), QStringLiteral("needle_a.txt"));
 	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed, 2 items found"));
 
-	const int headerRow = rowWith(session->screen(), QStringLiteral("Name ↑"));
+	const int headerRow = rowWith(session->screen(), QStringLiteral("Name"));
 	REQUIRE(headerRow >= 0);
+	CHECK_FALSE(session->screen().row(headerRow).contains(QStringLiteral("↑")));
+	const bool largerArrivedFirst = rowWith(session->screen(), QStringLiteral("needle_a")) < rowWith(session->screen(), QStringLiteral("needle_b"));
 	const auto requireSorted = [&](const QString& title, const QString& firstRow, const QString& secondRow) {
 		requireScreen(*session, [&](const CTerminalScreen& screen) {
 			const int first = rowWith(screen, firstRow);
@@ -682,17 +684,41 @@ TEST_CASE("A click on a column title sorts the search results, and a second clic
 	const auto clickTitle = [&](const QString& title) { session->send(leftClick((int)session->screen().row(headerRow).indexOf(title), headerRow)); };
 	const QString larger = QStringLiteral("needle_a"), smaller = QStringLiteral("needle_b");
 
+	clickTitle(QStringLiteral("Name"));
 	requireSorted(QStringLiteral("Name ↑"), larger, smaller);
 	// The click on Name reverses the order only if the right click on Size left the sorting on Name
 	session->send(rightClick((int)session->screen().row(headerRow).indexOf(QStringLiteral("Size")), headerRow));
 	clickTitle(QStringLiteral("Name"));
 	requireSorted(QStringLiteral("Name ↓"), smaller, larger);
+
+	clickTitle(QStringLiteral("Name"));
+	requireScreen(*session, [&](const CTerminalScreen& screen) {
+		const QString header = screen.row(headerRow);
+		const int largerRow = rowWith(screen, larger), smallerRow = rowWith(screen, smaller);
+		return !header.contains(u'↑') && !header.contains(u'↓') && largerRow >= 0 && smallerRow >= 0 && (largerRow < smallerRow) == largerArrivedFirst;
+	}, QStringLiteral("no arrow, and the results in arrival order"));
+
 	clickTitle(QStringLiteral("Size"));
 	requireSorted(QStringLiteral("Size ↑"), smaller, larger);
 	clickTitle(QStringLiteral("Size"));
 	requireSorted(QStringLiteral("Size ↓"), larger, smaller);
-	clickTitle(QStringLiteral("Name"));
-	requireSorted(QStringLiteral("Name ↑"), larger, smaller);
+}
+
+TEST_CASE("Search results in arrival order keep the cursor and the view on the newest one", "[tui]")
+{
+	const Sandbox sandbox;
+	for (int i = 0; i < 40; ++i) // More than the list shows
+		sandbox.createFile(QStringLiteral("work/needle_%1.txt").arg(i, 2, 10, QLatin1Char{ '0' }));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("needle_00.txt"));
+	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed, 40 items found"));
+
+	// Under the list: the current result's path, then the status
+	const CTerminalScreen& screen = session->screen();
+	const int statusRow = rowWith(screen, QStringLiteral("Search completed"));
+	const QRegularExpressionMatch current = QRegularExpression{ QStringLiteral("needle_\\d\\d(?=\\.txt)") }.match(screen.row(statusRow - 1));
+	REQUIRE(current.hasMatch());
+	CHECK(screen.row(statusRow - 2).contains(current.captured()));
 }
 
 TEST_CASE("Ctrl+F5 sorts the search results by a column that a narrow terminal hides", "[tui]")
@@ -703,7 +729,7 @@ TEST_CASE("Ctrl+F5 sorts the search results by a column that a narrow terminal h
 	auto session = startFcterm(sandbox, { .workingFolder = sandbox.work({}), .columns = 58 });
 	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed"));
 
-	const int headerRow = rowWith(session->screen(), QStringLiteral("Name ↑"));
+	const int headerRow = rowWith(session->screen(), QStringLiteral("Name"));
 	REQUIRE(headerRow >= 0);
 	CHECK_FALSE(session->screen().row(headerRow).contains(QStringLiteral("Date")));
 	session->send(Keys::CtrlF5);

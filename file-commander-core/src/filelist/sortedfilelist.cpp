@@ -8,8 +8,9 @@
 #include <functional>
 #include <utility>
 
-SortedFileList::SortedFileList(SortedFileListObserver& observer) :
-	_observer(observer)
+SortedFileList::SortedFileList(SortedFileListObserver& observer, const InitialOrder initialOrder) :
+	_observer(observer),
+	_inArrivalOrder(initialOrder == InitialOrder::Arrival)
 {
 }
 
@@ -215,6 +216,16 @@ void SortedFileList::addRows(std::vector<CFileSystemObject> rows)
 	if (displayedNewRows.empty())
 		return;
 
+	if (_inArrivalOrder)
+	{
+		const auto firstRow = (int)_displayedRows.size();
+		_observer.beforeInsert(firstRow, firstRow + (int)displayedNewRows.size() - 1);
+		_displayedRows.insert(_displayedRows.end(), displayedNewRows.cbegin(), displayedNewRows.cend());
+		_displayRowByHashIsStale = true;
+		_observer.afterInsert();
+		return;
+	}
+
 	const auto lessThan = [this](uint32_t l, uint32_t r) { return rowLessThan(l, r); };
 	std::sort(displayedNewRows.begin(), displayedNewRows.end(), lessThan);
 
@@ -238,11 +249,27 @@ void SortedFileList::setNameFilter(const QString& filterText)
 
 void SortedFileList::setSorting(FileListSortField field, Qt::SortOrder order)
 {
-	if (field == _sorter.sortField() && order == _sorter.sortOrder())
+	if (!_inArrivalOrder && field == _sorter.sortField() && order == _sorter.sortOrder())
 		return;
 
+	_inArrivalOrder = false;
 	_sorter.setSorting(field, order);
 	refilterAndResort(SortedFileListReorderCause::Sort);
+}
+
+void SortedFileList::showInArrivalOrder()
+{
+	if (_inArrivalOrder)
+		return;
+
+	_inArrivalOrder = true;
+	_sorter.setSorting(FileListSortField::Name, Qt::AscendingOrder);
+	refilterAndResort(SortedFileListReorderCause::Sort);
+}
+
+bool SortedFileList::isInArrivalOrder() const noexcept
+{
+	return _inArrivalOrder;
 }
 
 FileListSortField SortedFileList::sortField() const noexcept
@@ -282,6 +309,8 @@ int SortedFileList::rowOf(qulonglong hash) const
 
 int SortedFileList::firstFileRow() const
 {
+	assert_and_return_r(!_inArrivalOrder, -1);
+
 	const auto firstFile = std::partition_point(_displayedRows.cbegin(), _displayedRows.cend(), [this](uint32_t rowIndex) {
 		return !isFileOrBundle(_rows[rowIndex]);
 	});
@@ -296,7 +325,8 @@ const FolderContentsSummary& SortedFileList::contentsSummary() const noexcept
 
 bool SortedFileList::rowLessThan(uint32_t l, uint32_t r) const
 {
-	return _sorter.lessThan(_rows[l], _sortKeys[l], _rows[r], _sortKeys[r]);
+	// _rows is in arrival order: an update replaces rows in place, appends new ones and closes gaps
+	return _inArrivalOrder ? l < r : _sorter.lessThan(_rows[l], _sortKeys[l], _rows[r], _sortKeys[r]);
 }
 
 std::vector<uint32_t> SortedFileList::displayedRowsInOrder() const

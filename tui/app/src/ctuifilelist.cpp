@@ -135,6 +135,13 @@ void CTuiColumnHeader::setSorting(FileListSortField field, Qt::SortOrder order)
 	drawView();
 }
 
+void CTuiColumnHeader::clearSorting()
+{
+	_sortField = FileListSortField::Name;
+	_sortOrder.reset();
+	drawView();
+}
+
 void CTuiColumnHeader::draw()
 {
 	const TColorAttr color = mapColor(_look.textColourEntry);
@@ -146,8 +153,8 @@ void CTuiColumnHeader::draw()
 		QString title = columnTitle(column.field);
 		if (appliedColourTheme().parameters.uppercaseColumnHeader)
 			title = title.toUpper();
-		if (column.field == _sortField)
-			title += _sortOrder == Qt::AscendingOrder ? QStringLiteral(" ↑") : QStringLiteral(" ↓");
+		if (_sortOrder && column.field == _sortField)
+			title += *_sortOrder == Qt::AscendingOrder ? QStringLiteral(" ↑") : QStringLiteral(" ↓");
 		drawFileListCell(line, column, title, color);
 	}
 	drawFileListColumnSeparators(line, columns, mapColor(_look.separatorColourEntry));
