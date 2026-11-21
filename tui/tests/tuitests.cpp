@@ -431,6 +431,43 @@ TEST_CASE("Alt+X exits with code 0", "[tui]")
 	CHECK(session->waitForExit() == 0);
 }
 
+TEST_CASE("Ctrl+C on the main screen exits with code 0", "[tui]")
+{
+	const Sandbox sandbox;
+	auto session = startFcterm(sandbox);
+	session->send(Keys::CtrlC);
+	CHECK(session->waitForExit() == 0);
+}
+
+TEST_CASE("Ctrl+C closes a dialog and fcterm keeps running", "[tui]")
+{
+	const Sandbox sandbox;
+	auto session = startFcterm(sandbox);
+	session->send(Keys::F7);
+	requirePromptInput(*session, QStringLiteral("Name of the new folder"));
+	session->send(Keys::CtrlC);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Name of the new folder")) && screen.contains(QStringLiteral("F2 Rename")); },
+		QStringLiteral("the dialog closed"));
+	session->send(Keys::F7);
+	requirePromptInput(*session, QStringLiteral("Name of the new folder"));
+}
+
+TEST_CASE("Ctrl+C closes the filter line and fcterm keeps running", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/a.txt"));
+	sandbox.createFile(QStringLiteral("work/b.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("a.txt"));
+	session->send(Keys::CtrlF);
+	typeText(*session, QStringLiteral("a*"));
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !panelLists(screen, QStringLiteral("b.txt")); }, QStringLiteral("b.txt filtered out"));
+	session->send(Keys::CtrlC);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelLists(screen, QStringLiteral("b.txt")); }, QStringLiteral("the filter closed"));
+	session->send(Keys::F7);
+	requirePromptInput(*session, QStringLiteral("Name of the new folder"));
+}
+
 TEST_CASE("F7 creates a folder and puts the cursor on it", "[tui]")
 {
 	const Sandbox sandbox;

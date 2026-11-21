@@ -232,6 +232,13 @@ void CTuiApplication::getEvent(TEvent& event)
 	QCoreApplication::processEvents();
 	_controller.uiThreadTimerTick();
 	TApplication::getEvent(event);
+
+	// Ctrl+C is Esc in a modal view. This must run before the view: Turbo Vision's controls read Ctrl+C as PgDn.
+	if (event.what == evKeyDown && TKey{ event.keyDown } == kbCtrlC && TopView() != this)
+	{
+		event.keyDown = {};
+		event.keyDown.keyCode = kbEsc;
+	}
 }
 
 void CTuiApplication::idle()
@@ -257,6 +264,13 @@ void CTuiApplication::handleEvent(TEvent& event)
 	}
 
 	TApplication::handleEvent(event);
+
+	// After the base class: the filter line uses Ctrl+C
+	if (event.what == evKeyDown && TKey{ event.keyDown } == kbCtrlC)
+	{
+		endModal(cmQuit);
+		clearEvent(event);
+	}
 }
 
 bool CTuiApplication::runCommand(const ushort command)

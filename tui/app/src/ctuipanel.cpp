@@ -65,7 +65,7 @@ public:
 
 	void handleEvent(TEvent& event) override
 	{
-		if (event.what == evKeyDown && (event.keyDown.keyCode == kbEnter || event.keyDown.keyCode == kbEsc))
+		if (event.what == evKeyDown && (event.keyDown.keyCode == kbEnter || event.keyDown.keyCode == kbEsc || TKey{ event.keyDown } == kbCtrlC))
 		{
 			event.keyDown.keyCode == kbEnter ? onConfirmed() : onCancelled();
 			clearEvent(event);
