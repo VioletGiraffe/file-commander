@@ -1729,6 +1729,33 @@ TEST_CASE("A path too long for a title is elided in the middle, in the panel and
 		QStringLiteral("the viewer's title ending with viewed.txt"));
 }
 
+TEST_CASE("An elided search result keeps emoji and accented letters whole", "[tui]")
+{
+	const Sandbox sandbox;
+	const QString emoji = QStringLiteral("😀"), accentedLetter = QStringLiteral("я") + QChar{ 0x301 };
+	for (const QString& character : { emoji, accentedLetter })
+	{
+		// The prefix lengths shift where the cuts land within the repeated characters
+		for (const int dashCount : { 1, 2, 3, 4 })
+			sandbox.createFile(QStringLiteral("work/long") + QString(dashCount, u'-') + character.repeated(60));
+	}
+	sandbox.createFile(QStringLiteral("work/hay.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("hay.txt"));
+	findByName(*session, QStringLiteral("long-"), QStringLiteral("Search completed, 8 items found"));
+
+	const QString screenText = session->screen().text();
+	INFO(screenText.toStdString());
+	CHECK(screenText.contains(emoji + QStringLiteral("...")));
+	CHECK(screenText.contains(QStringLiteral("...") + emoji));
+	CHECK(screenText.contains(accentedLetter + QStringLiteral("...")));
+	CHECK(screenText.contains(QStringLiteral("...") + accentedLetter));
+	CHECK_FALSE(screenText.contains(QChar::ReplacementCharacter));
+	CHECK_FALSE(screenText.contains(u'?'));
+	CHECK_FALSE(screenText.contains(QStringLiteral("я...")));
+	CHECK_FALSE(screenText.contains(QStringLiteral(".") + QChar{ 0x301 }));
+}
+
 TEST_CASE("The viewer wraps a long line after a space, and Shift+W turns wrapping off and on", "[tui]")
 {
 	const Sandbox sandbox;

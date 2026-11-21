@@ -18,6 +18,7 @@
 #define Uses_TWindow
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
+#include <QTextBoundaryFinder>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -208,14 +209,21 @@ QString elidedInTheMiddle(const QString& text, const int width)
 	if (cellWidth(text) <= width)
 		return text;
 
-	QString head = text.left(text.size() / 2), tail = text.mid(head.size());
-	const auto elided = [&] { return head + QStringLiteral("...") + tail; };
-	while (cellWidth(elided()) > width && !(head.isEmpty() && tail.isEmpty()))
+	// Must cut only between graphemes: a cut inside one breaks an emoji or detaches an accent
+	std::vector<qsizetype> cutOffsets{ 0 };
+	QTextBoundaryFinder graphemes{ QTextBoundaryFinder::Grapheme, text };
+	for (qsizetype offset = graphemes.toNextBoundary(); offset != -1; offset = graphemes.toNextBoundary())
+		cutOffsets.push_back(offset);
+
+	const size_t lastCut = cutOffsets.size() - 1;
+	size_t headEnd = lastCut / 2, tailStart = headEnd;
+	const auto elided = [&]() -> QString { return text.first(cutOffsets[headEnd]) + QStringLiteral("...") + text.sliced(cutOffsets[tailStart]); };
+	while (cellWidth(elided()) > width && (headEnd > 0 || tailStart < lastCut))
 	{
-		if (head.size() >= tail.size())
-			head.chop(1);
+		if (headEnd >= lastCut - tailStart)
+			--headEnd;
 		else
-			tail.remove(0, 1);
+			++tailStart;
 	}
 	return elided();
 }
