@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795290934678,
+  "lastUpdate": 1795303589371,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -40277,6 +40277,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 33.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "7360564346b09d1cb638e922672a6dfe611126d8",
+          "message": "Search result batches carry the hashes of items reached through links, removing the same unpacking loop from both search UIs",
+          "timestamp": "2026-11-22T01:16:33+02:00",
+          "tree_id": "245a16922eaa665a9cf2a312f3d73493e2820cf6",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/7360564346b09d1cb638e922672a6dfe611126d8"
+        },
+        "date": 1795303586127,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 26748,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 37718,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1853.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1154.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1185,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 489.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 56,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 34,
             "unit": "KB"
           },
           {
