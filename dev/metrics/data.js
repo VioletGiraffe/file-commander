@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795305209045,
+  "lastUpdate": 1795306221106,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -40395,6 +40395,95 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/11459ba3a51cc696a9455b928dcaeefde29ea704"
         },
         "date": 1795305205488,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 26793,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 37726,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1852,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1154,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1183.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 489.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 56,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "5de0db06864ab009698d91a932938c224c7248cc",
+          "message": "The terminal UI tests pass on Linux and macOS again: the sort test waits for the dialog to close after Esc, and the test terminal gives combining marks no column",
+          "timestamp": "2026-11-22T02:00:56+02:00",
+          "tree_id": "b1bc185c5972816cfbef910864243f7e69bd7baa",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/5de0db06864ab009698d91a932938c224c7248cc"
+        },
+        "date": 1795306218254,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
