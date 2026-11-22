@@ -20,6 +20,7 @@ public:
 	void feed(QStringView text);
 
 	[[nodiscard]] int rows() const noexcept { return (int)_lines.size(); }
+	// One UTF-16 unit per column, except that a combining mark takes no column and follows its base character
 	[[nodiscard]] const QString& row(int index) const { return _lines[(size_t)index]; }
 	// Every row, numbered, for a test failure's report
 	[[nodiscard]] QString text() const;
@@ -41,6 +42,8 @@ private:
 	void lineFeed();
 	void reverseLineFeed();
 	void clear(int row, int fromColumn, int toColumn);
+	// Where the column starts in the row's text; the text's size past the last column
+	[[nodiscard]] qsizetype textIndexOfColumn(int row, int column) const noexcept;
 	void moveCursorTo(int row, int column);
 
 private:

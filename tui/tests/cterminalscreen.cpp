@@ -223,15 +223,17 @@ void CTerminalScreen::csi(QStringView parameters, QChar final)
 	case u'@':
 	{
 		QString& line = _lines[(size_t)_row];
-		line.insert(_column, QString(std::min(count, _columns - _column), u' '));
-		line.truncate(_columns);
+		line.insert(textIndexOfColumn(_row, _column), QString(std::min(count, _columns - _column), u' '));
+		line.truncate(textIndexOfColumn(_row, _columns));
 		break;
 	}
 	case u'P':
 	{
 		QString& line = _lines[(size_t)_row];
-		line.remove(_column, std::min(count, _columns - _column));
-		line += QString(_columns - line.size(), u' ');
+		const int deletedColumns = std::min(count, _columns - _column);
+		const qsizetype deletedFrom = textIndexOfColumn(_row, _column);
+		line.remove(deletedFrom, textIndexOfColumn(_row, _column + deletedColumns) - deletedFrom);
+		line += QString(deletedColumns, u' ');
 		break;
 	}
 	case u'L':
@@ -283,13 +285,23 @@ void CTerminalScreen::csi(QStringView parameters, QChar final)
 
 void CTerminalScreen::put(QChar c)
 {
+	if (c.isMark())
+	{
+		// The base character is in the cursor's column while a wrap is pending, and in the column before it otherwise
+		if (_wrapPending || _column > 0)
+			_lines[(size_t)_row].insert(textIndexOfColumn(_row, _wrapPending ? _column + 1 : _column), c);
+		return;
+	}
+
 	if (_wrapPending)
 	{
 		moveCursorTo(_row, 0);
 		lineFeed();
 	}
 
-	_lines[(size_t)_row][_column] = c;
+	QString& line = _lines[(size_t)_row];
+	const qsizetype cellStart = textIndexOfColumn(_row, _column);
+	line.replace(cellStart, textIndexOfColumn(_row, _column + 1) - cellStart, c);
 	if (_column + 1 < _columns)
 		++_column;
 	else
@@ -324,9 +336,31 @@ void CTerminalScreen::reverseLineFeed()
 
 void CTerminalScreen::clear(int row, int fromColumn, int toColumn)
 {
+	const int firstColumn = std::max(fromColumn, 0), endColumn = std::min(toColumn, _columns);
+	if (firstColumn >= endColumn)
+		return;
+
 	QString& line = _lines[(size_t)row];
-	for (int column = std::max(fromColumn, 0); column < std::min(toColumn, _columns); ++column)
-		line[column] = u' ';
+	const qsizetype clearedFrom = textIndexOfColumn(row, firstColumn);
+	line.replace(clearedFrom, textIndexOfColumn(row, endColumn) - clearedFrom, QString(endColumn - firstColumn, u' '));
+}
+
+qsizetype CTerminalScreen::textIndexOfColumn(const int row, const int column) const noexcept
+{
+	const QString& line = _lines[(size_t)row];
+	if (line.size() == _columns) // No combining marks
+		return column;
+
+	int columnsPassed = 0;
+	for (qsizetype index = 0; index < line.size(); ++index)
+	{
+		if (line[index].isMark())
+			continue;
+		if (columnsPassed == column)
+			return index;
+		++columnsPassed;
+	}
+	return line.size();
 }
 
 void CTerminalScreen::moveCursorTo(int row, int column)

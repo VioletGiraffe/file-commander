@@ -809,6 +809,8 @@ TEST_CASE("A sort keeps the cursor on its search result and lasts through the ne
 
 	sandbox.createFile(QStringLiteral("work/needle_d.txt"), "the largest of the four files by far");
 	session->send(Keys::Escape);
+	// Must wait: on POSIX, Turbo Vision reads an Esc directly before an escape sequence as Alt on that key
+	requireScreen(*session, [](const CTerminalScreen& shown) { return !shown.contains(QStringLiteral("Search for:")); }, QStringLiteral("the search dialog closed"));
 	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed, 4 items found"));
 	const CTerminalScreen& screen = session->screen();
 	CHECK(rowWith(screen, QStringLiteral("Size ↓")) >= 0);
