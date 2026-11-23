@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795454284097,
+  "lastUpdate": 1795460847977,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -40618,6 +40618,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 490.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 56,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "05a1c742eecba64d2a03b1c56aeaf9846f541c35",
+          "message": "The right-click menu on a selection from several folders no longer acts on the wrong files on Windows, and its verbs refresh flattened and search views",
+          "timestamp": "2026-11-23T20:33:14+02:00",
+          "tree_id": "a1af0fcb6dc095d2ff0d2585843e3fe8bfc8a48f",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/05a1c742eecba64d2a03b1c56aeaf9846f541c35"
+        },
+        "date": 1795460843374,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 26944,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 37769,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1859,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1154.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1188,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 491.5,
             "unit": "KB"
           },
           {
