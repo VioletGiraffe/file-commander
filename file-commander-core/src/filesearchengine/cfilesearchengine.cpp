@@ -360,6 +360,10 @@ void CFileSearchEngine::searchThread(const FileSearchQuery& query, FileSearchLis
 		if (searchByContents && !item.isFile())
 			return;
 
+		const bool isFolder = item.isDir() && !item.isBundle();
+		if ((query.itemType == FileSearchQuery::ItemType::Files && isFolder) || (query.itemType == FileSearchQuery::ItemType::Folders && !isFolder))
+			return;
+
 		if (!nameFilter.matches(item.fullName()))
 			return;
 

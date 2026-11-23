@@ -90,18 +90,24 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="2">
-         <spacer name="horizontalSpacer_4">
-          <property name="orientation">
-           <enum>Qt::Orientation::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>68</width>
-            <height>18</height>
-           </size>
-          </property>
-         </spacer>
+        <item row="1" column="2" alignment="Qt::AlignmentFlag::AlignLeft">
+         <widget class="QComboBox" name="itemType">
+          <item>
+           <property name="text">
+            <string>Any type</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Files</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Folders</string>
+           </property>
+          </item>
+         </widget>
         </item>
         <item row="1" column="3">
          <spacer name="horizontalSpacer_2">

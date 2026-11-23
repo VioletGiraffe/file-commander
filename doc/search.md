@@ -22,6 +22,11 @@ suffix matching.
 The panel's filter box uses the same language, ignoring case, always in partial mode (`FileNameFilter`,
 `file-commander-core/src/filelist/`).
 
+## Item type
+
+Any type, files only, or folders only. A macOS bundle counts as a file. Folders are searched through whichever type
+is reported.
+
 ## Excluded folders
 
 The same language, each filter matching the whole name, always ignoring case. A folder below the search roots that

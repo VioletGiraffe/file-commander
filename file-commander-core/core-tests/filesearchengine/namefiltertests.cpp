@@ -166,6 +166,40 @@ TEST_CASE("Search - a name search reports directories as well as files", "[searc
 	CHECK(result.matched(file));
 }
 
+TEST_CASE("Search - the item type limits the results to files or to folders, and folders are still searched through", "[search][names]")
+{
+	TempTree tree;
+	const QString directory = tree.makeDir(QSL("archive"));
+	const QString file = tree.makeFile(QSL("archive.txt"));
+	const QString nestedDirectory = tree.makeDir(QSL("archive/archive_old"));
+	const QString nestedFile = tree.makeFile(QSL("archive/archive_old/archive.log"));
+
+	SECTION("files")
+	{
+		const SearchResult result = runSearch({ .roots = { tree.path() }, .nameFilters = { QSL("archive*") }, .itemType = FileSearchQuery::ItemType::Files });
+		CHECK(result.matched(file));
+		CHECK(result.matched(nestedFile));
+		CHECK_FALSE(result.matched(directory));
+		CHECK_FALSE(result.matched(nestedDirectory));
+	}
+
+	SECTION("folders")
+	{
+		const SearchResult result = runSearch({ .roots = { tree.path() }, .nameFilters = { QSL("archive*") }, .itemType = FileSearchQuery::ItemType::Folders });
+		CHECK(result.matched(directory));
+		CHECK(result.matched(nestedDirectory));
+		CHECK_FALSE(result.matched(file));
+		CHECK_FALSE(result.matched(nestedFile));
+	}
+
+	SECTION("folders with a contents query: content queries match files only")
+	{
+		tree.makeFile(QSL("archive/notes.txt"), "needle");
+		const SearchResult result = runSearch({ .roots = { tree.path() }, .itemType = FileSearchQuery::ItemType::Folders, .contents = QSL("needle") });
+		CHECK(result.count() == 0);
+	}
+}
+
 TEST_CASE("Search - regex metacharacters in a name filter are matched literally", "[search][names]")
 {
 	TempTree tree;

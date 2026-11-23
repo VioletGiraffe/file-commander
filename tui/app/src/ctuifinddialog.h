@@ -25,6 +25,7 @@ class CTuiTextView;
 class TButton;
 class TCheckBoxes;
 class TInputLine;
+class TRadioButtons;
 class TScrollBar;
 
 // Finds files by name and contents, and lists them as they are found.
@@ -69,6 +70,7 @@ private:
 	// Owned by this dialog
 	FieldWithHistory _name;
 	TCheckBoxes* _nameOptions;
+	TRadioButtons* _itemType; // In FileSearchQuery::ItemType order
 	FieldWithHistory _contents;
 	TCheckBoxes* _contentsOptions;
 	FieldWithHistory _searchIn;

@@ -26,6 +26,7 @@
 #define Uses_TKeys
 #define Uses_TLabel
 #define Uses_TProgram
+#define Uses_TRadioButtons
 #define Uses_TScrollBar
 #define Uses_TSItem
 DISABLE_COMPILER_WARNINGS
@@ -64,7 +65,7 @@ constexpr int minDialogWidth = 51;
 
 [[nodiscard]] constexpr int resultsHeaderRow(const int dialogWidth) noexcept
 {
-	return dialogWidth >= sideBySideMinWidth ? 11 : 12;
+	return dialogWidth >= sideBySideMinWidth ? 12 : 13;
 }
 
 // The desktop, or the minimum size that keeps every control whole: a smaller desktop clips the dialog
@@ -258,15 +259,18 @@ CTuiFindDialog::CTuiFindDialog(const TPoint desktopSize) :
 	_name = addField(2, "Search ~f~or:", _nameHistory);
 	_nameOptions = new TCheckBoxes(unplaced, new TSItem("~P~artial match", new TSItem("Case sensi~t~ive", nullptr)));
 	insert(_nameOptions);
+	// Starts at "Any type" each time: a type left selected would silently restrict the search
+	_itemType = new TRadioButtons(unplaced, new TSItem("~A~ny type", new TSItem("Fi~l~es", new TSItem("Fol~d~ers", nullptr))));
+	insert(_itemType);
 
-	_contents = addField(5, "With c~o~ntents:", _contentsHistory); // Alt+C copies a result's path, as in the panel
+	_contents = addField(6, "With c~o~ntents:", _contentsHistory); // Alt+C copies a result's path, as in the panel
 	_contentsOptions = new TCheckBoxes(unplaced, new TSItem("~W~hole words", new TSItem("~R~egex", new TSItem("Case sensiti~v~e", nullptr))));
 	insert(_contentsOptions);
 
-	_searchIn = addField(8, "Search ~i~n:", _searchInHistory);
+	_searchIn = addField(9, "Search ~i~n:", _searchInHistory);
 	_excludedFolders = new TInputLine(unplaced, inputLimit);
 	insert(_excludedFolders);
-	insert(new TLabel({ labelX, 9, fieldX - 1, 10 }, "~E~xclude folders:", _excludedFolders));
+	insert(new TLabel({ labelX, 10, fieldX - 1, 11 }, "~E~xclude folders:", _excludedFolders));
 	_searchButton = new TButton(unplaced, "Search", cmStartOrStopSearch, bfDefault);
 	insert(_searchButton);
 	_sendButton = new TButton(unplaced, "Send to pa~n~el", cmSendResultsToPanel, bfNormal);
@@ -318,15 +322,16 @@ void CTuiFindDialog::layOutViews()
 	const int sendButtonX = right - sendButtonWidth, searchButtonX = sendButtonX - searchButtonWidth;
 	const int optionsX = sideBySide ? fieldX : labelX;
 	const int pathFieldsEnd = sideBySide ? searchButtonX - 1 : right;
-	const int buttonsY = sideBySide ? 8 : 10;
+	const int buttonsY = sideBySide ? 9 : 11;
 	const int headerY = resultsHeaderRow(size.x), listTop = headerY + 1;
 
 	setFieldEnd(_name, right);
 	_nameOptions->changeBounds({ optionsX, 3, right, 4 });
+	_itemType->changeBounds({ optionsX, 4, right, 5 });
 	setFieldEnd(_contents, right);
-	_contentsOptions->changeBounds({ optionsX, 6, right, 7 });
+	_contentsOptions->changeBounds({ optionsX, 7, right, 8 });
 	setFieldEnd(_searchIn, pathFieldsEnd);
-	_excludedFolders->changeBounds({ fieldX, 9, pathFieldsEnd, 10 });
+	_excludedFolders->changeBounds({ fieldX, 10, pathFieldsEnd, 11 });
 	_searchButton->changeBounds({ searchButtonX, buttonsY, sendButtonX, buttonsY + 2 });
 	_sendButton->changeBounds({ sendButtonX, buttonsY, right, buttonsY + 2 });
 
@@ -445,11 +450,14 @@ void CTuiFindDialog::handleEvent(TEvent& event)
 void CTuiFindDialog::startSearch()
 {
 	const QString nameText = inputText(_name.input), contentsText = inputText(_contents.input), searchInText = inputText(_searchIn.input);
+	ushort itemType = 0;
+	_itemType->getData(&itemType);
 	const FileSearchQuery query{
 		.roots = rootsFromSearchInField(searchInText, _baseDir),
 		.excludedFolders = excludedFolderFiltersFromSearchField(inputText(_excludedFolders)),
 		.nameFilters = nameFiltersFromSearchField(nameText, isChecked(_nameOptions, PartialMatch)),
 		.nameCaseSensitive = isChecked(_nameOptions, NameCaseSensitive),
+		.itemType = static_cast<FileSearchQuery::ItemType>(itemType),
 		.contents = contentsText,
 		.contentsCaseSensitive = isChecked(_contentsOptions, ContentsCaseSensitive),
 		.contentsWholeWords = isChecked(_contentsOptions, WholeWords),

@@ -87,6 +87,7 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 	ui->cbContentsWholeWords->setChecked(s.value(KEY_FILE_SEARCH_CONTENTS_WHOLE_WORDS, false).toBool());
 	ui->cbRegexFileContents->setChecked(s.value(KEY_FILE_SEARCH_CONTENTS_IS_REGEX, false).toBool());
 	ui->excludedFolders->setText(s.value(KEY_FILE_SEARCH_EXCLUDED_FOLDERS).toString());
+	// The item type starts at "Any type" each time: a type left selected would silently restrict the search
 
 	connect(ui->nameToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
 	connect(ui->fileContentsToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
@@ -246,6 +247,7 @@ void CFilesSearchWindow::search()
 		.excludedFolders = excludedFolderFiltersFromSearchField(ui->excludedFolders->text()),
 		.nameFilters = nameFiltersFromSearchField(filtersString, ui->cbNamePartialMatch->isChecked()),
 		.nameCaseSensitive = ui->cbNameCaseSensitive->isChecked(),
+		.itemType = static_cast<FileSearchQuery::ItemType>(ui->itemType->currentIndex()), // The .ui lists the types in ItemType's order
 		.contents = withText,
 		.contentsCaseSensitive = ui->cbContentsCaseSensitive->isChecked(),
 		.contentsWholeWords = ui->cbContentsWholeWords->isChecked(),

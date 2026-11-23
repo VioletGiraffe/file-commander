@@ -13,12 +13,15 @@ class CPanel;
 
 struct FileSearchQuery
 {
+	enum class ItemType { Any, Files, Folders }; // A bundle counts as a file
+
 	QStringList roots; // Absolute: folders to search through, or single files to examine
 	// Name filters (see FileNameFilter), matched ignoring case.
 	// A folder below the roots that matches one of them is skipped with its contents.
 	QStringList excludedFolders;
 	QStringList nameFilters; // See FileNameFilter
 	bool nameCaseSensitive = false;
+	ItemType itemType = ItemType::Any; // Folders are searched through whichever type is reported
 	QString contents; // Empty leaves the contents unexamined
 	bool contentsCaseSensitive = false;
 	bool contentsWholeWords = false;

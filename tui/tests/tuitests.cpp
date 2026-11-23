@@ -749,8 +749,9 @@ TEST_CASE("The search dialog's controls stay whole and apart in a narrow termina
 		requireText(*session, QStringLiteral("Send to panel"));
 
 		const CTerminalScreen& screen = session->screen();
-		const int contentsOptionsRow = nameRow + 4, searchInRow = nameRow + 6, buttonsRow = columns >= 69 ? searchInRow : searchInRow + 2;
+		const int contentsOptionsRow = nameRow + 5, searchInRow = nameRow + 7, buttonsRow = columns >= 69 ? searchInRow : searchInRow + 2;
 		CHECK(screen.row(nameRow + 1).contains(QStringLiteral("Case sensitive")));
+		CHECK(screen.row(nameRow + 2).contains(QStringLiteral("Folders")));
 		CHECK(screen.row(contentsOptionsRow).contains(QStringLiteral("Case sensitive")));
 		CHECK(screen.row(searchInRow).contains(QStringLiteral("Search in:")));
 		CHECK(screen.row(buttonsRow).contains(QStringLiteral("Search ")));
@@ -774,15 +775,16 @@ TEST_CASE("A terminal below the search dialog's minimum size clips it instead of
 		auto narrow = startFcterm(sandbox, { .workingFolder = sandbox.work({}), .columns = 40 });
 		const int nameRow = openFindDialog(*narrow);
 		requireText(*narrow, QStringLiteral("Exclude folders:"));
-		CHECK_FALSE(narrow->screen().row(nameRow + 6).contains(QStringLiteral("Send")));
-		CHECK(narrow->screen().row(nameRow + 8).contains(QStringLiteral("Search ")));
+		CHECK_FALSE(narrow->screen().row(nameRow + 7).contains(QStringLiteral("Send")));
+		CHECK(narrow->screen().row(nameRow + 9).contains(QStringLiteral("Search ")));
 	}
 
-	auto shortTerminal = startFcterm(sandbox, { .workingFolder = sandbox.work({}), .rows = 13 });
+	// The desktop ends at the dialog's Exclude folders row: the menu bar, the hint line and the status line take three rows
+	auto shortTerminal = startFcterm(sandbox, { .workingFolder = sandbox.work({}), .rows = 14 });
 	const int nameRow = openFindDialog(*shortTerminal);
 	requireText(*shortTerminal, QStringLiteral("Exclude folders:"));
-	CHECK(shortTerminal->screen().row(nameRow + 6).contains(QStringLiteral("Send to panel")));
-	CHECK(shortTerminal->screen().row(nameRow + 7).contains(QStringLiteral("Exclude folders:")));
+	CHECK(shortTerminal->screen().row(nameRow + 7).contains(QStringLiteral("Send to panel")));
+	CHECK(shortTerminal->screen().row(nameRow + 8).contains(QStringLiteral("Exclude folders:")));
 }
 
 TEST_CASE("A sort keeps the cursor on its search result and lasts through the next search", "[tui]")
