@@ -74,7 +74,6 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm>
 #include <array>
 #include <chrono>
-#include <cmath>
 #include <optional>
 #include <unordered_set>
 #include <utility>
@@ -123,11 +122,15 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 
 		ui->_list->setFocus();
 	}));
-	// Looked up on request: the menu acts on the volume as it is now, not as it was when the button was made
+	// Looked up on request: the menu and the tooltip show the volume as it is now, not as it was when the button was made
 	assert_r(connect(ui->_driveButtonsWidget, &CDriveBar::volumeContextMenuRequested, this, [this](const uint64_t volumeId) {
 		if (const std::optional<VolumeInfo> volume = _controller->volumeInfoById(volumeId))
 			FileContextMenu::showForVolume(*volume, this, *_shellOperations);
 	}));
+	ui->_driveButtonsWidget->setVolumeToolTipBuilder([this](const uint64_t volumeId) {
+		const std::optional<VolumeInfo> volume = _controller->volumeInfoById(volumeId);
+		return volume ? volumeToolTip(*volume) : QString{};
+	});
 
 	const auto dimTextColor = [] { return QApplication::palette().color(QPalette::PlaceholderText); };
 	ui->_btnFavs->setIcon(tintedSvgIcon(QSL(":/theme/star.svg"), dimTextColor));
@@ -1519,16 +1522,12 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfo()
 	ui->_driveButtonsWidget->setCurrentVolume(currentVolumeInfo ? std::optional{ currentVolumeInfo->id() } : std::nullopt);
 	if (currentVolumeInfo)
 	{
-		const auto sizeText = [](const uint64_t size) { return fileSizeToString(size, { .significantPlaces = 3, .decimalPlaces = 2 }); }; // such as 212.43 GiB
 		const uint64_t volumeSize = currentVolumeInfo->volumeSize, freeSize = currentVolumeInfo->freeSize;
-		ui->_driveInfoLabel->setText(tr("%1 (%2 free)").arg(sizeText(volumeSize), sizeText(freeSize)));
-		const QString& fileSystemName = currentVolumeInfo->fileSystemName;
-		ui->_driveInfoLabel->setToolTip(fileSystemName.isEmpty() ? currentVolumeInfo->volumeLabel : currentVolumeInfo->volumeLabel + " (" + fileSystemName + ')');
+		ui->_driveInfoLabel->setText(tr("%1 (%2 free)").arg(volumeSizeText(volumeSize), volumeSizeText(freeSize)));
+		ui->_driveInfoLabel->setToolTip(volumeToolTip(*currentVolumeInfo));
 
-		const uint64_t usedSize = volumeSize - std::min(freeSize, volumeSize);
-		const double usedFraction = volumeSize > 0 ? (double)usedSize / (double)volumeSize : 0.0;
 		ui->_driveUsageBar->setSpace(volumeSize, freeSize);
-		ui->_driveUsageBar->setToolTip(tr("%1% used (%2)").arg(std::lround(usedFraction * 100.0)).arg(sizeText(usedSize)));
+		ui->_driveUsageBar->setToolTip(volumeUsageText(*currentVolumeInfo));
 		ui->_driveUsageBar->setVisible(volumeSize > 0);
 	}
 	else
