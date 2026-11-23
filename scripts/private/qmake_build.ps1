@@ -24,11 +24,20 @@ function Initialize-QtKit
 	$env:PATH = (Join-Path $env:QT_ROOT_DIR 'bin') + ';' + $env:PATH
 }
 
+# Whole seconds, such as "11m 7s" or "38s"
+function Format-Duration([TimeSpan]$duration)
+{
+	$seconds = [int][Math]::Floor($duration.TotalSeconds)
+	if ($seconds -ge 60) { return "$([Math]::Floor($seconds / 60))m $($seconds % 60)s" }
+	return "${seconds}s"
+}
+
 # Builds the qmake project $proFile and its subprojects with MSBuild, in the project's folder. Requires Initialize-QtKit.
 # MSBuild and qmake need the MSVC environment: qmake probes cl for the compiler version, and gates both the flags
 # and the toolset it writes into the projects on it, so the build uses the toolset in the projects qmake wrote.
 function Build-QmakeProject([string]$proFile, [ValidateSet('release', 'debug')][string]$configuration)
 {
+	$stopwatch = [Diagnostics.Stopwatch]::StartNew()
 	if (-not (Get-Command cl -ErrorAction SilentlyContinue))
 	{
 		$installerDirectory = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
@@ -47,10 +56,12 @@ function Build-QmakeProject([string]$proFile, [ValidateSet('release', 'debug')][
 			if ($_ -match '^([^=]+)=(.*)$') { Set-Item -Path "env:$($Matches[1])" -Value $Matches[2] }
 		}
 	}
+	$environmentDone = $stopwatch.Elapsed
 
 	# A kept .qmake.stash pins the toolchain probed when it was written, so every run probes the current one instead.
 	# One is written per subproject build directory, and qmake also searches upward, so the sweep covers the repository.
 	Get-ChildItem (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Recurse -Force -Filter '.qmake.stash' -ErrorAction SilentlyContinue | Remove-Item -Force
+	$sweepDone = $stopwatch.Elapsed
 
 	$proFileName = Split-Path $proFile -Leaf
 	Push-Location (Split-Path $proFile -Parent)
@@ -58,9 +69,15 @@ function Build-QmakeProject([string]$proFile, [ValidateSet('release', 'debug')][
 	{
 		& (Join-Path $env:QT_ROOT_DIR 'bin\qmake.exe') -tp vc -r $proFileName
 		if ($LASTEXITCODE -ne 0) { exit 1 }
+		$qmakeDone = $stopwatch.Elapsed
 		# msbuild, not nmake: it also rebuilds what the compiler command line changed for, such as the Qt include paths
 		msbuild /t:Build /nologo /m /v:minimal "/p:Configuration=$configuration" ([IO.Path]::ChangeExtension($proFileName, 'sln'))
 		if ($LASTEXITCODE -ne 0) { exit 1 }
 	}
 	finally { Pop-Location }
+
+	$buildDone = $stopwatch.Elapsed
+	Write-Host ("Build took $(Format-Duration $buildDone) (environment $(Format-Duration $environmentDone), " +
+		"stash sweep $(Format-Duration ($sweepDone - $environmentDone)), qmake $(Format-Duration ($qmakeDone - $sweepDone)), " +
+		"compile $(Format-Duration ($buildDone - $qmakeDone)))")
 }

@@ -26,14 +26,29 @@ resolve_qmake()
 	fi
 }
 
+# format_duration <seconds>: such as "11m 7s" or "38s"
+format_duration()
+{
+	if [ "$1" -ge 60 ]; then
+		echo "$(($1 / 60))m $(($1 % 60))s"
+	else
+		echo "$1s"
+	fi
+}
+
 # build_qmake_project <.pro file> <release|debug>: builds the project and its subprojects in the project's folder.
 # Requires QMAKE. Fails with the failing step's status.
 build_qmake_project()
 (
+	started=$(date +%s)
 	# A kept .qmake.stash pins the toolchain probed when it was written, so every run probes the current one instead.
 	# One is written per subproject build directory, and qmake also searches upward, so the sweep covers the repository.
 	find "${SCRIPT_DIR}/.." -name .qmake.stash -delete
-	cd "$(dirname "$1")" &&
-		"${QMAKE}" -r CONFIG+="$2" "$(basename "$1")" &&
-		make -s -j"$(getconf _NPROCESSORS_ONLN)" SHELL="${SCRIPT_DIR}/private/quiet_make_shell.sh"
+	sweep_done=$(date +%s)
+	cd "$(dirname "$1")" && "${QMAKE}" -r CONFIG+="$2" "$(basename "$1")" || exit
+	qmake_done=$(date +%s)
+	make -s -j"$(getconf _NPROCESSORS_ONLN)" SHELL="${SCRIPT_DIR}/private/quiet_make_shell.sh" || exit
+	build_done=$(date +%s)
+	echo "Build took $(format_duration $((build_done - started))) (stash sweep $(format_duration $((sweep_done - started))),"\
+		"qmake $(format_duration $((qmake_done - sweep_done))), compile $(format_duration $((build_done - qmake_done))))"
 )
