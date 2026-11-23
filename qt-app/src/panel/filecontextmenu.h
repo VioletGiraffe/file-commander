@@ -23,9 +23,10 @@ class QWidget;
 // Both open at the mouse cursor.
 namespace FileContextMenu {
 
-// `items` must all be in `folder`; without items the menu is for `folder` itself.
+// `items` may be in different folders; without items the menu is for `folder` itself.
 // `enterFolder` shows a folder in the panel: Show Package Contents passes it the bundle.
-void showForItems(const std::vector<CFileSystemObject>& items, const QString& folder, QWidget* parent, const std::function<void(const QString& folderPath)>& enterFolder);
+// True when a verb of Explorer's menu was invoked, so files may have changed; always false elsewhere.
+[[nodiscard]] bool showForItems(const std::vector<CFileSystemObject>& items, const QString& folder, QWidget* parent, const std::function<void(const QString& folderPath)>& enterFolder);
 
 // Eject runs on `shellOperations`
 void showForVolume(const VolumeInfo& volume, QWidget* parent, CShellOperationRunner& shellOperations);

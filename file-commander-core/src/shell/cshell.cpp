@@ -624,14 +624,18 @@ HRESULT retryWhileClipboardBusy(const auto& clipboardCall)
 
 } // namespace
 
-void OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& objects, void * parentWindow)
+bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& objects, void * parentWindow)
 {
 	POINT cursor{};
 	::GetCursorPos(&cursor);
 	const RECT atCursor{ cursor.x, cursor.y, cursor.x, cursor.y };
 	const std::vector<std::filesystem::path> paths(objects.cbegin(), objects.cend());
-	if (const std::function<void()> runVerb = pickShellContextMenuVerb(paths, reinterpret_cast<HWND>(parentWindow), atCursor))
-		runVerb();
+	const std::function<void()> runVerb = pickShellContextMenuVerb(paths, reinterpret_cast<HWND>(parentWindow), atCursor);
+	if (!runVerb)
+		return false;
+
+	runVerb();
+	return true;
 }
 
 void OsShell::putObjectsOnClipboard(const std::vector<std::wstring>& objects, const bool cut)

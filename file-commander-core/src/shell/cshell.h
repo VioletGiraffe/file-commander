@@ -52,8 +52,8 @@ namespace OsShell
 
 #ifdef _WIN32
 	// Explorer's menus open at the mouse cursor.
-	// `objects` must all be in one folder.
-	void openShellContextMenuForObjects(const std::vector<std::wstring>& objects, void * parentWindow);
+	// True when the user picked a verb and it was invoked.
+	bool openShellContextMenuForObjects(const std::vector<std::wstring>& objects, void * parentWindow);
 	bool recycleBinContextMenu(void * parentWindow);
 
 	// `objects` are native paths and may be in different folders. Paths the shell cannot resolve are skipped.

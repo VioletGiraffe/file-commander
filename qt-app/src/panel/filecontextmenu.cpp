@@ -85,7 +85,7 @@ static std::vector<OpenWithEntry> openWithEntries(const QStringList& paths, QWid
 
 #ifndef _WIN32
 // Show in Finder and Get Info on macOS; Show in File Manager and Properties elsewhere.
-// `selectItems`: the file manager selects `targets`, all in one folder; else it opens `targets`, which must be folders.
+// `selectItems`: the file manager selects `targets`; else it opens `targets`, which must be folders.
 static void addFileManagerActions(QMenu& menu, const QStringList& targets, const bool selectItems, QWidget* parent)
 {
 #ifdef __APPLE__
@@ -157,7 +157,7 @@ static void ejectVolume(const VolumeInfo& volume, QWidget* parent, CShellOperati
 }
 #endif
 
-void FileContextMenu::showForItems(const std::vector<CFileSystemObject>& items, const QString& folder, QWidget* parent, [[maybe_unused]] const std::function<void(const QString& folderPath)>& enterFolder)
+bool FileContextMenu::showForItems(const std::vector<CFileSystemObject>& items, const QString& folder, QWidget* parent, [[maybe_unused]] const std::function<void(const QString& folderPath)>& enterFolder)
 {
 #ifdef _WIN32
 	std::vector<std::wstring> paths;
@@ -167,7 +167,7 @@ void FileContextMenu::showForItems(const std::vector<CFileSystemObject>& items, 
 	if (paths.empty())
 		paths.push_back(folder.toStdWString());
 
-	OsShell::openShellContextMenuForObjects(paths, WidgetUtils::nativeOwnerWinId(parent));
+	return OsShell::openShellContextMenuForObjects(paths, WidgetUtils::nativeOwnerWinId(parent));
 #else
 	QStringList itemPaths;
 	for (const CFileSystemObject& item : items)
@@ -212,6 +212,7 @@ void FileContextMenu::showForItems(const std::vector<CFileSystemObject>& items, 
 	if (afterMenu)
 		afterMenu();
 #endif
+	return false;
 #endif
 }
 

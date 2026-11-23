@@ -805,9 +805,11 @@ void CPanelWidget::endOldFrameHold()
 void CPanelWidget::showContextMenuForItems()
 {
 	const CPanel& panel = _controller->panel(_panelPosition);
-	FileContextMenu::showForItems(panel.selectedItems(), panel.currentDirPathNative(), this, [this](const QString& folderPath) {
+	const bool verbRan = FileContextMenu::showForItems(panel.selectedItems(), panel.currentDirPathNative(), this, [this](const QString& folderPath) {
 		_controller->setPath(_panelPosition, folderPath, refreshCauseForwardNavigation);
 	});
+	if (verbRan)
+		_controller->refreshUnwatchedViews();
 }
 
 void CPanelWidget::onSpacePressed()
