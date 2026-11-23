@@ -30,7 +30,8 @@ dev build therefore already has the plugins beside the executable, where the plu
 intermediates.
 
 `scripts/build_app.bat` and `scripts/build_app.sh` build the application, its plugins and the terminal UI: release
-by default, debug with `-Configuration debug` / `debug`. They find the Qt kit as the test scripts do.
+by default, debug with `-Configuration debug` / `debug`. They find the Qt kit as the test scripts do. Development
+iterations build debug; build release only for a specific reason.
 
 ## CI
 
