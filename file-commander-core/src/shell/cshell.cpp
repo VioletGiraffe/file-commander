@@ -551,6 +551,77 @@ private:
 	PIDLIST_ABSOLUTE _idList;
 };
 
+enum class UnresolvedPaths { Fail, Skip };
+
+// `nativePaths` may be in different folders. Null on failure, and when no path resolves.
+ComPtr<IShellItemArray> createShellItemArray(const std::vector<std::wstring>& nativePaths, const UnresolvedPaths unresolvedPaths)
+{
+	std::vector<PIDLIST_ABSOLUTE> idLists;
+	EXEC_ON_SCOPE_EXIT([&idLists] {
+		for (const PIDLIST_ABSOLUTE idList : idLists)
+			ILFree(idList);
+	});
+
+	idLists.reserve(nativePaths.size());
+	for (const std::wstring& path : nativePaths)
+	{
+		PIDLIST_ABSOLUTE idl = ILCreateFromPathW(path.c_str());
+		if (!idl)
+		{
+			qInfo() << "ILCreateFromPathW" << "failed for path" << QString::fromStdWString(path);
+			if (unresolvedPaths == UnresolvedPaths::Fail)
+				return nullptr;
+			continue;
+		}
+		idLists.push_back(idl);
+	}
+
+	if (idLists.empty())
+		return nullptr;
+
+	ComPtr<IShellItemArray> iArray;
+	const HRESULT result = SHCreateShellItemArrayFromIDLists((UINT)idLists.size(), (PCIDLIST_ABSOLUTE_ARRAY)idLists.data(), iArray.GetAddressOf());
+	if (!SUCCEEDED(result) || !iArray)
+	{
+		qInfo() << "SHCreateShellItemArrayFromIDLists failed";
+		return nullptr;
+	}
+
+	return iArray;
+}
+
+[[nodiscard]] bool setPreferredDropEffect(IDataObject& data, const DWORD effect)
+{
+	const HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE, sizeof(effect));
+	if (!memory)
+		return false;
+
+	*static_cast<DWORD*>(GlobalLock(memory)) = effect;
+	GlobalUnlock(memory);
+
+	FORMATETC format{ static_cast<CLIPFORMAT>(RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT)), nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+	STGMEDIUM medium{};
+	medium.tymed = TYMED_HGLOBAL;
+	medium.hGlobal = memory;
+	if (SUCCEEDED(data.SetData(&format, &medium, TRUE)))
+		return true;
+
+	GlobalFree(memory);
+	return false;
+}
+
+// Another process can hold the clipboard open for a moment
+HRESULT retryWhileClipboardBusy(const auto& clipboardCall)
+{
+	HRESULT result = clipboardCall();
+	for (int retry = 0; result == CLIPBRD_E_CANT_OPEN && retry < 2; ++retry)
+	{
+		::Sleep(100);
+		result = clipboardCall();
+	}
+	return result;
+}
+
 } // namespace
 
 void OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& objects, void * parentWindow)
@@ -563,14 +634,34 @@ void OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& ob
 		runVerb();
 }
 
-bool OsShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
+void OsShell::putObjectsOnClipboard(const std::vector<std::wstring>& objects, const bool cut)
 {
-	return invokeShellVerb(std::vector<std::filesystem::path>(objects.cbegin(), objects.cend()), reinterpret_cast<HWND>(parentWindow), "Copy");
-}
+	assert_and_return_r(!objects.empty(), );
 
-bool OsShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
-{
-	return invokeShellVerb(std::vector<std::filesystem::path>(objects.cbegin(), objects.cend()), reinterpret_cast<HWND>(parentWindow), "Cut");
+	const ComPtr<IShellItemArray> items = createShellItemArray(objects, UnresolvedPaths::Skip);
+	if (!items)
+		return;
+
+	ComPtr<IDataObject> data;
+	if (FAILED(items->BindToHandler(nullptr, BHID_DataObject, IID_PPV_ARGS(&data))) || !setPreferredDropEffect(*data.Get(), cut ? DROPEFFECT_MOVE : DROPEFFECT_COPY))
+	{
+		qInfo() << "Failed to create the clipboard data for" << objects.size() << "items";
+		return;
+	}
+
+	if (const HRESULT result = retryWhileClipboardBusy([&data] { return OleSetClipboard(data.Get()); }); FAILED(result))
+	{
+		qInfo().nospace() << "OleSetClipboard failed with 0x" << Qt::hex << (uint32_t)result;
+		return;
+	}
+
+	// Never flushes a cut: the shell clears the clipboard after the move only while the data object is live
+	if (cut)
+		return;
+
+	// Copies the data to the OS, so it outlives this process
+	if (const HRESULT result = retryWhileClipboardBusy([] { return OleFlushClipboard(); }); FAILED(result))
+		qInfo().nospace() << "OleFlushClipboard failed with 0x" << Qt::hex << (uint32_t)result;
 }
 
 std::wstring OsShell::toolTip(std::wstring itemPath)
@@ -611,38 +702,13 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	assert_r(parentWindow);
-	std::vector<PIDLIST_ABSOLUTE> idLists;
 
-	EXEC_ON_SCOPE_EXIT([&idLists] {
-		for (auto& pid : idLists)
-			ILFree(pid);
-
-		idLists.clear();
-	});
-
-	for (const auto& path: items)
-	{
-		PIDLIST_ABSOLUTE idl = ILCreateFromPathW(path.c_str());
-		if (!idl)
-		{
-			qInfo() << "ILCreateFromPathW" << "failed for path" << QString::fromStdWString(path);
-			return false;
-		}
-		idLists.push_back(idl);
-		assert_r(idLists.back());
-	}
-
-	ComPtr<IShellItemArray> iArray;
-	HRESULT result = SHCreateShellItemArrayFromIDLists((UINT)idLists.size(), (PCIDLIST_ABSOLUTE_ARRAY)idLists.data(), iArray.GetAddressOf());
-
-	if (!SUCCEEDED(result) || !iArray)
-	{
-		qInfo() << "SHCreateShellItemArrayFromIDLists failed";
+	const ComPtr<IShellItemArray> iArray = createShellItemArray(items, UnresolvedPaths::Fail);
+	if (!iArray)
 		return false;
-	}
 
 	ComPtr<IFileOperation> iOperation;
-	result = CoCreateInstance(CLSID_FileOperation, nullptr, CLSCTX_ALL, IID_IFileOperation, reinterpret_cast<void**>(iOperation.GetAddressOf()));
+	HRESULT result = CoCreateInstance(CLSID_FileOperation, nullptr, CLSCTX_ALL, IID_IFileOperation, reinterpret_cast<void**>(iOperation.GetAddressOf()));
 	if (!SUCCEEDED(result) || !iOperation)
 	{
 		qInfo() << "CoCreateInstance(CLSID_FileOperation, 0, CLSCTX_ALL, IID_IFileOperation, (void**)&iOperation) failed";

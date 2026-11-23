@@ -1036,7 +1036,7 @@ void CPanelWidget::putSelectionOnClipboard(bool cut) const
 	if (items.empty())
 		return; // Leaves the clipboard as it was
 
-	putFilesOnClipboard(items, cut, *this);
+	putFilesOnClipboard(items, cut);
 }
 
 void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
@@ -1050,6 +1050,8 @@ void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 	{
 		if (const auto message = saveImageAsNewFile(qvariant_cast<QImage>(clipboardData->imageData()), currentDirPathNative(), specialPaste))
 			showUserMessage(this, *message);
+		else
+			_controller->refreshUnwatchedViews();
 		return;
 	}
 
@@ -1057,9 +1059,12 @@ void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 	dropUrls(clipboardData->urls(), clipboardFilesDropAction(*clipboardData), {});
 #else
 	auto* hwnd = WidgetUtils::nativeOwnerWinId(this);
-	_shellOperations->run([hwnd, folder = currentDirPathNative()] {
+	_shellOperations->run([hwnd, folder = currentDirPathNative(), shellOperations = _shellOperations, controller = _controller] {
 		if (!pasteFromClipboardWithShell(folder, hwnd))
 			log_unconditional_r("The shell's Paste failed in " + folder.toStdString());
+
+		// The runner outlives its operations
+		QMetaObject::invokeMethod(shellOperations, [controller] { controller->refreshUnwatchedViews(); }, Qt::QueuedConnection);
 	});
 #endif
 }

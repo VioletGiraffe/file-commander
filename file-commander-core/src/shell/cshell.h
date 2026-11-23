@@ -56,8 +56,11 @@ namespace OsShell
 	void openShellContextMenuForObjects(const std::vector<std::wstring>& objects, void * parentWindow);
 	bool recycleBinContextMenu(void * parentWindow);
 
-	bool copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
-	bool cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
+	// `objects` are native paths and may be in different folders. Paths the shell cannot resolve are skipped.
+	// Leaves the clipboard as it was when no path resolves.
+	// `cut`: a paste moves the objects instead of copying. A cut does not outlive the app.
+	// Only called on the main thread: the data object of a cut stays in the caller's COM apartment.
+	void putObjectsOnClipboard(const std::vector<std::wstring>& objects, bool cut);
 #endif
 
 	std::wstring toolTip(std::wstring itemPath);

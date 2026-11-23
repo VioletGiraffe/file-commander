@@ -18,11 +18,10 @@ RESTORE_COMPILER_WARNINGS
 
 class QImage;
 class QMimeData;
-class QWidget;
 
 // Puts the files on the clipboard: through the shell on Windows, as file URLs elsewhere
-// cut: a paste moves them instead of copying. owner: on Windows, its native window is the parent of the shell's windows.
-void putFilesOnClipboard(const std::vector<CFileSystemObject>& files, bool cut, const QWidget& owner);
+// cut: a paste moves them instead of copying.
+void putFilesOnClipboard(const std::vector<CFileSystemObject>& files, bool cut);
 
 #ifndef _WIN32
 // A move for files that putFilesOnClipboard() put there cut, otherwise a copy

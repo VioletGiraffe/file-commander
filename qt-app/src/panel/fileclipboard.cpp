@@ -7,7 +7,6 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
-#include "widgets/widgetutils.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -18,7 +17,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QImageWriter>
 #include <QMimeData>
 #include <QUrl>
-#include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
 #include <string>
@@ -28,7 +26,7 @@ RESTORE_COMPILER_WARNINGS
 static constexpr char cutFilesProperty[] = "cut";
 #endif
 
-void putFilesOnClipboard(const std::vector<CFileSystemObject>& files, const bool cut, [[maybe_unused]] const QWidget& owner)
+void putFilesOnClipboard(const std::vector<CFileSystemObject>& files, const bool cut)
 {
 #ifndef _WIN32
 	QList<QUrl> urls;
@@ -44,12 +42,9 @@ void putFilesOnClipboard(const std::vector<CFileSystemObject>& files, const bool
 	std::vector<std::wstring> paths;
 	paths.reserve(files.size());
 	for (const CFileSystemObject& file : files)
-		paths.push_back(file.fullAbsolutePath().toStdWString());
+		paths.push_back(toNativeSeparators(file.fullAbsolutePath()).toStdWString());
 
-	if (cut)
-		OsShell::cutObjectsToClipboard(paths, WidgetUtils::nativeOwnerWinId(&owner));
-	else
-		OsShell::copyObjectsToClipboard(paths, WidgetUtils::nativeOwnerWinId(&owner));
+	OsShell::putObjectsOnClipboard(paths, cut);
 #endif
 }
 
