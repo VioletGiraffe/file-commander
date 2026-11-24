@@ -129,5 +129,5 @@ Panels watch their folder with `thin_io::directory_watcher` (`src/filesystemwatc
 | Search | `filesearchengine/`; cancellable traversal with a bounded content-search pool |
 | Comparison | `filecomparator/`; threaded wrappers over `file-operations/foldercomparison/`, for one file and for two folders |
 | Shell integration | `shell/`; platform clipboard, Explorer's context menus, launching, native deletion and the freedesktop.org trash. `xdgapplications` finds and starts the freedesktop.org applications registered for file types, for Linux and FreeBSD |
-| Favorites | `favoritelocationslist/`; nested locations persisted under a supplied settings key |
+| Favorites | `favoritelocationslist/`; locations, nested categories and separators, persisted under a supplied settings key. The format of earlier versions is read from a second key while the first is absent |
 | Statistics/helpers | `filesystemhelpers/`, `filesystemhelperfunctions`; statistics traversal, separators and shell quoting |

@@ -2,63 +2,80 @@
 
 #include <vector>
 
-// Not the controller's own key: these tests use instances of their own
+// Not the controller's own keys: these tests use instances of their own
 static const QString TestFavoritesKey = QStringLiteral("Test/Favorites");
+static const QString TestLegacyFavoritesKey = QStringLiteral("Test/LegacyFavorites");
 
-TEST_CASE("CFavoriteLocations - an item is refused an empty name, and a name or a location another item of its list has", "[controller][favorites]")
+TEST_CASE("CFavoriteLocations - a location is refused without a path and a category without a name; a location without a name is named after its folder", "[controller][favorites]")
 {
 	clearSavedState();
-	CFavoriteLocations favorites{ TestFavoritesKey };
+	CFavoriteLocations favorites{ TestFavoritesKey, TestLegacyFavoritesKey };
 	std::vector<CLocationsCollection>& root = favorites.locations();
 
-	REQUIRE_FALSE(favorites.addLocation(root, "a", "/x"));
-	CHECK(favorites.addLocation(root, "b", "/x"));
-	CHECK(favorites.addLocation(root, "a", "/y"));
-	CHECK(favorites.addCategory(root, "a"));
-	CHECK(favorites.addLocation(root, {}, "/y"));
-	CHECK(favorites.addLocation(root, "d", {}));
-	REQUIRE_FALSE(favorites.addCategory(root, "c"));
-	CHECK_FALSE(favorites.addLocation(root[1].subLocations, "a", "/x")); // Another list
-	REQUIRE(root.size() == 2);
+	CHECK(favorites.addLocation(root, "a", {}));
+	CHECK(favorites.addCategory(root, {}));
+	REQUIRE(root.empty());
 
-	CHECK_FALSE(favorites.editItem(root, 0, "a", "/z")); // The item's own name
-	CHECK(favorites.editItem(root, 0, "c", "/z")); // The category's name
-	CHECK(favorites.editItem(root, 0, "a", {}));
-	CHECK(root[0].absolutePath == "/z");
+	REQUIRE_FALSE(favorites.addLocation(root, "a", "/x"));
+	REQUIRE_FALSE(favorites.addLocation(root, "a", "/x")); // The same name and path again
+	REQUIRE_FALSE(favorites.addLocation(root, {}, "/x/folder/"));
+	REQUIRE_FALSE(favorites.addLocation(root, {}, "/"));
+	REQUIRE_FALSE(favorites.addCategory(root, "a"));
+	REQUIRE(root.size() == 5);
+	CHECK(root[2].displayName == "folder");
+	CHECK(root[3].displayName == "/");
+	CHECK(root[4].isCategory());
+
+	CHECK(favorites.editItem(root, 0, "b", {}));
+	CHECK(favorites.editItem(root, 4, {}, {}));
+	REQUIRE_FALSE(favorites.editItem(root, 0, {}, "/z/y"));
+	CHECK(root[0].displayName == "y");
+	CHECK(root[0].path == "/z/y");
 
 	favorites.removeItem(root, 1);
-	REQUIRE(root.size() == 1);
-	CHECK(root[0].displayName == "a");
+	REQUIRE(root.size() == 4);
+	CHECK(root[1].displayName == "folder");
 }
 
-TEST_CASE("CFavoriteLocations - the locations and categories are saved under the key given", "[controller][favorites]")
+TEST_CASE("CFavoriteLocations - the locations, categories and separators are saved under the key given", "[controller][favorites]")
 {
 	clearSavedState();
 	{
-		CFavoriteLocations favorites{ TestFavoritesKey };
+		CFavoriteLocations favorites{ TestFavoritesKey, TestLegacyFavoritesKey };
 		REQUIRE_FALSE(favorites.addCategory(favorites.locations(), "category"));
 		REQUIRE_FALSE(favorites.addLocation(favorites.locations()[0].subLocations, "inner", "/inner"));
-		REQUIRE_FALSE(favorites.addLocation(favorites.locations(), "outer", "/outer"));
+
+		std::vector<CLocationsCollection> items = favorites.locations();
+		items[0].subLocations.push_back(CLocationsCollection::separator());
+		items.push_back(CLocationsCollection::separator());
+		items.push_back(CLocationsCollection::location("outer", "/outer"));
+		favorites.setLocations(std::move(items));
 	}
 	CHECK_FALSE(QSettings{}.contains(KEY_FAVORITES));
+	CHECK_FALSE(QSettings{}.contains(TestLegacyFavoritesKey));
 
-	CFavoriteLocations favorites{ TestFavoritesKey };
+	CFavoriteLocations favorites{ TestFavoritesKey, TestLegacyFavoritesKey };
 	const std::vector<CLocationsCollection>& root = favorites.locations();
-	REQUIRE(root.size() == 2);
+	REQUIRE(root.size() == 3);
 	CHECK(root[0].isCategory());
-	REQUIRE(root[0].subLocations.size() == 1);
-	CHECK(root[0].subLocations[0].absolutePath == "/inner");
-	CHECK(root[1].absolutePath == "/outer");
+	CHECK(root[0].displayName == "category");
+	REQUIRE(root[0].subLocations.size() == 2);
+	CHECK(root[0].subLocations[0].displayName == "inner");
+	CHECK(root[0].subLocations[0].path == "/inner");
+	CHECK(root[0].subLocations[1].isSeparator());
+	CHECK(root[1].isSeparator());
+	CHECK(root[2].displayName == "outer");
+	CHECK(root[2].path == "/outer");
 }
 
-TEST_CASE("CFavoriteLocations - a category that ends several levels at once keeps the items after it in their own level", "[controller][favorites]")
+TEST_CASE("CFavoriteLocations - categories nested several levels deep keep the items after them on their own level", "[controller][favorites]")
 {
 	clearSavedState();
 	for (const int depth : { 2, 3 })
 	{
 		INFO("Categories nested " << depth << " deep");
 		{
-			CFavoriteLocations favorites{ TestFavoritesKey };
+			CFavoriteLocations favorites{ TestFavoritesKey, TestLegacyFavoritesKey };
 			favorites.locations().clear();
 			std::vector<CLocationsCollection>* list = &favorites.locations();
 			for (int level = 0; level < depth; ++level)
@@ -70,10 +87,10 @@ TEST_CASE("CFavoriteLocations - a category that ends several levels at once keep
 			REQUIRE_FALSE(favorites.addLocation(favorites.locations(), "after", "/after"));
 		}
 
-		CFavoriteLocations favorites{ TestFavoritesKey };
+		CFavoriteLocations favorites{ TestFavoritesKey, TestLegacyFavoritesKey };
 		const std::vector<CLocationsCollection>& root = favorites.locations();
 		REQUIRE(root.size() == 2);
-		CHECK(root[1].absolutePath == "/after");
+		CHECK(root[1].path == "/after");
 		const std::vector<CLocationsCollection>* list = &root;
 		for (int level = 0; level < depth; ++level)
 		{
@@ -81,11 +98,11 @@ TEST_CASE("CFavoriteLocations - a category that ends several levels at once keep
 			list = &list->front().subLocations;
 		}
 		REQUIRE(list->size() == 1);
-		CHECK(list->front().absolutePath == "/innermost");
+		CHECK(list->front().path == "/innermost");
 	}
 }
 
-TEST_CASE("CFavoriteLocations - favorites saved by earlier versions load as they were", "[controller][favorites]")
+TEST_CASE("CFavoriteLocations - favorites saved by earlier versions load as they were, are saved under the new key, and stay under the old one", "[controller][favorites]")
 {
 	clearSavedState();
 	QByteArray data;
@@ -101,14 +118,26 @@ TEST_CASE("CFavoriteLocations - favorites saved by earlier versions load as they
 	appendItem("category", {}, 1);
 	appendItem("inner", "/inner", 2);
 	appendItem("outer", "/outer", 0);
-	QSettings{}.setValue(TestFavoritesKey, data);
+	QSettings{}.setValue(TestLegacyFavoritesKey, data);
 
-	CFavoriteLocations favorites{ TestFavoritesKey };
-	const std::vector<CLocationsCollection>& root = favorites.locations();
-	REQUIRE(root.size() == 2);
-	REQUIRE(root[0].subLocations.size() == 1);
-	CHECK(root[0].subLocations[0].absolutePath == "/inner");
-	CHECK(root[1].absolutePath == "/outer");
+	const auto checkItems = [](const std::vector<CLocationsCollection>& root) {
+		REQUIRE(root.size() == 2);
+		CHECK(root[0].isCategory());
+		REQUIRE(root[0].subLocations.size() == 1);
+		CHECK(root[0].subLocations[0].path == "/inner");
+		CHECK(root[1].path == "/outer");
+	};
+
+	{
+		CFavoriteLocations favorites{ TestFavoritesKey, TestLegacyFavoritesKey };
+		checkItems(favorites.locations());
+	}
+	CHECK(QSettings{}.value(TestLegacyFavoritesKey).toByteArray() == data);
+
+	// From the new key now: the old one is no longer read
+	QSettings{}.setValue(TestLegacyFavoritesKey, QByteArray{});
+	CFavoriteLocations favorites{ TestFavoritesKey, TestLegacyFavoritesKey };
+	checkItems(favorites.locations());
 }
 
 TEST_CASE("CController - the recent folders are this side's, then those visited only on the other side, each the most recent first", "[controller][history]")

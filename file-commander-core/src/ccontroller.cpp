@@ -103,7 +103,7 @@ namespace {
 }
 
 CController::CController(std::function<void()> wakeUiThread) :
-	_favoriteLocations{KEY_FAVORITES},
+	_favoriteLocations{ KEY_FAVORITES, KEY_FAVORITES_LEGACY },
 	_listingThreadPool{ 4, "Panel file list pool" },
 	_workerPool{ optimalCpuCount(), "Application pool"},
 	_wakeUiThread{ std::move(wakeUiThread) }

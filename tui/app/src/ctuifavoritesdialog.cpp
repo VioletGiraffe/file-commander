@@ -2,8 +2,6 @@
 #include "ctuidialogs.h"
 #include "ctuirowlist.h"
 
-#include "cfilesystemobject.h"
-
 #include "assert/advanced_assert.h"
 
 #define Uses_TButton
@@ -33,9 +31,11 @@ struct FavoriteRow
 	QString name; // ".." for the row leading to the parent category
 	QString path; // Empty for a category
 	bool isCategory = false;
+	bool isSeparator = false;
 };
 
-// A category's items, after the row leading to its parent. A category's name starts with a mark, a location's path follows its name.
+// A category's items, after the row leading to its parent. A category's name starts with a mark, a location's path follows its name,
+// and a separator is a line.
 class CTuiFavoritesList final : public CTuiRowList
 {
 public:
@@ -73,13 +73,18 @@ public:
 			if (rowIndex < (int)_rows.size())
 			{
 				const FavoriteRow& row = _rows[(size_t)rowIndex];
-				QString text = (row.isCategory ? QStringLiteral("▸ ") : QStringLiteral("  ")) + elidedInTheMiddle(row.name, nameWidth);
-				if (!row.path.isEmpty())
+				if (row.isSeparator)
+					line.moveStr(1, stringView(QString{ std::max(size.x - 2, 0), u'─' }.toUtf8()), color);
+				else
 				{
-					text += QString(markWidth + nameWidth - cellWidth(text), u' ') + QStringLiteral("  ");
-					text += elidedInTheMiddle(row.path, size.x - 2 - cellWidth(text));
+					QString text = (row.isCategory ? QStringLiteral("▸ ") : QStringLiteral("  ")) + elidedInTheMiddle(row.name, nameWidth);
+					if (!row.path.isEmpty())
+					{
+						text += QString(markWidth + nameWidth - cellWidth(text), u' ') + QStringLiteral("  ");
+						text += elidedInTheMiddle(row.path, size.x - 2 - cellWidth(text));
+					}
+					line.moveStr(1, stringView(text.toUtf8()), color, (ushort)std::max(size.x - 2, 0));
 				}
-				line.moveStr(1, stringView(text.toUtf8()), color, (ushort)std::max(size.x - 2, 0));
 			}
 			writeLine(0, (short)y, (short)size.x, 1, line);
 		}
@@ -233,7 +238,7 @@ private:
 		if (!_categoryPath.empty())
 			rows.push_back({ QStringLiteral(".."), {}, false });
 		for (const CLocationsCollection& item : *list)
-			rows.push_back({ item.displayName, item.absolutePath, item.isCategory() });
+			rows.push_back({ item.displayName, item.path, item.isCategory(), item.isSeparator() });
 
 		_list->setRows(std::move(rows), list->empty() ? 0 : firstItemRow() + (int)cursorItem.value_or(0));
 	}
@@ -253,9 +258,9 @@ private:
 			_categoryPath.push_back(*index);
 			showLevel(std::nullopt);
 		}
-		else
+		else if (!item.isSeparator())
 		{
-			_chosenLocation = item.absolutePath;
+			_chosenLocation = item.path;
 			endModal(cmOK);
 		}
 	}
@@ -282,9 +287,8 @@ private:
 
 	void addCurrentFolder()
 	{
-		const QString folderName = CFileSystemObject{ _currentFolder }.name();
 		const std::optional<QString> favoriteName = askForText(QStringLiteral("Add to favorites"), { QStringLiteral("Name for %1:").arg(_currentFolder), true },
-			folderName.isEmpty() ? _currentFolder : folderName, QStringLiteral("Add"));
+			defaultFavoriteName(_currentFolder), QStringLiteral("Add"));
 		if (!favoriteName)
 			return;
 
@@ -306,7 +310,7 @@ private:
 	void editCurrentItem()
 	{
 		const std::optional<size_t> index = currentItemIndex();
-		if (!index)
+		if (!index || shownList()[*index].isSeparator())
 			return;
 
 		const CLocationsCollection& item = shownList()[*index];
@@ -319,7 +323,7 @@ private:
 		std::optional<QString> path;
 		if (!isCategory)
 		{
-			path = askForText(QStringLiteral("Rename"), { QStringLiteral("Location:") }, shownList()[*index].absolutePath, QStringLiteral("Save"));
+			path = askForText(QStringLiteral("Rename"), { QStringLiteral("Location:") }, shownList()[*index].path, QStringLiteral("Save"));
 			if (!path)
 				return;
 		}
@@ -334,8 +338,13 @@ private:
 			return;
 
 		const CLocationsCollection& item = shownList()[*index];
-		const QString question = item.isCategory() ? QStringLiteral("Remove the category \"%1\" and everything in it?").arg(item.displayName)
-			: QStringLiteral("Remove \"%1\" from the favorites?").arg(item.displayName);
+		QString question;
+		if (item.isCategory())
+			question = QStringLiteral("Remove the category \"%1\" and everything in it?").arg(item.displayName);
+		else if (item.isSeparator())
+			question = QStringLiteral("Remove the separator?");
+		else
+			question = QStringLiteral("Remove \"%1\" from the favorites?").arg(item.displayName);
 		if (!confirmed(QStringLiteral("Remove"), question, QStringLiteral("Remove")))
 			return;
 

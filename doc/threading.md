@@ -22,6 +22,7 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | `CFolderComparison` | `CBackgroundTask` per comparison | Tree scan and compare; the UI polls it from a modal progress dialog |
 | `CBatchRenameRun` | `CBackgroundTask` per step | One batch rename step's renames, on the items the session hands out; the UI polls it from a modal progress dialog |
 | `CFileStatisticsScan` | `CBackgroundTask` per scan | The Statistics command's scan; the GUI's Statistics window polls it, the TUI a modal progress dialog |
+| `CFolderAvailabilityChecker` | one-thread pool per volume, abandoning running tasks at destruction | Whether folders exist, for the favorites editor, which polls it. A check of an unreachable network share can block for tens of seconds |
 | `calculateStatsFor` | transient scan-thread team | Parallel directory statistics, joined before returning |
 | `CShellCommand` | `QProcess` owned by the UI thread | One command-line command; Qt reads its pipe and signals the owning thread |
 

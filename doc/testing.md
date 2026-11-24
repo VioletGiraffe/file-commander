@@ -84,11 +84,11 @@ the shell script also falls back to a `qmake` already on PATH.
 | `fso_test` | `CFileSystemObject`'s rules on entries built in memory: name split, type, hidden, executable, links, `[..]` |
 | `fso_test_high_level` | `CFileSystemObject` on the real filesystem: path semantics, name split, hidden and executable entries, links; the panel listing and its `[..]` |
 | `panel_test` | `CPanel`: navigation, history, current item, content access, selection, refresh notifications, lifetime. The file list rules: sort order, display name, name filter language. `CDirectorySnapshotPoller` |
-| `controller_test` | `CController`'s tabs: saving and restoring them, tab ids, which tab is active after a move or a close |
+| `controller_test` | `CController`'s tabs: saving and restoring them, tab ids, which tab is active after a move or a close. `CFavoriteLocations`: its rules, saving and loading, and the format of earlier versions |
 | `filesearchengine_test` | Search engine: name filters, content search, engine behavior |
 | `batchrename_test` | `CBatchRenameSession`, the batch rename dialog's model: the preview's states, applying and undoing, the saved options |
 | `filecomparator_test` | `CFileComparator` and `CFolderComparison`, the comparisons the front ends run in the background |
-| `filesystemhelpers_test` | Path quoting, shell word splitting, device lookup for a path, the background folder statistics scan |
+| `filesystemhelpers_test` | Path quoting, shell word splitting, device lookup for a path, the background folder statistics scan and folder availability check |
 | `userprograms_test` | Programs-menu placeholder expansion |
 | `shell_test` | `CShellCommand` on real commands: output, exit code, working folder, escape sequences, termination. Which command lines launch without the shell (Windows); the detached launch's command lookup (Linux, macOS). The applications that open a file (macOS). The trash folders and what emptying them deletes (Linux) |
 | `xdgapplications_test` | The applications freedesktop.org entries and MIME associations register for file types, and their command lines; on fixture folders. The lookup by the files' MIME types; a launch (Linux, macOS) |
@@ -107,7 +107,7 @@ test waits for the last text of an update it will check (the lowest row, the rig
 the text above it. A check that something did not happen first sends a later input with a visible effect and waits
 for that effect: fcterm handles input in order.
 
-No suite covers a launch that opens a window (programs, terminals), volume enumeration, favorites, settings other than the tabs' and the batch rename options, the GUI outside file operations and the
+No suite covers a launch that opens a window (programs, terminals), volume enumeration, the GUI's favorites, settings other than the tabs', the favorites and the batch rename options, the GUI outside file operations and the
 file list, or any plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io`,
 `image-processing` and `text-encoding-detector` submodules have their own suites, which this project neither builds
 nor runs. After a `thin_io` change, run `thin_io/scripts/run_tests.bat` (or `.sh`) as well.

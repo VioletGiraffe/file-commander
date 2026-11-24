@@ -6,78 +6,118 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>413</width>
-    <height>381</height>
+    <width>640</width>
+    <height>440</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Favorite locations editor</string>
+   <string>Favorite locations</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QTreeWidget" name="_list">
-     <property name="contextMenuPolicy">
-      <enum>Qt::CustomContextMenu</enum>
+    <widget class="QLineEdit" name="_filter">
+     <property name="placeholderText">
+      <string>Filter by name or path</string>
      </property>
+     <property name="clearButtonEnabled">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QTreeWidget" name="_tree">
      <property name="editTriggers">
-      <set>QAbstractItemView::NoEditTriggers</set>
+      <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
+     </property>
+     <property name="dragDropMode">
+      <enum>QAbstractItemView::InternalMove</enum>
+     </property>
+     <property name="defaultDropAction">
+      <enum>Qt::MoveAction</enum>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::ExtendedSelection</enum>
      </property>
      <property name="selectionBehavior">
       <enum>QAbstractItemView::SelectRows</enum>
      </property>
-     <property name="verticalScrollMode">
-      <enum>QAbstractItemView::ScrollPerItem</enum>
-     </property>
-     <property name="horizontalScrollMode">
-      <enum>QAbstractItemView::ScrollPerPixel</enum>
-     </property>
-     <property name="headerHidden">
+     <property name="uniformRowHeights">
       <bool>true</bool>
      </property>
-     <attribute name="headerVisible">
-      <bool>false</bool>
-     </attribute>
+     <property name="allColumnsShowFocus">
+      <bool>true</bool>
+     </property>
      <column>
       <property name="text">
-       <string notr="true">1</string>
+       <string>Name</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Path</string>
       </property>
      </column>
     </widget>
    </item>
    <item>
-    <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_2">
+    <layout class="QHBoxLayout" name="buttonsLayout">
+     <item>
+      <widget class="QPushButton" name="_btnAddLocation">
        <property name="text">
-        <string>Location</string>
+        <string>Add location</string>
        </property>
-      </widget>
-     </item>
-     <item row="0" column="1" colspan="2">
-      <widget class="QLineEdit" name="_locationEditor">
-       <property name="enabled">
+       <property name="autoDefault">
         <bool>false</bool>
        </property>
       </widget>
      </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label">
+     <item>
+      <widget class="QPushButton" name="_btnAddCategory">
        <property name="text">
-        <string>Name</string>
+        <string>Add category</string>
        </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QLineEdit" name="_nameEditor">
-       <property name="enabled">
+       <property name="autoDefault">
         <bool>false</bool>
        </property>
       </widget>
      </item>
-     <item row="1" column="2">
-      <widget class="QPushButton" name="_btnClose">
+     <item>
+      <widget class="QPushButton" name="_btnAddSeparator">
        <property name="text">
-        <string>Close</string>
+        <string>Add separator</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="_btnDelete">
+       <property name="text">
+        <string>Delete</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="buttonsSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QDialogButtonBox" name="_buttonBox">
+       <property name="standardButtons">
+        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
        </property>
       </widget>
      </item>
@@ -85,23 +125,23 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>_filter</tabstop>
+  <tabstop>_tree</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
-   <sender>_btnClose</sender>
-   <signal>clicked()</signal>
+   <sender>_buttonBox</sender>
+   <signal>accepted()</signal>
    <receiver>CFavoriteLocationsEditor</receiver>
    <slot>accept()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>471</x>
-     <y>436</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>259</x>
-     <y>228</y>
-    </hint>
-   </hints>
+  </connection>
+  <connection>
+   <sender>_buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>CFavoriteLocationsEditor</receiver>
+   <slot>reject()</slot>
   </connection>
  </connections>
 </ui>

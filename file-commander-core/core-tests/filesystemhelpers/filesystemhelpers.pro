@@ -31,4 +31,5 @@ include(../../core.pri)
 SOURCES += \
 	main.cpp \
 	filesystemhelperstests.cpp \
-	filestatisticstests.cpp
+	filestatisticstests.cpp \
+	folderavailabilitycheckertests.cpp

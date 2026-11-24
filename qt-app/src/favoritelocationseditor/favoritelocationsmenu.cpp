@@ -42,10 +42,14 @@ static void addLocationsToMenu(QMenu& menu, std::vector<CLocationsCollection>& l
 			addLocationsToMenu(*menu.addMenu(item.displayName), item.subLocations, context);
 			continue;
 		}
+		if (item.isSeparator())
+		{
+			menu.addSeparator();
+			continue;
+		}
 
 		QAction* const action = menu.addAction(item.displayName);
-		// Typed into the favorites editor: may be relative or hold variables
-		const QString path = resolveUserPath(item.absolutePath, context.currentFolderPosix);
+		const QString path = resolveUserPath(item.path, context.currentFolderPosix);
 		action->setEnabled(!path.isEmpty());
 		if (CFileSystemObject{ path } == CFileSystemObject{ context.currentFolderPosix })
 		{
@@ -62,9 +66,10 @@ static void addLocationsToMenu(QMenu& menu, std::vector<CLocationsCollection>& l
 	QAction* const addFolderAction = menu.addAction(QObject::tr("Add current folder here..."));
 	assert_r(QObject::connect(addFolderAction, &QAction::triggered, addFolderAction,
 		[&favorites = context.favorites, &dialogParent = context.dialogParent, &list = locations, path = toNativeSeparators(context.currentFolderPosix)] {
-		const QString displayName = CFileSystemObject(path).name();
-		const QString name = QInputDialog::getText(&dialogParent, QObject::tr("Enter the name"), QObject::tr("Enter the name to store the current location under"), QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
-		if (name.isEmpty()) // Cancelled, or no name given
+		bool accepted = false;
+		const QString name = QInputDialog::getText(&dialogParent, QObject::tr("Enter the name"), QObject::tr("Enter the name to store the current location under"), QLineEdit::Normal,
+			defaultFavoriteName(path), &accepted);
+		if (!accepted)
 			return;
 
 		if (const auto refusal = favorites.addLocation(list, name, path))
@@ -88,5 +93,5 @@ void fillFavoriteLocationsMenu(QMenu& menu, CFavoriteLocations& favorites, const
 
 	menu.addSeparator();
 	QAction* const edit = menu.addAction(QObject::tr("Edit..."));
-	assert_r(QObject::connect(edit, &QAction::triggered, edit, [parent = &dialogParent] { CFavoriteLocationsEditor(parent).exec(); }));
+	assert_r(QObject::connect(edit, &QAction::triggered, edit, [parent = &dialogParent, currentFolderPosix] { CFavoriteLocationsEditor(parent, currentFolderPosix).exec(); }));
 }

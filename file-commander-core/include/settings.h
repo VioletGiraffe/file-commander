@@ -40,7 +40,9 @@
 #define KEY_LPANEL_VISITED_LOCATIONS QSL("Internal/Core/LPanel/VisitedLocations")
 #define KEY_RPANEL_VISITED_LOCATIONS QSL("Internal/Core/RPanel/VisitedLocations")
 
-#define KEY_FAVORITES QSL("Internal/Core/Favorites")
+#define KEY_FAVORITES QSL("Internal/Core/FavoriteLocations")
+// The favorites in the format of earlier versions, without separators: read only when KEY_FAVORITES is absent
+#define KEY_FAVORITES_LEGACY QSL("Internal/Core/Favorites")
 
 #define KEY_LAST_UPDATE_CHECK_TIMESTAMP QSL("Internal/Interface/Update/LastUpdateCheckTimestamp")
 

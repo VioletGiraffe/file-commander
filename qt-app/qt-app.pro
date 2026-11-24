@@ -57,7 +57,6 @@ SOURCES += \
 	src/progressdialogs/waitwithprogressdialog.cpp \
 	src/settings/csettingspageoperations.cpp \
 	src/favoritelocationseditor/cfavoritelocationseditor.cpp \
-	src/favoritelocationseditor/cnewfavoritelocationdialog.cpp \
 	src/favoritelocationseditor/favoritelocationsmenu.cpp \
 	src/programseditor/cuserprogramsdialog.cpp \
 	src/programseditor/userprogramsui.cpp \
@@ -100,7 +99,6 @@ HEADERS += \
 	src/progressdialogs/waitwithprogressdialog.h \
 	src/settings/csettingspageoperations.h \
 	src/favoritelocationseditor/cfavoritelocationseditor.h \
-	src/favoritelocationseditor/cnewfavoritelocationdialog.h \
 	src/favoritelocationseditor/favoritelocationsmenu.h \
 	src/programseditor/cuserprogramsdialog.h \
 	src/programseditor/userprogramsui.h \
@@ -126,7 +124,6 @@ FORMS += \
 	src/progressdialogs/cfileoperationconfirmationprompt.ui \
 	src/settings/csettingspageoperations.ui \
 	src/favoritelocationseditor/cfavoritelocationseditor.ui \
-	src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
 	src/filessearchdialog/cfilessearchwindow.ui
 
 LIBS += -L$${DESTDIR} -lautoupdater -lqtutils -lcpputils

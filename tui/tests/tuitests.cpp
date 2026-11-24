@@ -5,9 +5,11 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>
+#include <QDataStream>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QIODevice>
 #include <QProcessEnvironment>
 #include <QRegularExpression>
 #include <QSettings>
@@ -1137,6 +1139,38 @@ TEST_CASE("In the favorites, F7 creates a category, Enter opens it, Backspace le
 	session->send(Keys::Enter);
 	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("▸ renamed")) && screen.contains(QStringLiteral("Add folder")); },
 		QStringLiteral("the category removed"));
+}
+
+TEST_CASE("In the favorites, F2 does nothing on a separator, and Del removes it", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/in-work.txt"));
+	sandbox.createFile(QStringLiteral("other/in-other.txt"));
+	{
+		// CFavoriteLocations' format: the item count, then each item's kind (0 location, 2 separator), and a location's name and path
+		QByteArray favorites;
+		QDataStream stream{ &favorites, QIODevice::WriteOnly };
+		stream.setVersion(QDataStream::Qt_6_0);
+		stream << quint32{ 2 } << quint8{ 2 } << quint8{ 0 } << QStringLiteral("work") << sandbox.work({});
+		QSettings settings{ sandbox.path(QStringLiteral("settings/GitHubSoft/File Commander.ini")), QSettings::IniFormat };
+		settings.setValue(QStringLiteral("Internal/Core/FavoriteLocations"), favorites);
+	}
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.path(QStringLiteral("other")), QStringLiteral("in-other.txt"));
+
+	session->send(Keys::CtrlD);
+	requireText(*session, QStringLiteral("Add folder"));
+	// The cursor starts on the separator. Had F2 opened a prompt, Del would not reach the dialog.
+	session->send(Keys::F2);
+	session->send(Keys::Delete);
+	requireText(*session, QStringLiteral("Remove the separator?"));
+	session->send(Keys::Enter);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Remove the separator?")) && screen.contains(QStringLiteral("Add folder")); },
+		QStringLiteral("the separator removed"));
+
+	session->send(Keys::Enter); // On "work" now
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Add folder")) && panelLists(screen, QStringLiteral("in-work.txt")); },
+		QStringLiteral("the panel in the favorite folder"));
 }
 
 TEST_CASE("Ctrl+B lists every file below the folder in one list, and Backspace returns to the folder", "[tui]")

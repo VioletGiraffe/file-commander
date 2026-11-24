@@ -1,5 +1,7 @@
 #include "cfavoritelocations.h"
 
+#include "filesystemhelperfunctions.h"
+
 
 // Submodule includes
 #include "assert/advanced_assert.h"
@@ -8,6 +10,9 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QByteArray>
+#include <QDataStream>
+#include <QDir>
+#include <QIODevice>
 #include <QObject>
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
@@ -15,67 +20,86 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <stack>
 
-// Each item is its name and its path, each an int length and UTF-8 bytes, then an int marker:
+using Kind = CLocationsCollection::Kind;
+
+// The data is a quint32 count of the top-level items, then the items. Each item is its Kind as a quint8, then:
+//   Location - its name and path
+//   Category - its name, a quint32 count of its items, then the items
+//   Separator - nothing
+// A different layout goes under a new settings key: earlier versions keep reading this one.
+static void writeItem(QDataStream& stream, const CLocationsCollection& item)
+{
+	stream << static_cast<quint8>(item.kind);
+	switch (item.kind)
+	{
+	case Kind::Location:
+		stream << item.displayName << item.path;
+		break;
+	case Kind::Category:
+		stream << item.displayName << static_cast<quint32>(item.subLocations.size());
+		for (const CLocationsCollection& subItem : item.subLocations)
+			writeItem(stream, subItem);
+		break;
+	case Kind::Separator:
+		break;
+	}
+}
+
+// False at the first item that fails to read: settings data may be truncated or corrupted. The items read before it are kept.
+// depth: of the categories holding `items`
+static bool readItems(QDataStream& stream, const quint32 count, std::vector<CLocationsCollection>& items, const int depth)
+{
+	// Deeper nesting is corrupted data, and each level takes a stack frame
+	static constexpr int MaxDepth = 100;
+	if (count > 0 && depth > MaxDepth)
+		return false;
+
+	for (quint32 i = 0; i < count; ++i)
+	{
+		quint8 kind = 0;
+		stream >> kind;
+		CLocationsCollection item;
+		quint32 subItemCount = 0;
+		switch (static_cast<Kind>(kind))
+		{
+		case Kind::Location:
+			item = CLocationsCollection::location({}, {});
+			stream >> item.displayName >> item.path;
+			break;
+		case Kind::Category:
+			item = CLocationsCollection::category({});
+			stream >> item.displayName >> subItemCount;
+			break;
+		case Kind::Separator:
+			item = CLocationsCollection::separator();
+			break;
+		default:
+			return false;
+		}
+
+		if (stream.status() != QDataStream::Ok)
+			return false;
+
+		items.push_back(std::move(item));
+		if (!readItems(stream, subItemCount, items.back().subLocations, depth + 1))
+			return false;
+	}
+	return true;
+}
+
+// The format of earlier versions: each item is its name and its path, each an int length and UTF-8 bytes, then an int marker:
 //   NoMarker - the next item is on the same level
 //   NextLevel - the item's subLocations follow
 //   LevelEnded + n - 1 - the item is the last of n levels, its own included
+// An item without a path is a category.
 constexpr int NoMarker = 0, NextLevel = 1, LevelEnded = 2;
 
-static void appendInt(QByteArray& dest, const int value)
+static std::vector<CLocationsCollection> legacyFormatItems(const QByteArray& data)
 {
-	dest.append(reinterpret_cast<const char*>(&value), sizeof(value));
-}
-
-// levelsEnded: how many levels end with this item, its own included
-static void serialize(QByteArray& dest, const CLocationsCollection& source, const int levelsEnded)
-{
-	const QByteArray name = source.displayName.toUtf8();
-	assert_r(!name.isEmpty());
-	appendInt(dest, static_cast<int>(name.size()));
-	dest.append(name);
-
-	const QByteArray path = source.absolutePath.toUtf8();
-	appendInt(dest, static_cast<int>(path.size()));
-	dest.append(path);
-
-	if (source.subLocations.empty())
-	{
-		appendInt(dest, levelsEnded == 0 ? NoMarker : LevelEnded + levelsEnded - 1);
-		return;
-	}
-
-	appendInt(dest, NextLevel);
-	const size_t count = source.subLocations.size();
-	for (size_t i = 0; i < count; ++i)
-		serialize(dest, source.subLocations[i], i + 1 == count ? levelsEnded + 1 : 0);
-}
-
-CFavoriteLocations::CFavoriteLocations(QString settingsKey) :
-	_settingsKey{std::move(settingsKey)}
-{
-	load();
-}
-
-CFavoriteLocations::~CFavoriteLocations()
-{
-	save();
-}
-
-std::vector<CLocationsCollection>& CFavoriteLocations::locations()
-{
-	return _items;
-}
-
-void CFavoriteLocations::load()
-{
-	const QByteArray data = QSettings().value(_settingsKey).toByteArray();
-	if (data.isEmpty())
-		return;
-
+	std::vector<CLocationsCollection> items;
 	int currentPosition = 0;
-	_items.clear();
 	std::stack<std::reference_wrapper<std::vector<CLocationsCollection>>> currentList;
-	currentList.push(std::ref(_items));
+	currentList.push(std::ref(items));
 
 	// Guards against corrupted or truncated settings data, which would otherwise cause out-of-bounds reads below.
 	const auto canRead = [&data](int pos, int n) {
@@ -108,7 +132,7 @@ void CFavoriteLocations::load()
 			currentPosition += length;
 		}
 
-		currentList.top().get().emplace_back(displayName, path);
+		currentList.top().get().push_back(path.isEmpty() ? CLocationsCollection::category(displayName) : CLocationsCollection::location(displayName, path));
 
 		if (!canRead(currentPosition, static_cast<int>(sizeof(int))))
 			break;
@@ -121,51 +145,82 @@ void CFavoriteLocations::load()
 		for (int levelsEnded = marker >= LevelEnded ? marker - LevelEnded + 1 : 0; levelsEnded > 0 && currentList.size() > 1; --levelsEnded)
 			currentList.pop();
 	}
+	return items;
 }
 
-// skippedIndex: the item being edited, which may keep its own name and path
-static std::optional<UserMessage> refusalFor(const std::vector<CLocationsCollection>& list, const std::optional<size_t> skippedIndex, const QString& name,
-	const QString& path, const bool isLocation)
+QString defaultFavoriteName(const QString& path)
 {
-	const auto refusal = [](const QString& text) {
-		return UserMessage{ MessageSeverity::Information, QObject::tr("Similar item already exists"), text };
-	};
-	const auto anyOther = [&](const auto& matches) {
-		for (size_t i = 0; i < list.size(); ++i)
-		{
-			if (i != skippedIndex && matches(list[i]))
-				return true;
-		}
-		return false;
-	};
+	const QString lastComponent = QDir::cleanPath(toPosixSeparators(path)).section(u'/', -1);
+	return lastComponent.isEmpty() ? path : lastComponent;
+}
 
-	if (name.isEmpty())
+CFavoriteLocations::CFavoriteLocations(QString settingsKey, QString legacySettingsKey) :
+	_settingsKey{std::move(settingsKey)},
+	_legacySettingsKey{std::move(legacySettingsKey)}
+{
+	load();
+}
+
+CFavoriteLocations::~CFavoriteLocations()
+{
+	save();
+}
+
+std::vector<CLocationsCollection>& CFavoriteLocations::locations()
+{
+	return _items;
+}
+
+void CFavoriteLocations::setLocations(std::vector<CLocationsCollection> locations)
+{
+	_items = std::move(locations);
+	save();
+}
+
+void CFavoriteLocations::load()
+{
+	QSettings settings;
+	if (!settings.contains(_settingsKey))
+	{
+		_items = legacyFormatItems(settings.value(_legacySettingsKey).toByteArray());
+		return;
+	}
+
+	QByteArray data = settings.value(_settingsKey).toByteArray();
+	QDataStream stream{ &data, QIODevice::ReadOnly };
+	stream.setVersion(QDataStream::Qt_6_0);
+	quint32 count = 0;
+	stream >> count;
+	_items.clear();
+	if (stream.status() == QDataStream::Ok)
+		readItems(stream, count, _items, 0);
+}
+
+static std::optional<UserMessage> refusalFor(const Kind kind, const QString& name, const QString& path)
+{
+	if (kind == Kind::Category && name.isEmpty())
 		return UserMessage{ MessageSeverity::Information, QObject::tr("No name"), QObject::tr("The name cannot be empty.") };
-	if (isLocation && path.isEmpty())
+	if (kind == Kind::Location && path.isEmpty())
 		return UserMessage{ MessageSeverity::Information, QObject::tr("No location"), QObject::tr("The location cannot be empty.") };
-	if (isLocation && anyOther([&path](const CLocationsCollection& item) { return item.absolutePath == path; }))
-		return refusal(QObject::tr("This item already exists here (possibly under a different name)."));
-	if (anyOther([&name](const CLocationsCollection& item) { return item.displayName == name; }))
-		return refusal(QObject::tr("An item with the same name already exists here (possibly pointing to a different location)."));
 	return {};
 }
 
 std::optional<UserMessage> CFavoriteLocations::addLocation(std::vector<CLocationsCollection>& list, const QString& name, const QString& path)
 {
-	if (auto refusal = refusalFor(list, std::nullopt, name, path, true))
+	if (auto refusal = refusalFor(Kind::Location, name, path))
 		return refusal;
 
-	list.emplace_back(name, path);
+	list.push_back(CLocationsCollection::location(name.isEmpty() ? defaultFavoriteName(path) : name, path));
 	save();
 	return {};
 }
 
 std::optional<UserMessage> CFavoriteLocations::addCategory(std::vector<CLocationsCollection>& list, const QString& name)
 {
-	if (auto refusal = refusalFor(list, std::nullopt, name, {}, false))
+	if (auto refusal = refusalFor(Kind::Category, name, {}))
 		return refusal;
 
-	list.emplace_back(name);
+	list.push_back(CLocationsCollection::category(name));
 	save();
 	return {};
 }
@@ -174,12 +229,13 @@ std::optional<UserMessage> CFavoriteLocations::editItem(std::vector<CLocationsCo
 {
 	assert_and_return_r(index < list.size(), {});
 	CLocationsCollection& item = list[index];
+	assert_and_return_r(!item.isSeparator(), {});
 	assert_and_return_r(!item.isCategory() || path.isEmpty(), {});
-	if (auto refusal = refusalFor(list, index, name, path, !item.isCategory()))
+	if (auto refusal = refusalFor(item.kind, name, path))
 		return refusal;
 
-	item.displayName = name;
-	item.absolutePath = path;
+	item.displayName = item.isCategory() || !name.isEmpty() ? name : defaultFavoriteName(path);
+	item.path = path;
 	save();
 	return {};
 }
@@ -194,7 +250,10 @@ void CFavoriteLocations::removeItem(std::vector<CLocationsCollection>& list, con
 void CFavoriteLocations::save()
 {
 	QByteArray data;
+	QDataStream stream{ &data, QIODevice::WriteOnly };
+	stream.setVersion(QDataStream::Qt_6_0);
+	stream << static_cast<quint32>(_items.size());
 	for (const CLocationsCollection& item : _items)
-		serialize(data, item, 0);
+		writeItem(stream, item);
 	QSettings().setValue(_settingsKey, data);
 }

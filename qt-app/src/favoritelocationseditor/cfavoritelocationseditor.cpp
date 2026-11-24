@@ -1,67 +1,260 @@
 #include "cfavoritelocationseditor.h"
 
-#include "cnewfavoritelocationdialog.h"
 #include "ccontroller.h"
+#include "diskenumerator/volumeinfo.hpp"
+#include "filesystemhelperfunctions.h"
 
 
 // Submodule includes
 #include "assert/advanced_assert.h"
-#include "fileoperationsui/usermessagebox.h"
 
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfavoritelocationseditor.h"
 
-#include <QMenu>
-#include <QMessageBox>
+#include <QAbstractItemView>
+#include <QApplication>
+#include <QBrush>
+#include <QFileDialog>
+#include <QFont>
+#include <QHeaderView>
+#include <QItemSelectionModel>
+#include <QKeySequence>
+#include <QLineEdit>
+#include <QMouseEvent>
+#include <QPainter>
+#include <QPalette>
+#include <QPersistentModelIndex>
+#include <QPushButton>
+#include <QShortcut>
+#include <QStyle>
+#include <QStyleOptionButton>
+#include <QStyledItemDelegate>
+#include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 RESTORE_COMPILER_WARNINGS
 
-// Shows a category in bold.
-// Refers to its data by an iterator, valid until a change to the favorites rebuilds the tree.
-class CFavoriteLocationsListItem final : public QTreeWidgetItem
+#include <functional>
+#include <utility>
+#include <vector>
+
+using Kind = CLocationsCollection::Kind;
+
+namespace {
+
+enum Column { NameColumn = 0, PathColumn = 1 };
+constexpr int KindRole = Qt::UserRole; // In NameColumn
+constexpr int ResolvedPathRole = Qt::UserRole + 1; // In PathColumn: resolveUserPath() of the path text
+
+Kind kindOf(const QModelIndex& index)
+{
+	return static_cast<Kind>(index.siblingAtColumn(NameColumn).data(KindRole).toInt());
+}
+
+Kind kindOf(const QTreeWidgetItem* item)
+{
+	return static_cast<Kind>(item->data(NameColumn, KindRole).toInt());
+}
+
+// Draws a separator as a line, and a browse button in the current location's path.
+// Editing keeps a category's name and a location's path when they are cleared, and names a location without a name after its folder.
+class CFavoritesItemDelegate final : public QStyledItemDelegate
 {
 public:
-	CFavoriteLocationsListItem(std::vector<CLocationsCollection>& parentList, const std::vector<CLocationsCollection>::iterator dataItemIterator) :
-		QTreeWidgetItem(QStringList{ dataItemIterator->displayName }),
-		_itemIterator(dataItemIterator),
-		_parentList(parentList)
+	CFavoritesItemDelegate(QObject* parent, std::function<void(const QModelIndex& pathIndex)> browseForFolder) :
+		QStyledItemDelegate(parent),
+		_browseForFolder(std::move(browseForFolder))
+	{}
+
+	void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
 	{
-		if (isCategory())
+		const QStyle* const style = option.widget ? option.widget->style() : QApplication::style();
+		if (kindOf(index) == Kind::Separator)
 		{
-			QFont boldFont = font(0);
-			boldFont.setBold(true);
-			setFont(0, boldFont);
+			QStyleOptionViewItem itemOption = option;
+			initStyleOption(&itemOption, index);
+			style->drawPrimitive(QStyle::PE_PanelItemViewItem, &itemOption, painter, option.widget);
+
+			painter->save();
+			painter->setPen(option.palette.color(QPalette::Mid));
+			const int y = option.rect.center().y();
+			painter->drawLine(option.rect.left(), y, option.rect.right(), y);
+			painter->restore();
+			return;
 		}
+
+		if (!hasBrowseButton(option, index))
+		{
+			QStyledItemDelegate::paint(painter, option, index);
+			return;
+		}
+
+		const QRect buttonRect = browseButtonRect(option.rect);
+		QStyleOptionViewItem textOption = option;
+		textOption.rect.setRight(buttonRect.left() - 1);
+		QStyledItemDelegate::paint(painter, textOption, index);
+
+		QStyleOptionButton button;
+		button.initFrom(option.widget);
+		button.rect = buttonRect;
+		button.text = QStringLiteral("...");
+		button.state = QStyle::State_Enabled | QStyle::State_Raised;
+		style->drawControl(QStyle::CE_PushButton, &button, painter, option.widget);
 	}
 
-	CFavoriteLocationsListItem& operator=(const CFavoriteLocationsListItem&) = delete;
+	bool editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option, const QModelIndex& index) override
+	{
+		const QEvent::Type type = event->type();
+		if (type != QEvent::MouseButtonPress && type != QEvent::MouseButtonRelease && type != QEvent::MouseButtonDblClick)
+			return QStyledItemDelegate::editorEvent(event, model, option, index);
 
-	[[nodiscard]] std::vector<CLocationsCollection>::iterator itemIterator() const { return _itemIterator; }
-	[[nodiscard]] std::vector<CLocationsCollection>& list() const { return _parentList; }
-	[[nodiscard]] size_t index() const { return (size_t)(_itemIterator - _parentList.begin()); }
-	[[nodiscard]] bool isCategory() const { return _itemIterator->isCategory(); }
+		const bool onButton = hasBrowseButton(option, index) && browseButtonRect(option.rect).contains(static_cast<QMouseEvent*>(event)->position().toPoint());
+		if (type == QEvent::MouseButtonRelease)
+		{
+			// A press can make the row current, and with it draw the button under the cursor: only a press on a drawn button counts
+			const bool clicked = onButton && _pressedBrowseButton == index;
+			_pressedBrowseButton = {};
+			if (clicked)
+			{
+				_browseForFolder(index);
+				return true;
+			}
+		}
+		else if (onButton)
+		{
+			if (type == QEvent::MouseButtonPress)
+				_pressedBrowseButton = index;
+			return true;
+		}
+		return QStyledItemDelegate::editorEvent(event, model, option, index);
+	}
+
+	void updateEditorGeometry(QWidget* editor, const QStyleOptionViewItem& option, const QModelIndex& index) const override
+	{
+		QStyledItemDelegate::updateEditorGeometry(editor, option, index);
+		// Leaves the browse button clickable while the path is edited
+		if (hasBrowseButton(option, index))
+			editor->setGeometry(editor->geometry().adjusted(0, 0, -browseButtonRect(option.rect).width(), 0));
+	}
+
+	QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& /*option*/, const QModelIndex& index) const override
+	{
+		const Kind kind = kindOf(index);
+		if (kind == Kind::Separator || (kind == Kind::Category && index.column() == PathColumn))
+			return nullptr;
+
+		auto* const editor = new QLineEdit(parent);
+		editor->setFrame(false);
+		return editor;
+	}
+
+	void setEditorData(QWidget* editor, const QModelIndex& index) const override
+	{
+		static_cast<QLineEdit*>(editor)->setText(index.data(Qt::EditRole).toString());
+	}
+
+	void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override
+	{
+		QString text = static_cast<QLineEdit*>(editor)->text();
+		if (text.isEmpty())
+		{
+			if (index.column() == PathColumn || kindOf(index) == Kind::Category)
+				return;
+			text = defaultFavoriteName(index.siblingAtColumn(PathColumn).data().toString());
+		}
+		model->setData(index, text, Qt::EditRole);
+	}
 
 private:
-	const std::vector<CLocationsCollection>::iterator _itemIterator;
-	std::vector<CLocationsCollection>& _parentList;
+	[[nodiscard]] static bool hasBrowseButton(const QStyleOptionViewItem& option, const QModelIndex& index)
+	{
+		if (index.column() != PathColumn || kindOf(index) != Kind::Location)
+			return false;
+
+		const auto* const view = qobject_cast<const QAbstractItemView*>(option.widget);
+		return view && view->currentIndex().siblingAtColumn(PathColumn) == index;
+	}
+
+	[[nodiscard]] static QRect browseButtonRect(const QRect& cellRect)
+	{
+		const int width = cellRect.height() + 8;
+		return { cellRect.right() - width + 1, cellRect.top(), width, cellRect.height() };
+	}
+
+private:
+	const std::function<void(const QModelIndex& pathIndex)> _browseForFolder;
+	QPersistentModelIndex _pressedBrowseButton; // The cell whose drawn button the mouse was pressed on
 };
 
-CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget *parent) noexcept :
+CLocationsCollection collectionOf(const QTreeWidgetItem* item)
+{
+	switch (kindOf(item))
+	{
+	case Kind::Location:
+		return CLocationsCollection::location(item->text(NameColumn), item->text(PathColumn));
+	case Kind::Separator:
+		return CLocationsCollection::separator();
+	case Kind::Category:
+		break;
+	}
+
+	CLocationsCollection category = CLocationsCollection::category(item->text(NameColumn));
+	for (int i = 0; i < item->childCount(); ++i)
+		category.subLocations.push_back(collectionOf(item->child(i)));
+	return category;
+}
+
+std::vector<QString> volumeRoots()
+{
+	std::vector<QString> roots;
+	for (const VolumeInfo& volume : CController::get().volumes())
+		roots.push_back(volume.rootObjectInfo.fullAbsolutePath());
+	return roots;
+}
+
+} // namespace
+
+CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget* parent, QString currentFolderPosix) :
 	QDialog(parent),
 	ui(new Ui::CFavoriteLocationsEditor),
-	_locations(CController::get().favoriteLocations()),
-	_currentItem(nullptr)
+	_favorites(CController::get().favoriteLocations()),
+	_currentFolderPosix(std::move(currentFolderPosix)),
+	_availabilityChecker(volumeRoots())
 {
 	ui->setupUi(this);
 
-	connect(ui->_list, &QTreeWidget::currentItemChanged, this, &CFavoriteLocationsEditor::currentItemChanged);
-	connect(ui->_list, &QTreeWidget::customContextMenuRequested, this, &CFavoriteLocationsEditor::contextMenu);
+	_availabilityPollTimer.setInterval(100);
+	connect(&_availabilityPollTimer, &QTimer::timeout, this, &CFavoriteLocationsEditor::showFinishedAvailabilityChecks);
 
-	connect(ui->_nameEditor, &QLineEdit::editingFinished, this, &CFavoriteLocationsEditor::applyFieldEdits);
-	connect(ui->_locationEditor, &QLineEdit::editingFinished, this, &CFavoriteLocationsEditor::applyFieldEdits);
+	QTreeWidget* const tree = ui->_tree;
+	tree->setItemDelegate(new CFavoritesItemDelegate(tree, [this](const QModelIndex& pathIndex) { browseForFolder(ui->_tree->itemFromIndex(pathIndex)); }));
+	tree->header()->resizeSection(NameColumn, width() / 3);
 
-	fillUI(nullptr);
+	// Filling, adding and moving all insert items, so every category starts expanded
+	connect(tree->model(), &QAbstractItemModel::rowsInserted, this, [tree](const QModelIndex& parentIndex, const int first, const int last) {
+		for (int row = first; row <= last; ++row)
+			tree->expandRecursively(tree->model()->index(row, NameColumn, parentIndex));
+	});
+	connect(tree, &QTreeWidget::itemChanged, this, [this](QTreeWidgetItem* item, const int column) {
+		if (column == PathColumn && kindOf(item) == Kind::Location)
+			updateAvailability(item);
+	});
+
+	for (const CLocationsCollection& location : _favorites.locations())
+		tree->addTopLevelItem(newTreeItem(location));
+
+	connect(ui->_btnAddLocation, &QPushButton::clicked, this, [this] {
+		const QString path = toNativeSeparators(_currentFolderPosix);
+		insertNewItem(CLocationsCollection::location(defaultFavoriteName(path), path));
+	});
+	connect(ui->_btnAddCategory, &QPushButton::clicked, this, [this] { insertNewItem(CLocationsCollection::category(tr("New category"))); });
+	connect(ui->_btnAddSeparator, &QPushButton::clicked, this, [this] { insertNewItem(CLocationsCollection::separator()); });
+	connect(ui->_btnDelete, &QPushButton::clicked, this, &CFavoriteLocationsEditor::deleteSelectedItems);
+	connect(ui->_filter, &QLineEdit::textChanged, this, &CFavoriteLocationsEditor::applyFilter);
+
+	new QShortcut(QKeySequence::Delete, tree, [this] { deleteSelectedItems(); }, Qt::WidgetShortcut);
+	for (const Qt::Key key : { Qt::Key_Up, Qt::Key_Down, Qt::Key_Left, Qt::Key_Right })
+		new QShortcut(QKeySequence{ Qt::ALT | key }, tree, [this, key] { moveCurrentItem(key); }, Qt::WidgetShortcut);
 }
 
 CFavoriteLocationsEditor::~CFavoriteLocationsEditor()
@@ -69,137 +262,234 @@ CFavoriteLocationsEditor::~CFavoriteLocationsEditor()
 	delete ui;
 }
 
-void CFavoriteLocationsEditor::done(const int result)
+void CFavoriteLocationsEditor::accept()
 {
-	if (applyFieldEdits())
-		QDialog::done(result);
+	std::vector<CLocationsCollection> locations;
+	for (int i = 0; i < ui->_tree->topLevelItemCount(); ++i)
+		locations.push_back(collectionOf(ui->_tree->topLevelItem(i)));
+	_favorites.setLocations(std::move(locations));
+
+	QDialog::accept();
 }
 
-void CFavoriteLocationsEditor::currentItemChanged(QTreeWidgetItem* const current, QTreeWidgetItem* /*previous*/)
+QTreeWidgetItem* CFavoriteLocationsEditor::newTreeItem(const CLocationsCollection& data)
 {
-	applyFieldEdits(); // To the item that was current
-	_currentItem = dynamic_cast<CFavoriteLocationsListItem*>(current);
+	auto* const item = new QTreeWidgetItem;
+	item->setData(NameColumn, KindRole, static_cast<int>(data.kind));
 
-	ui->_nameEditor->setEnabled(_currentItem != nullptr);
-	ui->_locationEditor->setEnabled(_currentItem && !_currentItem->isCategory());
-	ui->_nameEditor->setText(_currentItem ? _currentItem->itemIterator()->displayName : QString{});
-	ui->_locationEditor->setText(_currentItem ? _currentItem->itemIterator()->absolutePath : QString{});
-}
+	Qt::ItemFlags flags = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsDragEnabled;
+	if (!data.isSeparator())
+		flags |= Qt::ItemIsEditable;
+	if (data.isCategory())
+		flags |= Qt::ItemIsDropEnabled; // Items dropped onto a location or a separator go next to it
+	item->setFlags(flags);
 
-bool CFavoriteLocationsEditor::applyFieldEdits()
-{
-	if (!_currentItem)
-		return true;
+	item->setText(NameColumn, data.displayName);
+	item->setText(PathColumn, data.path);
 
-	const CLocationsCollection& stored = *_currentItem->itemIterator();
-	const QString name = ui->_nameEditor->text();
-	const QString location = _currentItem->isCategory() ? QString{} : ui->_locationEditor->text();
-	if (name == stored.displayName && location == stored.absolutePath)
-		return true;
-
-	if (const auto refusal = _locations.editItem(_currentItem->list(), _currentItem->index(), name, location))
+	if (data.isCategory())
 	{
-		// Restored before the message: the focus the message takes ends the editing again
-		ui->_nameEditor->setText(stored.displayName);
-		ui->_locationEditor->setText(stored.absolutePath);
-		showUserMessage(this, *refusal);
-		return false;
+		QFont boldFont = item->font(NameColumn);
+		boldFont.setBold(true);
+		item->setFont(NameColumn, boldFont);
+
+		for (const CLocationsCollection& subItem : data.subLocations)
+			item->addChild(newTreeItem(subItem));
+	}
+	else if (!data.isSeparator())
+		updateAvailability(item);
+
+	return item;
+}
+
+void CFavoriteLocationsEditor::insertNewItem(const CLocationsCollection& data)
+{
+	ui->_filter->clear(); // So that the new item shows
+
+	QTreeWidget* const tree = ui->_tree;
+	QTreeWidgetItem* const current = tree->currentItem();
+	QTreeWidgetItem* const item = newTreeItem(data);
+	if (!current)
+		tree->addTopLevelItem(item);
+	else if (QTreeWidgetItem* const parent = current->parent())
+		parent->insertChild(parent->indexOfChild(current) + 1, item);
+	else
+		tree->insertTopLevelItem(tree->indexOfTopLevelItem(current) + 1, item);
+
+	tree->setCurrentItem(item);
+	if (!data.isSeparator())
+		tree->editItem(item, NameColumn);
+}
+
+void CFavoriteLocationsEditor::deleteSelectedItems()
+{
+	std::vector<QTreeWidgetItem*> itemsToDelete;
+	for (QTreeWidgetItem* const item : ui->_tree->selectedItems())
+	{
+		// An item stays selected when the filter hides it
+		if (item->isHidden())
+			continue;
+
+		// An item in a selected category goes with the category
+		bool inSelectedCategory = false;
+		for (const QTreeWidgetItem* parent = item->parent(); parent && !inSelectedCategory; parent = parent->parent())
+			inSelectedCategory = parent->isSelected();
+		if (!inSelectedCategory)
+			itemsToDelete.push_back(item);
 	}
 
-	_currentItem->setText(0, name);
-	return true;
+	for (QTreeWidgetItem* const item : itemsToDelete)
+		delete item;
 }
 
-void CFavoriteLocationsEditor::contextMenu(const QPoint& pos)
+void CFavoriteLocationsEditor::browseForFolder(QTreeWidgetItem* const item)
 {
-	if (!applyFieldEdits())
+	assert_and_return_r(item, );
+
+	// Opening a folder that was not found could block the dialog: it may be on an unreachable network share
+	const QString resolvedPath = item->data(PathColumn, ResolvedPathRole).toString();
+	const QString startFolder = _folderAvailability.value(resolvedPath, false) ? resolvedPath : _currentFolderPosix;
+	const QString folder = QFileDialog::getExistingDirectory(this, tr("Choose the folder"), startFolder);
+	if (!folder.isEmpty())
+		item->setText(PathColumn, toNativeSeparators(folder));
+}
+
+void CFavoriteLocationsEditor::moveCurrentItem(const Qt::Key key)
+{
+	// A move among hidden items would land where the user cannot see, so moves need the whole tree, as drags do
+	if (!ui->_filter->text().isEmpty())
 		return;
 
-	auto* const item = dynamic_cast<CFavoriteLocationsListItem*>(ui->_list->itemAt(pos));
-	// A new item goes into the category clicked, next to the location clicked, or at the top level
-	const auto listForNewItem = [this, item]() -> std::vector<CLocationsCollection>& {
-		if (!item)
-			return _locations.locations();
-		return item->isCategory() ? item->itemIterator()->subLocations : item->list();
+	QTreeWidgetItem* const item = ui->_tree->currentItem();
+	if (!item)
+		return;
+
+	QTreeWidgetItem* const root = ui->_tree->invisibleRootItem();
+	QTreeWidgetItem* const parent = item->parent() ? item->parent() : root;
+	const int index = parent->indexOfChild(item);
+
+	QTreeWidgetItem* newParent = parent;
+	int newIndex = index;
+	switch (key)
+	{
+	case Qt::Key_Up:
+		newIndex = index - 1;
+		break;
+	case Qt::Key_Down:
+		newIndex = index + 1;
+		break;
+	case Qt::Key_Left:
+		if (parent == root)
+			return;
+		newParent = parent->parent() ? parent->parent() : root;
+		newIndex = newParent->indexOfChild(parent) + 1;
+		break;
+	case Qt::Key_Right:
+		if (index == 0 || kindOf(parent->child(index - 1)) != Kind::Category)
+			return;
+		newParent = parent->child(index - 1);
+		newIndex = newParent->childCount();
+		break;
+	default:
+		assert_and_return_r(false, );
+	}
+
+	if (newParent == parent && (newIndex < 0 || newIndex >= parent->childCount()))
+		return;
+
+	parent->takeChild(index);
+	newParent->insertChild(newIndex, item);
+	ui->_tree->setCurrentItem(item);
+}
+
+void CFavoriteLocationsEditor::applyFilter(const QString& text)
+{
+	// categoryMatched: an item in a matching category shows, separators included
+	const std::function<bool(QTreeWidgetItem*, bool)> filterItem = [&](QTreeWidgetItem* const item, const bool categoryMatched) {
+		const bool matches = categoryMatched || (kindOf(item) != Kind::Separator
+			&& (item->text(NameColumn).contains(text, Qt::CaseInsensitive) || item->text(PathColumn).contains(text, Qt::CaseInsensitive)));
+
+		bool childShown = false;
+		for (int i = 0; i < item->childCount(); ++i)
+		{
+			if (filterItem(item->child(i), matches))
+				childShown = true;
+		}
+
+		const bool shown = text.isEmpty() || matches || childShown;
+		item->setHidden(!shown);
+		if (childShown && !text.isEmpty())
+			item->setExpanded(true);
+		return shown;
 	};
 
-	QMenu menu;
-	QAction * addItemAction = nullptr;
-	if (!item || item->isCategory())
-		addItemAction = menu.addAction(tr("Add item..."));
-	else
+	for (int i = 0; i < ui->_tree->topLevelItemCount(); ++i)
+		filterItem(ui->_tree->topLevelItem(i), false);
+
+	// F2 edits the current item, so it must be one that shows
+	if (const QTreeWidgetItem* const current = ui->_tree->currentItem(); current && current->isHidden())
 	{
-		addItemAction = menu.addAction(tr("You can only add nested items to categories, not to end items"));
-		addItemAction->setEnabled(false);
+		const QTreeWidgetItemIterator firstShown{ ui->_tree, QTreeWidgetItemIterator::NotHidden };
+		ui->_tree->selectionModel()->setCurrentIndex(*firstShown ? ui->_tree->indexFromItem(*firstShown) : QModelIndex{}, QItemSelectionModel::NoUpdate);
 	}
 
-	connect(addItemAction, &QAction::triggered, this, [this, listForNewItem](){
-		CNewFavoriteLocationDialog dialog(this, false);
-		if (dialog.exec() != QDialog::Accepted)
-			return;
-
-		std::vector<CLocationsCollection>& list = listForNewItem();
-		if (const auto refusal = _locations.addLocation(list, dialog.name(), dialog.location()))
-			showUserMessage(this, *refusal);
-		else
-			fillUI(&list.back());
-	});
-
-	connect(menu.addAction(tr("Add category...")), &QAction::triggered, this, [this, listForNewItem](){
-		CNewFavoriteLocationDialog dialog(this, true);
-		if (dialog.exec() != QDialog::Accepted)
-			return;
-
-		std::vector<CLocationsCollection>& list = listForNewItem();
-		if (const auto refusal = _locations.addCategory(list, dialog.name()))
-			showUserMessage(this, *refusal);
-		else
-			fillUI(&list.back());
-	});
-
-	if (item)
-	{
-		connect(menu.addAction(tr("Remove item")), &QAction::triggered, this, [this, item]() {
-			if (item->isCategory() && QMessageBox::question(this, tr("Delete the item?"), tr("Are you sure you want to delete this category and all its sub-items?")) != QMessageBox::Yes)
-				return;
-
-			_locations.removeItem(item->list(), item->index());
-			fillUI(nullptr);
-		});
-	}
-
-	menu.exec(ui->_list->mapToGlobal(pos));
+	// Dropping among hidden items is as ambiguous as moving among them: see moveCurrentItem()
+	ui->_tree->setDragDropMode(text.isEmpty() ? QAbstractItemView::InternalMove : QAbstractItemView::NoDragDrop);
 }
 
-void CFavoriteLocationsEditor::fillUI(const CLocationsCollection* const current)
+void CFavoriteLocationsEditor::updateAvailability(QTreeWidgetItem* const item)
 {
-	_currentItem = nullptr;
-	ui->_list->clear();
-	for (auto it = _locations.locations().begin(); it != _locations.locations().end(); ++it)
-		addLocationsToTreeWidget(_locations.locations(), it, nullptr);
+	const QString resolvedPath = resolveUserPath(item->text(PathColumn), _currentFolderPosix);
+	// itemChanged also reports the roles set below and in showAvailability()
+	if (const QVariant shownPath = item->data(PathColumn, ResolvedPathRole); shownPath.isValid() && shownPath.toString() == resolvedPath)
+		return;
 
-	QTreeWidgetItem* currentItem = nullptr;
-	for (QTreeWidgetItemIterator it{ ui->_list }; current && *it; ++it)
+	item->setData(PathColumn, ResolvedPathRole, resolvedPath);
+	if (resolvedPath.isEmpty())
 	{
-		if (&*dynamic_cast<CFavoriteLocationsListItem*>(*it)->itemIterator() == current)
+		showAvailability(item, false);
+		return;
+	}
+
+	if (const auto known = _folderAvailability.constFind(resolvedPath); known != _folderAvailability.cend())
+	{
+		showAvailability(item, *known);
+		return;
+	}
+
+	showAvailability(item, std::nullopt);
+	_availabilityChecker.check(resolvedPath);
+	_availabilityPollTimer.start();
+}
+
+void CFavoriteLocationsEditor::showAvailability(QTreeWidgetItem* const item, const std::optional<bool> available)
+{
+	QString toolTip;
+	if (!available)
+		toolTip = tr("Checking whether the folder exists...");
+	else if (!*available)
+		toolTip = tr("The folder was not found");
+
+	const QVariant foreground = available == true ? QVariant{} : QVariant{ palette().brush(QPalette::Disabled, QPalette::Text) };
+	for (const int column : { NameColumn, PathColumn })
+	{
+		item->setData(column, Qt::ForegroundRole, foreground);
+		item->setToolTip(column, toolTip);
+	}
+}
+
+void CFavoriteLocationsEditor::showFinishedAvailabilityChecks()
+{
+	for (const CFolderAvailabilityChecker::Result& result : _availabilityChecker.takeFinished())
+	{
+		_folderAvailability.insert(result.path, result.available);
+		for (QTreeWidgetItemIterator it{ ui->_tree }; *it; ++it)
 		{
-			currentItem = *it;
-			break;
+			if (kindOf(*it) == Kind::Location && (*it)->data(PathColumn, ResolvedPathRole).toString() == result.path)
+				showAvailability(*it, result.available);
 		}
 	}
-	ui->_list->setCurrentItem(currentItem);
-	currentItemChanged(currentItem, nullptr); // Not left to the signal: clear() may reset the current item without one
-}
 
-void CFavoriteLocationsEditor::addLocationsToTreeWidget(std::vector<CLocationsCollection>& parentList, const std::vector<CLocationsCollection>::iterator location, QTreeWidgetItem* const parent)
-{
-	assert_r(location->subLocations.empty() || location->isCategory());
-
-	auto* const treeWidgetItem = new CFavoriteLocationsListItem(parentList, location);
-	parent ? parent->addChild(treeWidgetItem) : ui->_list->addTopLevelItem(treeWidgetItem);
-	for (auto it = location->subLocations.begin(); it != location->subLocations.end(); ++it)
-		addLocationsToTreeWidget(location->subLocations, it, treeWidgetItem);
-
-	if (location->isCategory())
-		treeWidgetItem->setExpanded(true);
+	if (!_availabilityChecker.hasUnreportedChecks())
+		_availabilityPollTimer.stop();
 }

@@ -17,6 +17,7 @@ HEADERS += \
 	src/fileoperationresultcode.h \
 	src/cpanel.h \
 	src/filesystemhelpers/filestatistics.h \
+	src/filesystemhelpers/folderavailabilitychecker.h \
 	src/filesystemwatcher/cdirectorysnapshotpoller.h \
 	src/filesystemwatcher/cfilesystemwatcher.h \
 	src/shell/cshell.h \
@@ -52,6 +53,7 @@ SOURCES += \
 	src/cpanel.cpp \
 	src/filesystemhelperfunctions.cpp \
 	src/filesystemhelpers/filestatistics.cpp \
+	src/filesystemhelpers/folderavailabilitychecker.cpp \
 	src/filesystemwatcher/cdirectorysnapshotpoller.cpp \
 	src/filesystemwatcher/cfilesystemwatcher.cpp \
 	src/shell/cshell.cpp \
