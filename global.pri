@@ -15,7 +15,7 @@ Debug:DEFINES += _DEBUG
 mac*{
 	exists(/usr/local/bin/ccache)|exists(/opt/homebrew/bin/ccache):CONFIG += ccache
 
-	QMAKE_MACOSX_DEPLOYMENT_TARGET = 13.3
+	QMAKE_MACOSX_DEPLOYMENT_TARGET = 14.4
 
 	# Qt frameworks as system headers: moc output includes them outside DISABLE_COMPILER_WARNINGS
 	QMAKE_CXXFLAGS += -iframework $$[QT_INSTALL_LIBS]

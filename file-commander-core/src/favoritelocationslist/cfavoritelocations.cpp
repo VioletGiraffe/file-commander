@@ -92,7 +92,7 @@ static bool readItems(QDataStream& stream, const quint32 count, std::vector<CLoc
 //   NextLevel - the item's subLocations follow
 //   LevelEnded + n - 1 - the item is the last of n levels, its own included
 // An item without a path is a group.
-constexpr int NoMarker = 0, NextLevel = 1, LevelEnded = 2;
+enum : int { NoMarker = 0, NextLevel = 1, LevelEnded = 2 };
 
 static std::vector<CLocationsCollection> legacyFormatItems(const QByteArray& data)
 {
