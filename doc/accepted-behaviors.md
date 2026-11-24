@@ -48,6 +48,19 @@ invalidates the reason given.
 - A size calculation that finishes after a newer one for the same folder, or after the panel left the folder and came
   back, publishes its older size: a calculated size is a snapshot anyway, and recalculating corrects it.
 
+## Favorites
+
+- On Linux, favorites under the home folder and elsewhere on its disk get two availability-check threads on that disk
+  (`CFolderAvailabilityChecker`): the volume list shows the home folder as a volume of its own. Grouping the checks by
+  device was not judged worth it.
+
+## Windows shell integration
+
+- A Cut does not outlive the app: the clipboard is flushed only for a Copy, because a flushed Cut makes a second paste
+  fail.
+- Flattened and search views refresh after a context menu verb ran; a verb whose handler finishes asynchronously can
+  complete after that refresh, and its changes show at the next one.
+
 ## Locking
 
 - `CPanel::setPath` holds the panel mutex while arming the watcher, a blocking call: see [threading.md](threading.md).

@@ -8,6 +8,7 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QItemSelection>
 #include <QPersistentModelIndex>
 #include <QTreeView>
 RESTORE_COMPILER_WARNINGS
@@ -105,6 +106,8 @@ protected:
 	void mouseMoveEvent(QMouseEvent *e) override;
 	// For showing context menu and managing single click actions
 	void mouseReleaseEvent(QMouseEvent *event) override;
+	// Leaves the selection as the press found it: the press can select the dragged item, and the release that clears it goes to the drop target
+	void startDrag(Qt::DropActions supportedActions) override;
 	// For managing selection and cursor
 	void keyPressEvent(QKeyEvent * event) override;
 	void keyReleaseEvent(QKeyEvent * event) override;
@@ -156,6 +159,7 @@ private:
 	CFileListItemDelegate*              _itemDelegate;
 
 	QPersistentModelIndex               _currentItemBeforeMouseClick;
+	QItemSelection                      _selectionBeforeMousePress; // Held only from a press until its release or drag
 	std::optional<std::chrono::steady_clock::time_point> _timeToNextPaintStart;
 	ColumnLayout                        _columnLayout; // The section sizes are fitted to it; only the user's header edits update it from them
 

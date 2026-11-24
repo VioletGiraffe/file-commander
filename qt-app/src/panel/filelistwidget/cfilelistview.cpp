@@ -224,6 +224,7 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 {
 	_singleMouseClickValid = !_singleMouseClickValid && e->modifiers() == Qt::NoModifier;
 	_currentItemBeforeMouseClick = currentIndex();
+	_selectionBeforeMousePress = selectionModel()->selection();
 	const bool selectionWasEmpty = selectionModel()->selectedRows().empty();
 
 	// Always let Qt process this event
@@ -250,6 +251,8 @@ void CFileListView::mouseMoveEvent(QMouseEvent * e)
 // For showing context menu
 void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 {
+	_selectionBeforeMousePress.clear();
+
 	if (event->button() == Qt::RightButton)
 	{
 		// Selecting an item that was clicked upon
@@ -289,6 +292,13 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 
 	// Always let Qt process this event
 	QTreeView::mouseReleaseEvent(event);
+}
+
+void CFileListView::startDrag(const Qt::DropActions supportedActions)
+{
+	QTreeView::startDrag(supportedActions); // Returns when the drop or cancellation ends the drag
+	selectionModel()->select(_selectionBeforeMousePress, QItemSelectionModel::ClearAndSelect);
+	_selectionBeforeMousePress.clear();
 }
 
 // For managing selection and cursor
