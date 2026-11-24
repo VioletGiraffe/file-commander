@@ -55,6 +55,8 @@ call, or the closing dialog would handle the event.
 - The columns are Name, Ext, Size and Date, as many as the panel's width fits. Name and the sorted column always stay.
   `fileListColumns` makes this choice for the rows and for the header above them, so layout decisions by width go
   there. A click on a header title sorts by that column.
+- The GUI's info line does not fit half of an 80-column terminal, so the status line splits it: the listing's totals,
+  shortened to fit, are centred on its divider row, and its text row shows the selection, or else the current item.
 
 ## Colours
 

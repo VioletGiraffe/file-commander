@@ -1570,6 +1570,18 @@ TEST_CASE("Space on [..] shows the parent folder's size in its row and the statu
 		QStringLiteral("the size of [..] in the status line"));
 }
 
+TEST_CASE("The status line shows the listing's totals", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("listed/sub")));
+	sandbox.createFile(QStringLiteral("work/listed/a.bin"), QByteArray(100, 'x'));
+	sandbox.createFile(QStringLiteral("work/listed/b.bin"), QByteArray(200, 'x'));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work(QStringLiteral("listed")), QStringLiteral("a.bin"));
+
+	requireText(*session, QStringLiteral("2 files, 1 folders, 300"));
+}
+
 TEST_CASE("A refresh adds and removes rows where they sort and keeps the cursor on its item", "[tui]")
 {
 	const Sandbox sandbox;

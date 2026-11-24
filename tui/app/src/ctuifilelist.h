@@ -5,6 +5,7 @@
 #include "cfilesystemobject.h"
 #include "filelist/filelistsorter.h"
 #include "filelist/filetimetext.h"
+#include "filelist/foldercontentssummary.h"
 #include "filelist/sortedfilelist.h"
 
 #include "compiler/compiler_warnings_control.h"
@@ -91,6 +92,7 @@ public:
 	void showEmptyRows();
 	[[nodiscard]] const CFileSystemObject* currentRow() const noexcept; // nullptr when there are no rows
 	[[nodiscard]] std::optional<int> firstFileRow() const; // nullopt when no row is a file
+	[[nodiscard]] const FolderContentsSummary& contentsSummary() const noexcept { return _list.contentsSummary(); } // The filter's hidden rows included
 
 	void setSelectedItems(const std::vector<qulonglong>& itemHashes);
 	[[nodiscard]] bool isSelected(qulonglong itemHash) const noexcept;

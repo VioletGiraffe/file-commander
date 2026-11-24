@@ -86,7 +86,7 @@ public:
 	}
 };
 
-// One line of text under the file list
+// A summary of the listing and one line of text, under the file list
 class CTuiStatusLine final : public TView
 {
 public:
@@ -108,7 +108,14 @@ public:
 		drawView();
 	}
 
-	// Two rows: one that sets the text apart from the list, blank or the theme's divider line, then the text
+	// Centred on the first row: the first of the alternatives that fits the width, or none. Longest first.
+	void setSummary(std::vector<std::vector<TextRun>> alternatives)
+	{
+		_summaryAlternatives = std::move(alternatives);
+		drawView();
+	}
+
+	// Two rows: one that sets the text apart from the list, blank or the theme's divider line, with the summary over it, then the text
 	void draw() override
 	{
 		const TColorAttr color = mapColor(ppStatusText), valueColor = mapColor(ppStatusValue);
@@ -117,6 +124,7 @@ public:
 			line.moveStr(0, stringView(QString{ size.x, u'─' }.toUtf8()), mapColor(ppStatusDivider));
 		else
 			line.moveChar(0, ' ', color, (ushort)size.x);
+		drawSummary(line, color, valueColor);
 		writeLine(0, 0, (short)size.x, 1, line);
 
 		line.moveChar(0, ' ', color, (ushort)size.x);
@@ -131,7 +139,29 @@ public:
 	}
 
 private:
+	// A blank cell on each side of the summary sets it apart from the divider line, which keeps one cell at each end
+	void drawSummary(TDrawBuffer& line, const TColorAttr color, const TColorAttr valueColor) const
+	{
+		for (const std::vector<TextRun>& runs : _summaryAlternatives)
+		{
+			int width = 2;
+			for (const TextRun& run : runs)
+				width += cellWidth(run.text);
+			if (width > size.x - 2)
+				continue;
+
+			auto x = (ushort)((size.x - width) / 2);
+			line.moveChar(x++, ' ', color, 1);
+			for (const TextRun& run : runs)
+				x = (ushort)(x + line.moveStr(x, stringView(run.text.toUtf8()), run.value ? valueColor : color));
+			line.moveChar(x, ' ', color, 1);
+			return;
+		}
+	}
+
+private:
 	std::vector<TextRun> _runs;
+	std::vector<std::vector<TextRun>> _summaryAlternatives;
 };
 
 // The side's tabs, wrapped onto rows, the active one highlighted.
@@ -656,11 +686,27 @@ void CTuiPanel::updateStatusLine()
 	const CPanel& panel = _controller.panel(_side);
 	const QLocale locale;
 
-	if (const std::optional<size_t> filesFound = panel.filesFoundByPendingFlattenedListing(); filesFound && !_listedView)
+	using TextRun = CTuiStatusLine::TextRun;
+	if (_listedView)
 	{
-		_statusLine->setText({ { QStringLiteral("Collecting files: ") }, { locale.toString((qulonglong)*filesFound), true }, { QStringLiteral(" found") } });
-		return;
+		const FolderContentsSummary& total = _fileList->contentsSummary();
+		const std::vector<TextRun> files{ { locale.toString((qulonglong)total.numFiles), true }, { QStringLiteral(" files") } };
+		const std::vector<TextRun> totalSize{ { QStringLiteral(", ") }, { locale.formattedDataSize((qint64)total.size), true } };
+		std::vector<TextRun> full = files;
+		if (total.numFolders > 0)
+			full.insert(full.end(), { { QStringLiteral(", ") }, { locale.toString((qulonglong)total.numFolders), true }, { QStringLiteral(" folders") } });
+		full.insert(full.end(), totalSize.begin(), totalSize.end());
+		std::vector<TextRun> filesAndSize = files;
+		filesAndSize.insert(filesAndSize.end(), totalSize.begin(), totalSize.end());
+		_statusLine->setSummary({ std::move(full), std::move(filesAndSize), files });
 	}
+	else if (const std::optional<size_t> filesFound = panel.filesFoundByPendingFlattenedListing())
+	{
+		const TextRun count{ locale.toString((qulonglong)*filesFound), true };
+		_statusLine->setSummary({ { { QStringLiteral("Collecting files: ") }, count, { QStringLiteral(" found") } }, { count, { QStringLiteral(" found") } } });
+	}
+	else
+		_statusLine->setSummary({});
 
 	if (const FolderContentsSummary selected = panel.selectionSummary(); selected.numFiles + selected.numFolders > 0)
 	{
