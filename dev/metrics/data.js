@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795460847977,
+  "lastUpdate": 1795530014345,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -40722,6 +40722,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "4a8d5488835910c3786b50f476122fd8d0a41b2c",
+          "message": "Ctrl+D and the star button open the favorites in a popup with a filter box, where Shift+Enter goes to a favorite in the other panel; favorite categories are now called groups\n\nThe popup compares paths as text: the menu it replaces read each favorite from disk on the UI thread, which froze it on an unreachable share.",
+          "timestamp": "2026-11-24T16:04:38+02:00",
+          "tree_id": "76b28c372bf0141f6a69a48afd9f4f4734cbda45",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/4a8d5488835910c3786b50f476122fd8d0a41b2c"
+        },
+        "date": 1795530011120,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 27542,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 37769,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1891.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1157,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1212.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 496.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 57.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 35.5,
             "unit": "KB"
           },
           {
