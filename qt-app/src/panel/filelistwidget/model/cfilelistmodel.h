@@ -24,6 +24,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <functional>
 #include <stdint.h>
+#include <utility>
 #include <vector>
 
 enum Role {
@@ -68,6 +69,9 @@ public:
 
 	// The items' rows are in italics, with a tooltip: a search found the items by following a directory link
 	void markReachedThroughLink(const std::vector<uint64_t>& itemHashes);
+	// These folders' Size cells show the size followed by "...": sizes still being calculated.
+	// A folder missing from a later call keeps its last size until setRows() or updateRows(), which bring the calculated one.
+	void setProvisionalDirSizes(const std::vector<std::pair<qulonglong /*hash*/, uint64_t>>& sizes);
 
 	void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 	[[nodiscard]] int sortColumn() const noexcept; // -1 in arrival order
@@ -108,6 +112,9 @@ signals:
 	void sorted();
 
 private:
+	void dropProvisionalDirSizes();
+	void emitSizeCellChanged(qulonglong hash); // Nothing for a hash no shown row has
+
 	void beforeReset() override;
 	void afterReset() override;
 	void beforeInsert(int first, int last) override;
@@ -127,6 +134,7 @@ private:
 	QModelIndexList _indexesBeforeReorder;
 	std::vector<qulonglong> _hashesBeforeReorder;
 	ankerl::unordered_dense::set<qulonglong, identity_hash> _hashesReachedThroughLink;
+	ankerl::unordered_dense::map<qulonglong, uint64_t, identity_hash> _provisionalDirSizes;
 	DropHandler _dropHandler;
 	CIconProvider* const _iconProvider;
 	const FileListCellFormat _cellFormat;

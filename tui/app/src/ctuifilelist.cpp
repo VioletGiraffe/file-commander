@@ -197,6 +197,7 @@ void CTuiFileList::setContents(Contents contents, const qulonglong cursorItemHas
 
 	_selectedItemHashes.clear();
 	_selectedItemHashes.insert(contents.selectedItemHashes.begin(), contents.selectedItemHashes.end());
+	_provisionalDirSizes.clear();
 
 	const int cursorItemRow = _list.rowOf(cursorItemHash);
 	if (cursorStaysOnItem && cursorItemRow >= 0)
@@ -209,6 +210,7 @@ void CTuiFileList::clearRowsKeepingScreen()
 {
 	_list.setRows({}, {});
 	_selectedItemHashes.clear();
+	_provisionalDirSizes.clear();
 	rowsEmptiedWithoutRedraw();
 }
 
@@ -240,6 +242,19 @@ bool CTuiFileList::isSelected(qulonglong itemHash) const noexcept
 	return _selectedItemHashes.contains(itemHash);
 }
 
+void CTuiFileList::setProvisionalDirSizes(const std::vector<std::pair<qulonglong, uint64_t>>& sizes)
+{
+	bool changed = false;
+	for (const auto& [hash, dirSize] : sizes)
+	{
+		auto [shown, inserted] = _provisionalDirSizes.try_emplace(hash, dirSize);
+		changed = changed || inserted || shown->second != dirSize;
+		shown->second = dirSize;
+	}
+	if (changed)
+		drawView();
+}
+
 void CTuiFileList::draw()
 {
 	struct OffCursorRowColors { TColorAttr normal, normalDetails, selected, separator; };
@@ -268,6 +283,13 @@ void CTuiFileList::draw()
 		{
 			for (const FileListColumn& column : columns)
 			{
+				const auto provisionalSize = column.field == FileListSortField::Size ? _provisionalDirSizes.find(item->hash()) : _provisionalDirSizes.end();
+				if (provisionalSize != _provisionalDirSizes.end())
+				{
+					drawFileListCell(line, column, compactFileSizeText(provisionalSize->second, FileSizeUnitSpacing::Joined), onCursor ? cursorSeparatorColor : offCursor.separator);
+					continue;
+				}
+
 				const TColorAttr columnColor = column.field == FileListSortField::Name ? color : detailsColor;
 				drawFileListCell(line, column, fileListCellText(*item, column.field, extensionShown, _list.listedFolder(), FileTimeTextLength::Short), columnColor);
 			}

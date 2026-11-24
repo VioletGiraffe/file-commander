@@ -115,6 +115,31 @@ TEST_CASE("CPanel - displayDirSize fills in the size of a listed folder", "[pane
 	CHECK(h.listener().count(PanelEvent::ContentsChanged) == 0);
 }
 
+TEST_CASE("CPanel - a folder size calculation reports itself until it finishes", "[panel][contents]")
+{
+	TempTree tree;
+	const QString sub = tree.makeDir(QStringLiteral("sub"));
+	tree.makeFile(QStringLiteral("sub/data.bin"), QByteArray(1024, 'x'));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	CHECK_FALSE(h.panel().dirSizesBeingCalculated());
+
+	// Queued behind the parked worker: pending, but with no running total yet
+	h.worker().close();
+	h.panel().displayDirSize(hashOf(sub));
+	const auto queued = h.panel().dirSizesBeingCalculated();
+	REQUIRE(queued);
+	CHECK(queued->empty());
+
+	h.worker().open();
+	h.settle();
+	CHECK_FALSE(h.panel().dirSizesBeingCalculated());
+	CHECK(h.panel().itemByHash(hashOf(sub)).size() >= 1024);
+}
+
 TEST_CASE("CPanel - a listing does not wait for a folder size calculation", "[panel][contents]")
 {
 	TempTree tree;

@@ -31,8 +31,9 @@ struct FileStatistics
 // the partial results are only merged into the final FileStatistics after every thread is done, on the calling thread.
 // numThreads = 0 means automatic thread count calculation inside the function
 // onScanningFolder is called with each folder as its scan starts, from the scan threads concurrently.
+// occupiedSpaceSoFar, if set, grows by each folder's files once that folder is listed, for a UI to show while the scan runs.
 [[nodiscard]] FileStatistics calculateStatsFor(const std::vector<QString>& paths, const std::atomic_bool& abort = false,
-	const std::function<void(const QString& folder)>& onScanningFolder = {}, size_t numThreads = 0);
+	const std::function<void(const QString& folder)>& onScanningFolder = {}, std::atomic<uint64_t>* occupiedSpaceSoFar = nullptr, size_t numThreads = 0);
 
 // calculateStatsFor on a CBackgroundTask, which the constructor starts, for a UI that polls it
 class CFileStatisticsScan

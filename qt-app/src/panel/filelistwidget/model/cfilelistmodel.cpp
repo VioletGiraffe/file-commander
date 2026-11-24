@@ -26,6 +26,11 @@ RESTORE_COMPILER_WARNINGS
 #include <utility>
 #include <variant>
 
+static QString sizeText(uint64_t size, const FileListCellFormat& format)
+{
+	return format.sizeText == FileListCellFormat::SizeText::Precise ? fileSizeToString(size) : compactFileSizeText(size, FileSizeUnitSpacing::Spaced);
+}
+
 static QVariant displayText(const CFileSystemObject& row, int column, const QString& listedFolder, const FileListCellFormat& format)
 {
 	switch (column)
@@ -45,10 +50,8 @@ static QVariant displayText(const CFileSystemObject& row, int column, const QStr
 	case SizeColumn:
 		if (row.size() == 0 && row.type() != File)
 			return {};
-		else if (format.sizeText == FileListCellFormat::SizeText::Precise)
-			return fileSizeToString(row.size());
 		else
-			return compactFileSizeText(row.size(), FileSizeUnitSpacing::Spaced);
+			return sizeText(row.size(), format);
 
 	case DateColumn:
 		if (!row.isCdUp()) [[likely]]
@@ -88,12 +91,15 @@ void CFileListModel::setDropHandler(DropHandler handler)
 void CFileListModel::setRows(std::vector<CFileSystemObject> rows, QString listedFolder)
 {
 	_hashesReachedThroughLink.clear();
+	_provisionalDirSizes.clear(); // The reset repaints every cell
 	_list.setRows(std::move(rows), std::move(listedFolder));
 }
 
 bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 {
-	return _list.updateRows(std::move(rows));
+	const bool updatedInPlace = _list.updateRows(std::move(rows));
+	dropProvisionalDirSizes();
+	return updatedInPlace;
 }
 
 void CFileListModel::addRows(std::vector<CFileSystemObject> rows)
@@ -109,6 +115,36 @@ void CFileListModel::setNameFilter(const QString& filterText)
 void CFileListModel::markReachedThroughLink(const std::vector<uint64_t>& itemHashes)
 {
 	_hashesReachedThroughLink.insert(itemHashes.begin(), itemHashes.end());
+}
+
+void CFileListModel::setProvisionalDirSizes(const std::vector<std::pair<qulonglong, uint64_t>>& sizes)
+{
+	for (const auto& [hash, size] : sizes)
+	{
+		if (const auto [shown, inserted] = _provisionalDirSizes.try_emplace(hash, size); !inserted)
+		{
+			if (shown->second == size)
+				continue;
+			shown->second = size;
+		}
+		emitSizeCellChanged(hash);
+	}
+}
+
+void CFileListModel::dropProvisionalDirSizes()
+{
+	const auto dropped = std::exchange(_provisionalDirSizes, {});
+	for (const auto& [hash, size] : dropped)
+		emitSizeCellChanged(hash);
+}
+
+void CFileListModel::emitSizeCellChanged(qulonglong hash)
+{
+	if (const QModelIndex row = indexByHash(hash); row.isValid())
+	{
+		const QModelIndex sizeCell = index(row.row(), SizeColumn);
+		emit dataChanged(sizeCell, sizeCell, { Qt::DisplayRole });
+	}
 }
 
 void CFileListModel::sort(int column, Qt::SortOrder order)
@@ -226,6 +262,11 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 	case FullNameRole:
 		return row.fullName().toString();
 	case Qt::DisplayRole:
+		if (index.column() == SizeColumn)
+		{
+			if (const auto provisionalSize = _provisionalDirSizes.find(row.hash()); provisionalSize != _provisionalDirSizes.end())
+				return QString{ sizeText(provisionalSize->second, _cellFormat) + QStringLiteral("...") };
+		}
 		return displayText(row, index.column(), _list.listedFolder(), _cellFormat);
 	case Qt::TextAlignmentRole:
 		return textAlignment(index.column());

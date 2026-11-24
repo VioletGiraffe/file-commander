@@ -56,7 +56,7 @@ struct EntryIdentityHash
 // accumulates into its own FileStatistics with no locking on the hot path - the caller merges the per-thread
 // results once every thread has finished (see calculateStatsFor).
 std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, size_t numThreads, const std::atomic_bool& abort,
-	const std::function<void(const QString& folder)>& onScanningFolder)
+	const std::function<void(const QString& folder)>& onScanningFolder, std::atomic<uint64_t>* occupiedSpaceSoFar)
 {
 	std::vector<QString> dirsToScan;
 	FileStatistics rootStats; // stats for the root entries themselves (passed directly in rootPaths, not discovered by scanning)
@@ -82,6 +82,8 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 			rootStats.occupiedSpace += rootItem.size();
 		}
 	}
+	if (occupiedSpaceSoFar)
+		occupiedSpaceSoFar->fetch_add(rootStats.occupiedSpace, std::memory_order_relaxed);
 
 	std::mutex queueMutex;
 	std::condition_variable queueCondition; // This is just for threads to sleep/wake up when there is not enough work for all threads and when new work appears. Could be busy wait instead.
@@ -115,6 +117,7 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 					onScanningFolder(dir);
 
 				std::vector<QString> newDirs;
+				const uint64_t occupiedSpaceBeforeDir = stats.occupiedSpace;
 				if (const auto entries = listDirectoryWithDetails(dir))
 				{
 					for (const auto& entry : *entries)
@@ -137,6 +140,8 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 						}
 					}
 				}
+				if (occupiedSpaceSoFar)
+					occupiedSpaceSoFar->fetch_add(stats.occupiedSpace - occupiedSpaceBeforeDir, std::memory_order_relaxed);
 
 				{
 					std::lock_guard locker(queueMutex);
@@ -160,12 +165,12 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 }
 
 FileStatistics calculateStatsFor(const std::vector<QString>& paths, const std::atomic_bool& abort,
-	const std::function<void(const QString& folder)>& onScanningFolder, size_t numThreads)
+	const std::function<void(const QString& folder)>& onScanningFolder, std::atomic<uint64_t>* occupiedSpaceSoFar, size_t numThreads)
 {
 	if (numThreads == 0)
 		numThreads = qBound(1u, std::thread::hardware_concurrency(), 5u);
 
-	const auto partials = scanParallel(paths, numThreads, abort, onScanningFolder);
+	const auto partials = scanParallel(paths, numThreads, abort, onScanningFolder, occupiedSpaceSoFar);
 
 	// Final aggregation happens here, on the calling thread, only after every worker thread above has finished.
 	FileStatistics merged;

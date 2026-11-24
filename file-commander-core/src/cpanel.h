@@ -196,6 +196,9 @@ public:
 
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(qulonglong dirHash);
+	// The folders whose displayDirSize() calculation is running, with the bytes counted so far.
+	// Empty when no calculation is queued or running; an empty vector while all of them are still queued.
+	[[nodiscard]] std::optional<std::vector<std::pair<qulonglong /*hash*/, uint64_t>>> dirSizesBeingCalculated() const;
 
 	void uiThreadTimerTick();
 
@@ -255,6 +258,9 @@ private:
 	FileListHashMap                            _items;
 	// Folder sizes calculated on request, re-applied to every listing that still has the folder. Protected by _fileListAndCurrentDirMutex.
 	ankerl::unordered_dense::map<qulonglong /*hash*/, uint64_t, identity_hash> _calculatedDirSizes;
+	// Each running displayDirSize() task's counter, on the task's stack: removed as the task's frame unwinds. Protected by _fileListAndCurrentDirMutex.
+	ankerl::unordered_dense::map<qulonglong /*hash*/, const std::atomic<uint64_t>*, identity_hash> _dirSizesBeingCalculated;
+	size_t                                     _dirSizeCalculationsQueued = 0; // Not started yet. Protected by _fileListAndCurrentDirMutex.
 	QStringList                                _searchResultPaths; // Under _fileListAndCurrentDirMutex; empty outside SearchResultsMode
 	// The current request's FileListUpdateRequest::filesFound until it publishes. Under _fileListAndCurrentDirMutex.
 	std::shared_ptr<const std::atomic<size_t>> _filesFoundByPendingFlattenedListing;

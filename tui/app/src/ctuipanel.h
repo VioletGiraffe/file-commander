@@ -76,6 +76,11 @@ private:
 	// Copies the core's selection into the list
 	void showCoreSelection();
 	void updateStatusLine();
+	void startProgressPoll();
+	// Shows the running sizes of folders in their Size cells.
+	// Keeps _progressPollTimer running while a flattened listing or a size calculation is in progress, and stops it once neither is.
+	// The status line shows a flattened listing's progress: the caller updates it.
+	void showBackgroundProgress();
 
 	void activateCurrentItem();
 	void toggleCurrentItemSelection();
@@ -133,6 +138,6 @@ private:
 	CTuiFilterLine* _filterLine;
 	CTuiStatusLine* _statusLine;
 	TTimerId _showEmptyListTimer = nullptr; // Non-null while the screen shows rows the list no longer holds
-	TTimerId _flattenedListingProgressTimer = nullptr; // Non-null while the list waits for a flattened listing
+	TTimerId _progressPollTimer = nullptr; // Non-null while a flattened listing or a folder size calculation is in progress
 	std::optional<ListedView> _listedView; // The view whose committed listing _fileList holds
 };

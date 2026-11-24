@@ -95,6 +95,7 @@ public:
 	void setItemsSelectedByPattern(const QString& patternText, bool selected, bool filesOnly);
 	void selectFilesWithExtensionOfCurrentItem();
 	void moveCursorToFirstFile(); // Scrolls past the folders (they always sort on top) and puts the cursor on the first file
+	void calculateEachFolderSize(); // Each row shows its running total until its folder's size is calculated
 	void toRoot();
 	void copySelectedItemsPathsToClipboard() const; // Paths of all the selected items, or of the item under cursor if there's no selection
 
@@ -139,8 +140,9 @@ private:
 	void fillFromPanel(FileListRefreshCause operation);
 	// Repaints the panel if onPanelContentsInvalidated() stopped its painting
 	void endOldFrameHold();
-	// Shows the pending flattened listing's file count over the empty list; hides the notice and stops its timer once none is pending
-	void showFlattenedListingProgress();
+	// Shows the files a pending flattened listing has found over the empty list, and the running sizes of folders in their Size cells.
+	// Keeps _progressPollTimer running while either is in progress, and stops it once neither is.
+	void showBackgroundProgress();
 	// The core's cursor target once listed; after a refresh, the cursor's item, or its row when the item is gone; after a navigation, the item
 	// remembered for the folder. previousRow: the cursor's row before the refill, -1 for none.
 	void placeCursorAfterFill(FileListRefreshCause operation, bool modelReset, int previousRow, qulonglong previousHash);
@@ -238,6 +240,6 @@ private:
 	Panel                           _panelPosition = Panel::UnknownPanel;
 	std::unique_ptr<CGlowUnderlay>  _frameGlow;
 	QTimer                        * _oldFrameHoldTimer = nullptr; // Active while the screen shows rows the model no longer holds
-	QTimer                        * _flattenedListingProgressTimer = nullptr; // Active while the list waits for a flattened listing
+	QTimer                        * _progressPollTimer = nullptr; // Active while a flattened listing or a folder size calculation is in progress
 	CFadingNotice                 * _flattenedListingProgressNotice = nullptr; // Owned by the list
 };

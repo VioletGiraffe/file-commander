@@ -14,6 +14,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
+#include <atomic>
 #include <chrono>
 #include <thread>
 
@@ -50,6 +51,18 @@ void createTree(const QString& root)
 	return true;
 }
 
+}
+
+TEST_CASE("calculateStatsFor's running occupied space ends at the total", "[filestatistics]")
+{
+	const QTemporaryDir dir;
+	REQUIRE(dir.isValid());
+	createTree(dir.path());
+
+	std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
+	const FileStatistics stats = calculateStatsFor({ dir.path() }, false, {}, &occupiedSpaceSoFar);
+	CHECK(stats.occupiedSpace == 410);
+	CHECK(occupiedSpaceSoFar == stats.occupiedSpace);
 }
 
 TEST_CASE("CFileStatisticsScan finds what calculateStatsFor finds", "[filestatistics]")

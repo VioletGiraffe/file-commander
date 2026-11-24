@@ -152,6 +152,38 @@ TEST_CASE("Rows are found by hash and by kind", "[filelist]")
 	CHECK(mime->urls().front().toLocalFile() == "/folder/x.txt");
 }
 
+TEST_CASE("A folder's provisional size shows with dots until the rows are refilled", "[filelist]")
+{
+	TestedModel tested;
+	CFileListModel& model = tested.model;
+	model.setRows({ makeItem(Directory, "a"), makeItem(File, "x", "txt", 7u) }, itemsFolder);
+	const QModelIndex folderSize = model.indexByHash(pathHash("/folder/a/")).siblingAtColumn(SizeColumn);
+	REQUIRE(folderSize.isValid());
+	const QString unsized = model.data(folderSize, Qt::DisplayRole).toString();
+
+	int sizeCellChanges = 0;
+	QObject::connect(&model, &QAbstractItemModel::dataChanged, [&](const QModelIndex& topLeft) {
+		CHECK(topLeft == folderSize);
+		++sizeCellChanges;
+	});
+
+	model.setProvisionalDirSizes({ { pathHash("/folder/a/"), 1536u } });
+	CHECK(sizeCellChanges == 1);
+	CHECK(model.data(folderSize, Qt::DisplayRole).toString().endsWith(QStringLiteral("...")));
+
+	model.setProvisionalDirSizes({ { pathHash("/folder/a/"), 1536u } });
+	CHECK(sizeCellChanges == 1); // Unchanged: no repaint
+
+	// No longer reported: kept until the refill that brings the calculated size
+	model.setProvisionalDirSizes({});
+	CHECK(sizeCellChanges == 1);
+	CHECK(model.data(folderSize, Qt::DisplayRole).toString().endsWith(QStringLiteral("...")));
+
+	REQUIRE(model.updateRows({ makeItem(Directory, "a"), makeItem(File, "x", "txt", 7u) }));
+	CHECK(sizeCellChanges == 2);
+	CHECK(model.data(folderSize, Qt::DisplayRole).toString() == unsized);
+}
+
 TEST_CASE("A column title of a list in arrival order cycles through ascending, descending and arrival order", "[filelist][sort]")
 {
 	CFileListModel model{ nullptr, {}, nullptr, SortedFileList::InitialOrder::Arrival };

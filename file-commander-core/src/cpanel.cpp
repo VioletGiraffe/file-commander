@@ -13,6 +13,7 @@
 #include "paths/pathsyntax.h"
 #include "std_helpers/qt_container_helpers.hpp"
 #include "timing/ctimeelapsed.h"
+#include "utility/on_scope_exit.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -842,6 +843,19 @@ CPanel::CommittedListing CPanel::committedListing() const
 	return listing;
 }
 
+std::optional<std::vector<std::pair<qulonglong, uint64_t>>> CPanel::dirSizesBeingCalculated() const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (_dirSizeCalculationsQueued == 0 && _dirSizesBeingCalculated.empty())
+		return {};
+
+	std::vector<std::pair<qulonglong, uint64_t>> sizes;
+	sizes.reserve(_dirSizesBeingCalculated.size());
+	for (const auto& [hash, occupiedSpaceSoFar] : _dirSizesBeingCalculated)
+		sizes.emplace_back(hash, occupiedSpaceSoFar->load(std::memory_order_relaxed));
+	return sizes;
+}
+
 std::optional<size_t> CPanel::filesFoundByPendingFlattenedListing() const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
@@ -881,8 +895,26 @@ void CPanel::displayDirSize(qulonglong dirHash)
 	if (!item.isDir())
 		return;
 
+	{
+		std::lock_guard locker{ _fileListAndCurrentDirMutex };
+		++_dirSizeCalculationsQueued;
+	}
 	_workerThreadPool.enqueue([this, dirHash, path = item.fullAbsolutePath()] {
-		const FileStatistics stats = calculateStatsFor({ path }, _abortBackgroundTasks);
+		std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
+		{
+			std::lock_guard locker{ _fileListAndCurrentDirMutex };
+			--_dirSizeCalculationsQueued;
+			_dirSizesBeingCalculated[dirHash] = &occupiedSpaceSoFar;
+		}
+		// Also on a throw, which the pool contains: the map must not keep a pointer into this frame
+		EXEC_ON_SCOPE_EXIT([this, dirHash, &occupiedSpaceSoFar] {
+			std::lock_guard locker{ _fileListAndCurrentDirMutex };
+			// Not when a later calculation of the same folder registered its own counter
+			if (const auto registered = _dirSizesBeingCalculated.find(dirHash); registered != _dirSizesBeingCalculated.end() && registered->second == &occupiedSpaceSoFar)
+				_dirSizesBeingCalculated.erase(registered);
+		});
+
+		const FileStatistics stats = calculateStatsFor({ path }, _abortBackgroundTasks, {}, &occupiedSpaceSoFar);
 
 		// Since this is a background thread, the item we were working on may be out of the _items list by now.
 		// So we find it again and see if it's still there.

@@ -21,6 +21,8 @@ RESTORE_COMPILER_WARNINGS
 
 #include <functional>
 #include <optional>
+#include <stdint.h>
+#include <utility>
 #include <vector>
 
 // A column's cells in a row; one column per sort field
@@ -96,6 +98,9 @@ public:
 
 	void setSelectedItems(const std::vector<qulonglong>& itemHashes);
 	[[nodiscard]] bool isSelected(qulonglong itemHash) const noexcept;
+	// These folders' Size cells show the size in the column separators' colour: sizes still being calculated.
+	// A folder missing from a later call keeps its last size until setContents() or clearRowsKeepingScreen(), which bring the calculated one.
+	void setProvisionalDirSizes(const std::vector<std::pair<qulonglong /*hash*/, uint64_t>>& sizes);
 
 	// Called when the user moves the cursor to another row
 	std::function<void(const CFileSystemObject& row)> onCursorMoved;
@@ -110,4 +115,5 @@ private:
 	NullSortedFileListObserver _listObserver;
 	SortedFileList _list{ _listObserver };
 	ankerl::unordered_dense::set<qulonglong, identity_hash> _selectedItemHashes;
+	ankerl::unordered_dense::map<qulonglong, uint64_t, identity_hash> _provisionalDirSizes;
 };

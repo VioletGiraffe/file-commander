@@ -174,9 +174,9 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	assert_r(connect(_oldFrameHoldTimer, &QTimer::timeout, this, &CPanelWidget::endOldFrameHold));
 
 	_flattenedListingProgressNotice = new CFadingNotice{ ui->_list };
-	_flattenedListingProgressTimer = new QTimer{ this };
-	_flattenedListingProgressTimer->setInterval(250); // The first update waits an interval, so a quick listing shows no notice
-	assert_r(connect(_flattenedListingProgressTimer, &QTimer::timeout, this, &CPanelWidget::showFlattenedListingProgress));
+	_progressPollTimer = new QTimer{ this };
+	_progressPollTimer->setInterval(250); // The first update waits an interval, so a quick listing shows no notice
+	assert_r(connect(_progressPollTimer, &QTimer::timeout, this, &CPanelWidget::showBackgroundProgress));
 
 	_frameGlow = std::make_unique<CGlowUnderlay>(*this, [this] { return frameGlow(); });
 	// A TabsOnFrame frame runs around the current tab
@@ -790,12 +790,8 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 
 	endOldFrameHold();
 	const bool modelReset = fillFromList(operation);
-	// A refill without a listing (another tab closed) keeps the notice over the listing still being collected
-	if (activeTab().navigationId)
-	{
-		_flattenedListingProgressTimer->stop();
-		_flattenedListingProgressNotice->hide();
-	}
+	// The refill can bring the listing the notice is over, a calculated folder size, or another tab with its own progress
+	showBackgroundProgress();
 	// After an update too: what the view's selection does through moves and removals is Qt's to decide
 	applyCoreSelection();
 
@@ -818,18 +814,25 @@ void CPanelWidget::endOldFrameHold()
 	updateFrame();
 }
 
-void CPanelWidget::showFlattenedListingProgress()
+void CPanelWidget::showBackgroundProgress()
 {
-	const std::optional<size_t> filesFound = _controller->panel(_panelPosition).filesFoundByPendingFlattenedListing();
-	if (!filesFound)
+	const CPanel& panel = _controller->panel(_panelPosition);
+	// Only while the list holds no listing: a refresh of a shown flattened listing counts its files too
+	const std::optional<size_t> filesFound = activeTab().navigationId ? std::nullopt : panel.filesFoundByPendingFlattenedListing();
+	if (filesFound)
 	{
-		_flattenedListingProgressTimer->stop();
-		_flattenedListingProgressNotice->hide();
-		return;
+		_flattenedListingProgressNotice->showMessage(tr("Collecting files: %1 found").arg(QLocale{}.toString((qulonglong)*filesFound)),
+			ui->_list->viewport()->geometry(), CFadingNotice::Duration::UntilHidden);
 	}
+	else
+		_flattenedListingProgressNotice->hide();
 
-	_flattenedListingProgressNotice->showMessage(tr("Collecting files: %1 found").arg(QLocale{}.toString((qulonglong)*filesFound)),
-		ui->_list->viewport()->geometry(), CFadingNotice::Duration::UntilHidden);
+	const std::optional<std::vector<std::pair<qulonglong, uint64_t>>> dirSizes = panel.dirSizesBeingCalculated();
+	_model->setProvisionalDirSizes(dirSizes.value_or(std::vector<std::pair<qulonglong, uint64_t>>{}));
+	if (!filesFound && !dirSizes)
+		_progressPollTimer->stop();
+	else if (!_progressPollTimer->isActive())
+		_progressPollTimer->start();
 }
 
 void CPanelWidget::showContextMenuForItems()
@@ -842,10 +845,19 @@ void CPanelWidget::showContextMenuForItems()
 		_controller->refreshUnwatchedViews();
 }
 
+void CPanelWidget::calculateEachFolderSize()
+{
+	_controller->displayEachDirSize(_panelPosition);
+	showBackgroundProgress();
+}
+
 void CPanelWidget::onSpacePressed()
 {
 	if (const QModelIndex itemIndex = _selectionModel->currentIndex(); itemIndex.isValid())
+	{
 		_controller->displayDirSize(_panelPosition, _model->itemHash(itemIndex));
+		showBackgroundProgress();
+	}
 	invertCurrentItemSelection();
 }
 
@@ -1372,9 +1384,7 @@ void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	// The notice of a view this one replaces must not show over it; a new one appears after the timer's interval
 	_flattenedListingProgressNotice->hide();
 	if (_controller->panel(_panelPosition).filesFoundByPendingFlattenedListing())
-		_flattenedListingProgressTimer->start();
-	else
-		_flattenedListingProgressTimer->stop();
+		_progressPollTimer->start();
 }
 
 // Only the tab on screen can repaint; switching to another re-attaches the shared view, which refetches every row.

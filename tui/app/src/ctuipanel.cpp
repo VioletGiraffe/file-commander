@@ -454,13 +454,9 @@ void CTuiPanel::handleEvent(TEvent& event)
 		clearEvent(event);
 		return;
 	}
-	if (event.what == evBroadcast && event.message.command == cmTimerExpired && event.message.infoPtr == _flattenedListingProgressTimer)
+	if (event.what == evBroadcast && event.message.command == cmTimerExpired && event.message.infoPtr == _progressPollTimer)
 	{
-		if (!_controller.panel(_side).filesFoundByPendingFlattenedListing())
-		{
-			killTimer(_flattenedListingProgressTimer);
-			_flattenedListingProgressTimer = nullptr;
-		}
+		showBackgroundProgress();
 		updateStatusLine();
 		clearEvent(event);
 		return;
@@ -527,7 +523,10 @@ bool CTuiPanel::runCommand(const ushort command)
 		if (const std::optional<int> row = _fileList->firstFileRow())
 			_fileList->moveCursorTo(*row);
 		break;
-	case cmCalculateEachFolderSize: _controller.displayEachDirSize(_side); break;
+	case cmCalculateEachFolderSize:
+		_controller.displayEachDirSize(_side);
+		showBackgroundProgress();
+		break;
 	case cmRefresh: _controller.refreshPanelContents(_side); break;
 	case cmToggleHiddenFiles: _controller.setShowHiddenFiles(!_controller.showHiddenFiles()); break;
 	case cmOpenFilterLine: openFilterLine(); break;
@@ -537,7 +536,10 @@ bool CTuiPanel::runCommand(const ushort command)
 	case cmSortBySize: sortBy(FileListSortField::Size); break;
 	case cmToggleSelectionCalculateSizeAndMoveDown:
 		if (const CFileSystemObject* row = _fileList->currentRow())
+		{
 			_controller.displayDirSize(_side, row->hash());
+			showBackgroundProgress();
+		}
 		[[fallthrough]];
 	case cmToggleSelectionAndMoveDown:
 		toggleCurrentItemSelection();
@@ -622,8 +624,8 @@ void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	_listedView.reset();
 	if (!_showEmptyListTimer)
 		_showEmptyListTimer = setTimer(oldFrameHoldMs);
-	if (!_flattenedListingProgressTimer && _controller.panel(_side).filesFoundByPendingFlattenedListing())
-		_flattenedListingProgressTimer = setTimer(250, 250);
+	if (_controller.panel(_side).filesFoundByPendingFlattenedListing())
+		startProgressPoll();
 }
 
 void CTuiPanel::showEmptyListWhileListing()
@@ -649,12 +651,6 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 	const std::optional<ListedView> listedView = listing.isCommitted ? std::optional{ ListedView{ panel.id(), panel.navigationId() } } : std::nullopt;
 	const bool refreshesShownView = listedView && listedView == _listedView;
 	_listedView = listedView;
-	// A refill without a listing (filter, sorting) keeps counting the listing still being collected
-	if (_listedView)
-	{
-		killTimer(_flattenedListingProgressTimer);
-		_flattenedListingProgressTimer = nullptr;
-	}
 
 	_fileList->setContents({
 		.items = std::move(listing.items),
@@ -668,11 +664,35 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 	if (const CFileSystemObject* row = _fileList->currentRow())
 		_controller.setCurrentItemHashForCurrentFolder(_side, row->hash(), false);
 
+	// The refill can bring a calculated folder size, or another tab with its own progress
+	showBackgroundProgress();
 	updateStatusLine();
 	updateTitle();
 	updateTabStrip();
 	if (onCurrentItemChanged)
 		onCurrentItemChanged();
+}
+
+void CTuiPanel::startProgressPoll()
+{
+	if (!_progressPollTimer)
+		_progressPollTimer = setTimer(250, 250);
+}
+
+void CTuiPanel::showBackgroundProgress()
+{
+	const CPanel& panel = _controller.panel(_side);
+	const std::optional<std::vector<std::pair<qulonglong, uint64_t>>> dirSizes = panel.dirSizesBeingCalculated();
+	_fileList->setProvisionalDirSizes(dirSizes.value_or(std::vector<std::pair<qulonglong, uint64_t>>{}));
+
+	const bool listingPending = !_listedView && panel.filesFoundByPendingFlattenedListing();
+	if (listingPending || dirSizes)
+		startProgressPoll();
+	else
+	{
+		killTimer(_progressPollTimer);
+		_progressPollTimer = nullptr;
+	}
 }
 
 void CTuiPanel::showCoreSelection()

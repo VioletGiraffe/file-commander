@@ -1351,7 +1351,7 @@ void CMainWindow::calculateStatistics()
 void CMainWindow::calculateEachFolderSize()
 {
 	if (_currentFileList)
-		_controller->displayEachDirSize(_currentFileList->panelPosition());
+		_currentFileList->calculateEachFolderSize();
 }
 
 void CMainWindow::compareFiles()
