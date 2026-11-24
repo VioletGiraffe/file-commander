@@ -314,6 +314,11 @@ QStringList CFileListModel::mimeTypes() const
 	return QStringList("text/uri-list");
 }
 
+Qt::DropActions CFileListModel::supportedDropActions() const
+{
+	return Qt::CopyAction | Qt::MoveAction;
+}
+
 bool CFileListModel::dropMimeData(const QMimeData* data, Qt::DropAction action, int /*row*/, int /*column*/, const QModelIndex& parent)
 {
 	if (action == Qt::IgnoreAction)

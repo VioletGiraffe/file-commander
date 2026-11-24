@@ -98,6 +98,7 @@ public:
 // Drag and drop
 	[[nodiscard]] bool canDropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) const override;
 	[[nodiscard]] QStringList mimeTypes() const override;
+	[[nodiscard]] Qt::DropActions supportedDropActions() const override; // Also the drag actions: supportedDragActions() defaults to it
 	bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) override;
 	[[nodiscard]] QMimeData* mimeData(const QModelIndexList& indexes) const override;
 
