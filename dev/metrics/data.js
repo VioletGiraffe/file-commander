@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795530014345,
+  "lastUpdate": 1795532607245,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -40771,6 +40771,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "fcterm.exe size",
             "value": 1157,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1212.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 496.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 57.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "b432a9d6ed362455b294127511460444c57758ca",
+          "message": "The favorites editor compiles with GCC and Clang again: resetting the pressed browse button no longer assigns an ambiguous {}",
+          "timestamp": "2026-11-24T16:47:21+02:00",
+          "tree_id": "142230aaf1662192e74e52cb1382dd3049365174",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/b432a9d6ed362455b294127511460444c57758ca"
+        },
+        "date": 1795532604104,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 27573,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 37769,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1891.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1159,
             "unit": "KB"
           },
           {
