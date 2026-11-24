@@ -30,13 +30,13 @@ public:
 	void accept() override;
 
 private:
-	[[nodiscard]] QTreeWidgetItem* newTreeItem(const CLocationsCollection& data);
-	// After the current item, in its category; at the end of the top level without a current item
-	void insertNewItem(const CLocationsCollection& data);
+	[[nodiscard]] QTreeWidgetItem* newTreeItem(const CLocationsCollection& favorite);
+	// After the current item, in its group; at the end of the top level without a current item
+	void insertNewItem(const CLocationsCollection& favorite);
 	void deleteSelectedItems();
 	void browseForFolder(QTreeWidgetItem* item);
 
-	// key: an arrow. Up and Down move within the category, Left out of it, and Right into the category above.
+	// key: an arrow. Up and Down move within the group, Left out of it, and Right into the group above.
 	void moveCurrentItem(Qt::Key key);
 	void applyFilter(const QString& text);
 

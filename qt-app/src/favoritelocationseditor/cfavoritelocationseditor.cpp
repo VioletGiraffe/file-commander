@@ -57,7 +57,7 @@ Kind kindOf(const QTreeWidgetItem* item)
 }
 
 // Draws a separator as a line, and a browse button in the current location's path.
-// Editing keeps a category's name and a location's path when they are cleared, and names a location without a name after its folder.
+// Editing keeps a group's name and a location's path when they are cleared, and names a location without a name after its folder.
 class CFavoritesItemDelegate final : public QStyledItemDelegate
 {
 public:
@@ -140,7 +140,7 @@ public:
 	QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& /*option*/, const QModelIndex& index) const override
 	{
 		const Kind kind = kindOf(index);
-		if (kind == Kind::Separator || (kind == Kind::Category && index.column() == PathColumn))
+		if (kind == Kind::Separator || (kind == Kind::Group && index.column() == PathColumn))
 			return nullptr;
 
 		auto* const editor = new QLineEdit(parent);
@@ -158,7 +158,7 @@ public:
 		QString text = static_cast<QLineEdit*>(editor)->text();
 		if (text.isEmpty())
 		{
-			if (index.column() == PathColumn || kindOf(index) == Kind::Category)
+			if (index.column() == PathColumn || kindOf(index) == Kind::Group)
 				return;
 			text = defaultFavoriteName(index.siblingAtColumn(PathColumn).data().toString());
 		}
@@ -194,14 +194,14 @@ CLocationsCollection collectionOf(const QTreeWidgetItem* item)
 		return CLocationsCollection::location(item->text(NameColumn), item->text(PathColumn));
 	case Kind::Separator:
 		return CLocationsCollection::separator();
-	case Kind::Category:
+	case Kind::Group:
 		break;
 	}
 
-	CLocationsCollection category = CLocationsCollection::category(item->text(NameColumn));
+	CLocationsCollection group = CLocationsCollection::group(item->text(NameColumn));
 	for (int i = 0; i < item->childCount(); ++i)
-		category.subLocations.push_back(collectionOf(item->child(i)));
-	return category;
+		group.subLocations.push_back(collectionOf(item->child(i)));
+	return group;
 }
 
 std::vector<QString> volumeRoots()
@@ -223,6 +223,10 @@ CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget* parent, QString curr
 {
 	ui->setupUi(this);
 
+	QPalette hintPalette = ui->_hint->palette();
+	hintPalette.setColor(QPalette::WindowText, hintPalette.color(QPalette::PlaceholderText));
+	ui->_hint->setPalette(hintPalette);
+
 	_availabilityPollTimer.setInterval(100);
 	connect(&_availabilityPollTimer, &QTimer::timeout, this, &CFavoriteLocationsEditor::showFinishedAvailabilityChecks);
 
@@ -230,7 +234,7 @@ CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget* parent, QString curr
 	tree->setItemDelegate(new CFavoritesItemDelegate(tree, [this](const QModelIndex& pathIndex) { browseForFolder(ui->_tree->itemFromIndex(pathIndex)); }));
 	tree->header()->resizeSection(NameColumn, width() / 3);
 
-	// Filling, adding and moving all insert items, so every category starts expanded
+	// Filling, adding and moving all insert items, so every group starts expanded
 	connect(tree->model(), &QAbstractItemModel::rowsInserted, this, [tree](const QModelIndex& parentIndex, const int first, const int last) {
 		for (int row = first; row <= last; ++row)
 			tree->expandRecursively(tree->model()->index(row, NameColumn, parentIndex));
@@ -247,7 +251,7 @@ CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget* parent, QString curr
 		const QString path = toNativeSeparators(_currentFolderPosix);
 		insertNewItem(CLocationsCollection::location(defaultFavoriteName(path), path));
 	});
-	connect(ui->_btnAddCategory, &QPushButton::clicked, this, [this] { insertNewItem(CLocationsCollection::category(tr("New category"))); });
+	connect(ui->_btnAddGroup, &QPushButton::clicked, this, [this] { insertNewItem(CLocationsCollection::group(tr("New group"))); });
 	connect(ui->_btnAddSeparator, &QPushButton::clicked, this, [this] { insertNewItem(CLocationsCollection::separator()); });
 	connect(ui->_btnDelete, &QPushButton::clicked, this, &CFavoriteLocationsEditor::deleteSelectedItems);
 	connect(ui->_filter, &QLineEdit::textChanged, this, &CFavoriteLocationsEditor::applyFilter);
@@ -272,43 +276,43 @@ void CFavoriteLocationsEditor::accept()
 	QDialog::accept();
 }
 
-QTreeWidgetItem* CFavoriteLocationsEditor::newTreeItem(const CLocationsCollection& data)
+QTreeWidgetItem* CFavoriteLocationsEditor::newTreeItem(const CLocationsCollection& favorite)
 {
 	auto* const item = new QTreeWidgetItem;
-	item->setData(NameColumn, KindRole, static_cast<int>(data.kind));
+	item->setData(NameColumn, KindRole, static_cast<int>(favorite.kind));
 
 	Qt::ItemFlags flags = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsDragEnabled;
-	if (!data.isSeparator())
+	if (!favorite.isSeparator())
 		flags |= Qt::ItemIsEditable;
-	if (data.isCategory())
+	if (favorite.isGroup())
 		flags |= Qt::ItemIsDropEnabled; // Items dropped onto a location or a separator go next to it
 	item->setFlags(flags);
 
-	item->setText(NameColumn, data.displayName);
-	item->setText(PathColumn, data.path);
+	item->setText(NameColumn, favorite.displayName);
+	item->setText(PathColumn, favorite.path);
 
-	if (data.isCategory())
+	if (favorite.isGroup())
 	{
 		QFont boldFont = item->font(NameColumn);
 		boldFont.setBold(true);
 		item->setFont(NameColumn, boldFont);
 
-		for (const CLocationsCollection& subItem : data.subLocations)
+		for (const CLocationsCollection& subItem : favorite.subLocations)
 			item->addChild(newTreeItem(subItem));
 	}
-	else if (!data.isSeparator())
+	else if (!favorite.isSeparator())
 		updateAvailability(item);
 
 	return item;
 }
 
-void CFavoriteLocationsEditor::insertNewItem(const CLocationsCollection& data)
+void CFavoriteLocationsEditor::insertNewItem(const CLocationsCollection& favorite)
 {
 	ui->_filter->clear(); // So that the new item shows
 
 	QTreeWidget* const tree = ui->_tree;
 	QTreeWidgetItem* const current = tree->currentItem();
-	QTreeWidgetItem* const item = newTreeItem(data);
+	QTreeWidgetItem* const item = newTreeItem(favorite);
 	if (!current)
 		tree->addTopLevelItem(item);
 	else if (QTreeWidgetItem* const parent = current->parent())
@@ -317,7 +321,7 @@ void CFavoriteLocationsEditor::insertNewItem(const CLocationsCollection& data)
 		tree->insertTopLevelItem(tree->indexOfTopLevelItem(current) + 1, item);
 
 	tree->setCurrentItem(item);
-	if (!data.isSeparator())
+	if (!favorite.isSeparator())
 		tree->editItem(item, NameColumn);
 }
 
@@ -330,11 +334,11 @@ void CFavoriteLocationsEditor::deleteSelectedItems()
 		if (item->isHidden())
 			continue;
 
-		// An item in a selected category goes with the category
-		bool inSelectedCategory = false;
-		for (const QTreeWidgetItem* parent = item->parent(); parent && !inSelectedCategory; parent = parent->parent())
-			inSelectedCategory = parent->isSelected();
-		if (!inSelectedCategory)
+		// An item in a selected group goes with the group
+		bool inSelectedGroup = false;
+		for (const QTreeWidgetItem* parent = item->parent(); parent && !inSelectedGroup; parent = parent->parent())
+			inSelectedGroup = parent->isSelected();
+		if (!inSelectedGroup)
 			itemsToDelete.push_back(item);
 	}
 
@@ -385,7 +389,7 @@ void CFavoriteLocationsEditor::moveCurrentItem(const Qt::Key key)
 		newIndex = newParent->indexOfChild(parent) + 1;
 		break;
 	case Qt::Key_Right:
-		if (index == 0 || kindOf(parent->child(index - 1)) != Kind::Category)
+		if (index == 0 || kindOf(parent->child(index - 1)) != Kind::Group)
 			return;
 		newParent = parent->child(index - 1);
 		newIndex = newParent->childCount();
@@ -404,9 +408,9 @@ void CFavoriteLocationsEditor::moveCurrentItem(const Qt::Key key)
 
 void CFavoriteLocationsEditor::applyFilter(const QString& text)
 {
-	// categoryMatched: an item in a matching category shows, separators included
-	const std::function<bool(QTreeWidgetItem*, bool)> filterItem = [&](QTreeWidgetItem* const item, const bool categoryMatched) {
-		const bool matches = categoryMatched || (kindOf(item) != Kind::Separator
+	// groupMatched: an item in a matching group shows, separators included
+	const std::function<bool(QTreeWidgetItem*, bool)> filterItem = [&](QTreeWidgetItem* const item, const bool groupMatched) {
+		const bool matches = groupMatched || (kindOf(item) != Kind::Separator
 			&& (item->text(NameColumn).contains(text, Qt::CaseInsensitive) || item->text(PathColumn).contains(text, Qt::CaseInsensitive)));
 
 		bool childShown = false;

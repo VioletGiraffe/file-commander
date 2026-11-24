@@ -24,17 +24,17 @@ RESTORE_COMPILER_WARNINGS
 
 namespace {
 
-constexpr ushort cmGoToFavorite = 2200, cmGoUpOneLevel = 2201, cmAddCurrentFolder = 2202, cmAddCategory = 2203, cmEditFavorite = 2204, cmRemoveFavorite = 2205;
+constexpr ushort cmGoToFavorite = 2200, cmGoUpOneLevel = 2201, cmAddCurrentFolder = 2202, cmAddGroup = 2203, cmEditFavorite = 2204, cmRemoveFavorite = 2205;
 
 struct FavoriteRow
 {
-	QString name; // ".." for the row leading to the parent category
-	QString path; // Empty for a category
-	bool isCategory = false;
+	QString name; // ".." for the row leading to the parent group
+	QString path; // Empty for a group
+	bool isGroup = false;
 	bool isSeparator = false;
 };
 
-// A category's items, after the row leading to its parent. A category's name starts with a mark, a location's path follows its name,
+// A group's items, after the row leading to its parent. A group's name starts with a mark, a location's path follows its name,
 // and a separator is a line.
 class CTuiFavoritesList final : public CTuiRowList
 {
@@ -77,7 +77,7 @@ public:
 					line.moveStr(1, stringView(QString{ std::max(size.x - 2, 0), u'─' }.toUtf8()), color);
 				else
 				{
-					QString text = (row.isCategory ? QStringLiteral("▸ ") : QStringLiteral("  ")) + elidedInTheMiddle(row.name, nameWidth);
+					QString text = (row.isGroup ? QStringLiteral("▸ ") : QStringLiteral("  ")) + elidedInTheMiddle(row.name, nameWidth);
 					if (!row.path.isEmpty())
 					{
 						text += QString(markWidth + nameWidth - cellWidth(text), u' ') + QStringLiteral("  ");
@@ -127,7 +127,7 @@ public:
 
 		// Enter presses Go to, and Esc does what Close does: neither has a hot key
 		const std::pair<const char*, ushort> buttons[2][3]{
-			{ { "Go to", cmGoToFavorite }, { "~A~dd folder", cmAddCurrentFolder }, { "~N~ew category", cmAddCategory } },
+			{ { "Go to", cmGoToFavorite }, { "~A~dd folder", cmAddCurrentFolder }, { "~N~ew group", cmAddGroup } },
 			{ { "~R~ename", cmEditFavorite }, { "Re~m~ove", cmRemoveFavorite }, { "Close", cmCancel } },
 		};
 		for (int row = 0; row < 2; ++row)
@@ -172,7 +172,7 @@ private:
 		{
 		case kbBack: return cmGoUpOneLevel;
 		case kbIns: return cmAddCurrentFolder;
-		case kbF7: return cmAddCategory;
+		case kbF7: return cmAddGroup;
 		case kbF2: return cmEditFavorite;
 		case kbDel: case kbF8: return cmRemoveFavorite;
 		default: return 0;
@@ -190,7 +190,7 @@ private:
 			break;
 		case cmGoUpOneLevel: goUpOneLevel(); break;
 		case cmAddCurrentFolder: addCurrentFolder(); break;
-		case cmAddCategory: addCategory(); break;
+		case cmAddGroup: addGroup(); break;
 		case cmEditFavorite: editCurrentItem(); break;
 		case cmRemoveFavorite: removeCurrentItem(); break;
 		default: return false;
@@ -198,11 +198,11 @@ private:
 		return true;
 	}
 
-	// The category shown, found from the top again on every use: a change to a list moves its items
+	// The group shown, found from the top again on every use: a change to a list moves its items
 	[[nodiscard]] std::vector<CLocationsCollection>& shownList()
 	{
 		std::vector<CLocationsCollection>* list = &_favorites.locations();
-		for (const size_t index : _categoryPath)
+		for (const size_t index : _groupPath)
 		{
 			assert_and_return_r(index < list->size(), *list);
 			list = &(*list)[index].subLocations;
@@ -210,10 +210,10 @@ private:
 		return *list;
 	}
 
-	// The row leading to the parent category comes first below the top level
-	[[nodiscard]] int firstItemRow() const noexcept { return _categoryPath.empty() ? 0 : 1; }
+	// The row leading to the parent group comes first below the top level
+	[[nodiscard]] int firstItemRow() const noexcept { return _groupPath.empty() ? 0 : 1; }
 
-	// Of the shown category's list; nullopt on the row leading to the parent category, or in an empty list
+	// Of the shown group's list; nullopt on the row leading to the parent group, or in an empty list
 	[[nodiscard]] std::optional<size_t> currentItemIndex()
 	{
 		const int index = _list->cursorRow() - firstItemRow();
@@ -222,12 +222,12 @@ private:
 		return (size_t)index;
 	}
 
-	// cursorItem: an index in the shown category's list; nullopt puts the cursor on its first item
+	// cursorItem: an index in the shown group's list; nullopt puts the cursor on its first item
 	void showLevel(const std::optional<size_t> cursorItem)
 	{
 		QString levelText = QStringLiteral("Favorites");
 		const std::vector<CLocationsCollection>* list = &_favorites.locations();
-		for (const size_t index : _categoryPath)
+		for (const size_t index : _groupPath)
 		{
 			levelText += QStringLiteral(" ▸ ") + (*list)[index].displayName;
 			list = &(*list)[index].subLocations;
@@ -235,10 +235,10 @@ private:
 		_levelText->setLines({ elidedInTheMiddle(levelText, _levelText->size.x) });
 
 		std::vector<FavoriteRow> rows;
-		if (!_categoryPath.empty())
+		if (!_groupPath.empty())
 			rows.push_back({ QStringLiteral(".."), {}, false });
 		for (const CLocationsCollection& item : *list)
-			rows.push_back({ item.displayName, item.path, item.isCategory(), item.isSeparator() });
+			rows.push_back({ item.displayName, item.path, item.isGroup(), item.isSeparator() });
 
 		_list->setRows(std::move(rows), list->empty() ? 0 : firstItemRow() + (int)cursorItem.value_or(0));
 	}
@@ -253,9 +253,9 @@ private:
 		}
 
 		const CLocationsCollection& item = shownList()[*index];
-		if (item.isCategory())
+		if (item.isGroup())
 		{
-			_categoryPath.push_back(*index);
+			_groupPath.push_back(*index);
 			showLevel(std::nullopt);
 		}
 		else if (!item.isSeparator())
@@ -265,18 +265,18 @@ private:
 		}
 	}
 
-	// The cursor goes to the category left
+	// The cursor goes to the group left
 	void goUpOneLevel()
 	{
-		if (_categoryPath.empty())
+		if (_groupPath.empty())
 			return;
 
-		const size_t leftCategory = _categoryPath.back();
-		_categoryPath.pop_back();
-		showLevel(leftCategory);
+		const size_t leftGroup = _groupPath.back();
+		_groupPath.pop_back();
+		showLevel(leftGroup);
 	}
 
-	// Shows the refusal, or the shown category with the cursor on cursorItem
+	// Shows the refusal, or the shown group with the cursor on cursorItem
 	void showResult(const std::optional<UserMessage>& refusal, const std::optional<size_t> cursorItem)
 	{
 		if (refusal)
@@ -296,14 +296,14 @@ private:
 		showResult(_favorites.addLocation(list, *favoriteName, _currentFolder), list.size() - 1);
 	}
 
-	void addCategory()
+	void addGroup()
 	{
-		const std::optional<QString> categoryName = askForText(QStringLiteral("New category"), { QStringLiteral("Name of the new category:") }, {}, QStringLiteral("Create"));
-		if (!categoryName)
+		const std::optional<QString> groupName = askForText(QStringLiteral("New group"), { QStringLiteral("Name of the new group:") }, {}, QStringLiteral("Create"));
+		if (!groupName)
 			return;
 
 		std::vector<CLocationsCollection>& list = shownList();
-		showResult(_favorites.addCategory(list, *categoryName), list.size() - 1);
+		showResult(_favorites.addGroup(list, *groupName), list.size() - 1);
 	}
 
 	// Asks for the name, and for a location its path too
@@ -314,14 +314,14 @@ private:
 			return;
 
 		const CLocationsCollection& item = shownList()[*index];
-		const bool isCategory = item.isCategory();
+		const bool isGroup = item.isGroup();
 		const std::optional<QString> newName = askForText(QStringLiteral("Rename"), { QStringLiteral("Name:") }, item.displayName,
-			isCategory ? QStringLiteral("Rename") : QStringLiteral("Next"));
+			isGroup ? QStringLiteral("Rename") : QStringLiteral("Next"));
 		if (!newName)
 			return;
 
 		std::optional<QString> path;
-		if (!isCategory)
+		if (!isGroup)
 		{
 			path = askForText(QStringLiteral("Rename"), { QStringLiteral("Location:") }, shownList()[*index].path, QStringLiteral("Save"));
 			if (!path)
@@ -339,8 +339,8 @@ private:
 
 		const CLocationsCollection& item = shownList()[*index];
 		QString question;
-		if (item.isCategory())
-			question = QStringLiteral("Remove the category \"%1\" and everything in it?").arg(item.displayName);
+		if (item.isGroup())
+			question = QStringLiteral("Remove the group \"%1\" and everything in it?").arg(item.displayName);
 		else if (item.isSeparator())
 			question = QStringLiteral("Remove the separator?");
 		else
@@ -356,8 +356,8 @@ private:
 private:
 	CFavoriteLocations& _favorites;
 	const QString _currentFolder;
-	// The index of each category on the way to the one shown, from the top level
-	std::vector<size_t> _categoryPath;
+	// The index of each group on the way to the one shown, from the top level
+	std::vector<size_t> _groupPath;
 	std::optional<QString> _chosenLocation;
 
 	// Owned by this dialog

@@ -18,6 +18,7 @@ owners. Filesystem and panel access goes through `CController`.
 | Blocking shell operations: native delete, clipboard paste, Eject | `file-operations/shelloperations/` |
 | Command-line output panes | `src/commandoutput/`; see [process-launching.md](process-launching.md) |
 | Programs menu editor | `src/programseditor/`; see [process-launching.md](process-launching.md) |
+| Favorites | `src/favoritelocationseditor/`: the popup the star button and Ctrl+D open, and the editor. The list is the core's `CFavoriteLocations` |
 | File-operation UI | `src/progressdialogs/` (launch, confirmation); the dialogs are in `file-operations/fileoperationsui/` |
 | Search, tools, and settings | `src/filessearchdialog/`, `src/tools/`, `src/settings/` |
 | File and volume icons | `src/iconprovider/`; the app's glyphs replace the OS's default folder icon and its unknown-type icon |

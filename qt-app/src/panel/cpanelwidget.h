@@ -13,6 +13,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QItemSelection>
 #include <QPainterPath>
+#include <QPointer>
 #include <QRect>
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
@@ -33,6 +34,7 @@ class QUrl;
 
 class CFileListModel;
 class CFileListFilterDialog;
+class CFavoriteLocationsPopup;
 class CShellOperationRunner;
 enum class PanelLayout; // themes/theme.h
 
@@ -120,7 +122,7 @@ private slots:
 	void selectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
 	void currentItemChanged(const QModelIndex& current, const QModelIndex& previous);
 	void renameItem(qulonglong hash, const QString& newName);
-	void showFavoriteLocationsMenu(QPoint pos);
+	void showFavoriteLocationsPopup(QPoint globalPos);
 	void fileListViewKeyPressed(const QString& keyText, int key, Qt::KeyboardModifiers modifiers);
 	void filterTextEdited(const QString& filterText);
 	void filterTextConfirmed(const QString& filterText);
@@ -217,6 +219,7 @@ private:
 
 private:
 	CFileListFilterDialog          * _filterDialog = nullptr;
+	QPointer<CFavoriteLocationsPopup> _favoritesPopup; // See showFavoriteLocationsPopup()
 	Ui::CPanelWidget              * ui = nullptr;
 	CController                   * _controller = nullptr;
 	CShellOperationRunner         * _shellOperations = nullptr;

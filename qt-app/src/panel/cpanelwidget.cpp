@@ -13,7 +13,8 @@
 #include "cmainwindow.h"
 #include "themes/theme.h"
 
-#include "favoritelocationseditor/favoritelocationsmenu.h"
+#include "favoritelocationseditor/cfavoritelocationseditor.h"
+#include "favoritelocationseditor/cfavoritelocationspopup.h"
 
 #include "settings.h"
 #include "shell/cshell.h"
@@ -152,8 +153,10 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	assert_r(connect(ui->_list, &CFileListView::keyPressed, this, &CPanelWidget::fileListViewKeyPressed));
 	assert_r(connect(ui->_list, &CFileListView::itemMiddleClicked, this, &CPanelWidget::onItemMiddleClicked));
 
-	assert_r(connect(ui->_driveInfoLabel, &CClickableLabel::doubleClicked, this, &CPanelWidget::showFavoriteLocationsMenu));
-	assert_r(connect(ui->_btnFavs, &QPushButton::clicked, this, [&]{showFavoriteLocationsMenu(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));}));
+	const auto showFavoritesUnderButton = [this] { showFavoriteLocationsPopup(ui->_btnFavs->mapToGlobal(ui->_btnFavs->rect().bottomLeft())); };
+	assert_r(connect(ui->_driveInfoLabel, &CClickableLabel::doubleClicked, this, &CPanelWidget::showFavoriteLocationsPopup));
+	assert_r(connect(ui->_btnFavs, &QPushButton::clicked, this, showFavoritesUnderButton));
+	new QShortcut(QKeySequence(QSL("Ctrl+D")), this, showFavoritesUnderButton, Qt::WidgetWithChildrenShortcut);
 	assert_r(connect(ui->_btnToRoot, &QToolButton::clicked, this, &CPanelWidget::toRoot));
 
 	_filterDialog = new CFileListFilterDialog(ui->_list);
@@ -974,15 +977,24 @@ void CPanelWidget::toRoot()
 		_controller->setPath(_panelPosition, currentVolume->rootObjectInfo.fullAbsolutePath(), refreshCauseOther);
 }
 
-void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
+void CPanelWidget::showFavoriteLocationsPopup(const QPoint globalPos)
 {
-	QMenu menu;
-	fillFavoriteLocationsMenu(menu, _controller->favoriteLocations(), _controller->panel(_panelPosition).currentDirPathPosix(), *this, [this](const QString& path) {
-		_controller->setPath(_panelPosition, path, refreshCauseOther);
-	});
+	// Toggles: a popup that exists, shown or already closed and awaiting deletion, is closed and none opens
+	if (_favoritesPopup)
+	{
+		_favoritesPopup->close();
+		return;
+	}
 
-	if (menu.exec(pos)) // Something was selected
+	const QString currentFolder = _controller->panel(_panelPosition).currentDirPathPosix();
+	const auto goTo = [this](const QString& path, const bool inOtherPanel) {
+		_controller->setPath(inOtherPanel ? CController::otherPanelPosition(_panelPosition) : _panelPosition, path, refreshCauseOther);
 		setFocusToFileList(); // #84
+	};
+	const auto manage = [this, currentFolder] { CFavoriteLocationsEditor(this, currentFolder).exec(); };
+
+	_favoritesPopup = new CFavoriteLocationsPopup(_controller->favoriteLocations(), currentFolder, goTo, manage, this);
+	_favoritesPopup->popUp(globalPos);
 }
 
 void CPanelWidget::fileListViewKeyPressed(const QString& /*keyText*/, int key, Qt::KeyboardModifiers /*modifiers*/)

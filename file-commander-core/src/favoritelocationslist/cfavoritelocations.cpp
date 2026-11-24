@@ -24,7 +24,7 @@ using Kind = CLocationsCollection::Kind;
 
 // The data is a quint32 count of the top-level items, then the items. Each item is its Kind as a quint8, then:
 //   Location - its name and path
-//   Category - its name, a quint32 count of its items, then the items
+//   Group - its name, a quint32 count of its items, then the items
 //   Separator - nothing
 // A different layout goes under a new settings key: earlier versions keep reading this one.
 static void writeItem(QDataStream& stream, const CLocationsCollection& item)
@@ -35,7 +35,7 @@ static void writeItem(QDataStream& stream, const CLocationsCollection& item)
 	case Kind::Location:
 		stream << item.displayName << item.path;
 		break;
-	case Kind::Category:
+	case Kind::Group:
 		stream << item.displayName << static_cast<quint32>(item.subLocations.size());
 		for (const CLocationsCollection& subItem : item.subLocations)
 			writeItem(stream, subItem);
@@ -46,7 +46,7 @@ static void writeItem(QDataStream& stream, const CLocationsCollection& item)
 }
 
 // False at the first item that fails to read: settings data may be truncated or corrupted. The items read before it are kept.
-// depth: of the categories holding `items`
+// depth: of the groups holding `items`
 static bool readItems(QDataStream& stream, const quint32 count, std::vector<CLocationsCollection>& items, const int depth)
 {
 	// Deeper nesting is corrupted data, and each level takes a stack frame
@@ -66,8 +66,8 @@ static bool readItems(QDataStream& stream, const quint32 count, std::vector<CLoc
 			item = CLocationsCollection::location({}, {});
 			stream >> item.displayName >> item.path;
 			break;
-		case Kind::Category:
-			item = CLocationsCollection::category({});
+		case Kind::Group:
+			item = CLocationsCollection::group({});
 			stream >> item.displayName >> subItemCount;
 			break;
 		case Kind::Separator:
@@ -91,7 +91,7 @@ static bool readItems(QDataStream& stream, const quint32 count, std::vector<CLoc
 //   NoMarker - the next item is on the same level
 //   NextLevel - the item's subLocations follow
 //   LevelEnded + n - 1 - the item is the last of n levels, its own included
-// An item without a path is a category.
+// An item without a path is a group.
 constexpr int NoMarker = 0, NextLevel = 1, LevelEnded = 2;
 
 static std::vector<CLocationsCollection> legacyFormatItems(const QByteArray& data)
@@ -132,7 +132,7 @@ static std::vector<CLocationsCollection> legacyFormatItems(const QByteArray& dat
 			currentPosition += length;
 		}
 
-		currentList.top().get().push_back(path.isEmpty() ? CLocationsCollection::category(displayName) : CLocationsCollection::location(displayName, path));
+		currentList.top().get().push_back(path.isEmpty() ? CLocationsCollection::group(displayName) : CLocationsCollection::location(displayName, path));
 
 		if (!canRead(currentPosition, static_cast<int>(sizeof(int))))
 			break;
@@ -198,7 +198,7 @@ void CFavoriteLocations::load()
 
 static std::optional<UserMessage> refusalFor(const Kind kind, const QString& name, const QString& path)
 {
-	if (kind == Kind::Category && name.isEmpty())
+	if (kind == Kind::Group && name.isEmpty())
 		return UserMessage{ MessageSeverity::Information, QObject::tr("No name"), QObject::tr("The name cannot be empty.") };
 	if (kind == Kind::Location && path.isEmpty())
 		return UserMessage{ MessageSeverity::Information, QObject::tr("No location"), QObject::tr("The location cannot be empty.") };
@@ -215,12 +215,12 @@ std::optional<UserMessage> CFavoriteLocations::addLocation(std::vector<CLocation
 	return {};
 }
 
-std::optional<UserMessage> CFavoriteLocations::addCategory(std::vector<CLocationsCollection>& list, const QString& name)
+std::optional<UserMessage> CFavoriteLocations::addGroup(std::vector<CLocationsCollection>& list, const QString& name)
 {
-	if (auto refusal = refusalFor(Kind::Category, name, {}))
+	if (auto refusal = refusalFor(Kind::Group, name, {}))
 		return refusal;
 
-	list.push_back(CLocationsCollection::category(name));
+	list.push_back(CLocationsCollection::group(name));
 	save();
 	return {};
 }
@@ -230,11 +230,11 @@ std::optional<UserMessage> CFavoriteLocations::editItem(std::vector<CLocationsCo
 	assert_and_return_r(index < list.size(), {});
 	CLocationsCollection& item = list[index];
 	assert_and_return_r(!item.isSeparator(), {});
-	assert_and_return_r(!item.isCategory() || path.isEmpty(), {});
+	assert_and_return_r(!item.isGroup() || path.isEmpty(), {});
 	if (auto refusal = refusalFor(item.kind, name, path))
 		return refusal;
 
-	item.displayName = item.isCategory() || !name.isEmpty() ? name : defaultFavoriteName(path);
+	item.displayName = item.isGroup() || !name.isEmpty() ? name : defaultFavoriteName(path);
 	item.path = path;
 	save();
 	return {};

@@ -1103,7 +1103,7 @@ TEST_CASE("Ctrl+D adds the current folder to the favorites, and Enter on a favor
 		QStringLiteral("the panel in the favorite folder"));
 }
 
-TEST_CASE("In the favorites, F7 creates a category, Enter opens it, Backspace leaves it, F2 renames it and Del removes it", "[tui]")
+TEST_CASE("In the favorites, F7 creates a group, Enter opens it, Backspace leaves it, F2 renames it and Del removes it", "[tui]")
 {
 	const Sandbox sandbox;
 	auto session = startFcterm(sandbox);
@@ -1111,7 +1111,7 @@ TEST_CASE("In the favorites, F7 creates a category, Enter opens it, Backspace le
 	session->send(Keys::CtrlD);
 	requireText(*session, QStringLiteral("Add folder"));
 	session->send(Keys::F7);
-	requirePromptInput(*session, QStringLiteral("Name of the new category"));
+	requirePromptInput(*session, QStringLiteral("Name of the new group"));
 	typeText(*session, QStringLiteral("projects"));
 	session->send(Keys::Enter);
 	requireText(*session, QStringLiteral("▸ projects"));
@@ -1122,11 +1122,11 @@ TEST_CASE("In the favorites, F7 creates a category, Enter opens it, Backspace le
 	requirePromptInput(*session, QStringLiteral("Name for"));
 	session->send(Keys::Enter);
 	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Name for")) && screen.contains(QStringLiteral("Favorites ▸ projects")); },
-		QStringLiteral("the folder added in the category"));
+		QStringLiteral("the folder added in the group"));
 
 	session->send(Keys::Backspace);
 	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Favorites ▸ projects")) && screen.contains(QStringLiteral("▸ projects")); },
-		QStringLiteral("the top level, with the cursor on the category"));
+		QStringLiteral("the top level, with the cursor on the group"));
 
 	session->send(Keys::F2);
 	requirePromptInput(*session, QStringLiteral("Name:"));
@@ -1138,7 +1138,7 @@ TEST_CASE("In the favorites, F7 creates a category, Enter opens it, Backspace le
 	requireText(*session, QStringLiteral("and everything in it?"));
 	session->send(Keys::Enter);
 	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("▸ renamed")) && screen.contains(QStringLiteral("Add folder")); },
-		QStringLiteral("the category removed"));
+		QStringLiteral("the group removed"));
 }
 
 TEST_CASE("In the favorites, F2 does nothing on a separator, and Del removes it", "[tui]")

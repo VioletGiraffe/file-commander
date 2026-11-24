@@ -14,23 +14,23 @@ RESTORE_COMPILER_WARNINGS
 #include <utility>
 #include <vector>
 
-// A favorite location, a category of items, or a separator between items
+// A favorite location, a group of items, or a separator between items
 struct CLocationsCollection
 {
 	// Saved as numbers: never renumber
-	enum class Kind : uint8_t { Location = 0, Category = 1, Separator = 2 };
+	enum class Kind : uint8_t { Location = 0, Group = 1, Separator = 2 };
 
 	[[nodiscard]] static CLocationsCollection location(QString name, QString path) { return { Kind::Location, std::move(name), std::move(path), {} }; }
-	[[nodiscard]] static CLocationsCollection category(QString name) { return { Kind::Category, std::move(name), {}, {} }; }
+	[[nodiscard]] static CLocationsCollection group(QString name) { return { Kind::Group, std::move(name), {}, {} }; }
 	[[nodiscard]] static CLocationsCollection separator() { return { Kind::Separator, {}, {}, {} }; }
 
-	[[nodiscard]] bool isCategory() const noexcept { return kind == Kind::Category; }
+	[[nodiscard]] bool isGroup() const noexcept { return kind == Kind::Group; }
 	[[nodiscard]] bool isSeparator() const noexcept { return kind == Kind::Separator; }
 
 	Kind kind = Kind::Location;
 	QString displayName; // Empty for a separator
 	QString path; // Only a location has one. As typed: may be relative or hold variables, see resolveUserPath()
-	std::vector<CLocationsCollection> subLocations; // Only a category has them
+	std::vector<CLocationsCollection> subLocations; // Only a group has them
 };
 
 // The last component of `path`, or `path` itself when it has none, as a root has not
@@ -50,11 +50,11 @@ public:
 	// Replaces every item and saves
 	void setLocations(std::vector<CLocationsCollection> locations);
 
-	// Each saves the change, or returns why it refused: a location without a path, or a category without a name.
+	// Each saves the change, or returns why it refused: a location without a path, or a group without a name.
 	// A location without a name gets defaultFavoriteName(path).
 	[[nodiscard]] std::optional<UserMessage> addLocation(std::vector<CLocationsCollection>& list, const QString& name, const QString& path);
-	[[nodiscard]] std::optional<UserMessage> addCategory(std::vector<CLocationsCollection>& list, const QString& name);
-	// Never called on a separator. A category's path stays empty.
+	[[nodiscard]] std::optional<UserMessage> addGroup(std::vector<CLocationsCollection>& list, const QString& name);
+	// Never called on a separator. A group's path stays empty.
 	[[nodiscard]] std::optional<UserMessage> editItem(std::vector<CLocationsCollection>& list, size_t index, const QString& name, const QString& path);
 	void removeItem(std::vector<CLocationsCollection>& list, size_t index);
 

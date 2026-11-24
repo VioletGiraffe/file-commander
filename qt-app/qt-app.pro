@@ -57,7 +57,7 @@ SOURCES += \
 	src/progressdialogs/waitwithprogressdialog.cpp \
 	src/settings/csettingspageoperations.cpp \
 	src/favoritelocationseditor/cfavoritelocationseditor.cpp \
-	src/favoritelocationseditor/favoritelocationsmenu.cpp \
+	src/favoritelocationseditor/cfavoritelocationspopup.cpp \
 	src/programseditor/cuserprogramsdialog.cpp \
 	src/programseditor/userprogramsui.cpp \
 	src/panel/filelistwidget/cfilelistfilterdialog.cpp \
@@ -99,7 +99,7 @@ HEADERS += \
 	src/progressdialogs/waitwithprogressdialog.h \
 	src/settings/csettingspageoperations.h \
 	src/favoritelocationseditor/cfavoritelocationseditor.h \
-	src/favoritelocationseditor/favoritelocationsmenu.h \
+	src/favoritelocationseditor/cfavoritelocationspopup.h \
 	src/programseditor/cuserprogramsdialog.h \
 	src/programseditor/userprogramsui.h \
 	src/panel/filelistwidget/cfilelistfilterdialog.h \
