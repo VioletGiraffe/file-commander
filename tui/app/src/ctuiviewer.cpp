@@ -303,8 +303,8 @@ enum class FindOutcome { Found, FoundAfterWrapAround, NotFound };
 	TInputLine* const input = insertFieldWithHistory(*dialog, history, "~T~ext:", 2, 2, 10, 58, findTextLimit).input;
 	auto* const options = new TCheckBoxes({ 10, 4, 58, 5 }, new TSItem("Match ~c~ase", new TSItem("~W~hole words", new TSItem("Re~g~ex", nullptr))));
 	dialog->insert(options);
-	dialog->insert(new TButton({ 17, 6, 29, 8 }, "Find", cmOK, bfDefault));
-	dialog->insert(new TButton({ 31, 6, 43, 8 }, "Cancel", cmCancel, bfNormal));
+	dialog->insert(new CTuiButton({ 17, 6, 29, 8 }, "Find", cmOK, bfDefault));
+	dialog->insert(new CTuiButton({ 31, 6, 43, 8 }, "Cancel", cmCancel, bfNormal));
 
 	setInputText(input, current.text.isEmpty() ? history.mostRecent() : current.text);
 	setChecked(options, { current.caseSensitive, current.wholeWords, current.regex });

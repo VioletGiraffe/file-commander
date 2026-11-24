@@ -157,7 +157,7 @@ public:
 		int x = margin;
 		for (const auto& [buttonTitle, command] : buttons)
 		{
-			insert(new TButton({ x, buttonsTop, x + buttonWidth, buttonsTop + 2 }, buttonTitle, command, command == cmGoToDifference ? bfDefault : bfNormal));
+			insert(new CTuiButton({ x, buttonsTop, x + buttonWidth, buttonsTop + 2 }, buttonTitle, command, command == cmGoToDifference ? bfDefault : bfNormal));
 			x += buttonWidth + buttonGap;
 		}
 

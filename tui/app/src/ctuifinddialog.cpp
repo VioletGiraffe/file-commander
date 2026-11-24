@@ -271,9 +271,9 @@ CTuiFindDialog::CTuiFindDialog(const TPoint desktopSize) :
 	_excludedFolders = new TInputLine(unplaced, inputLimit);
 	insert(_excludedFolders);
 	insert(new TLabel({ labelX, 10, fieldX - 1, 11 }, "~E~xclude folders:", _excludedFolders));
-	_searchButton = new TButton(unplaced, "Search", cmStartOrStopSearch, bfDefault);
+	_searchButton = new CTuiButton(unplaced, "Search", cmStartOrStopSearch, bfDefault);
 	insert(_searchButton);
-	_sendButton = new TButton(unplaced, "Send to pa~n~el", cmSendResultsToPanel, bfNormal);
+	_sendButton = new CTuiButton(unplaced, "Send to pa~n~el", cmSendResultsToPanel, bfNormal);
 	insert(_sendButton);
 
 	_resultsHeader = new CTuiColumnHeader(unplaced, { FileTimeTextLength::Long, resultsNormalEntry, resultsNormalEntry });

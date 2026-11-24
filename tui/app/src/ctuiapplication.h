@@ -28,8 +28,11 @@ class CTuiApplication final : public TApplication
 public:
 	explicit CTuiApplication(CController& controller);
 
-	// Delivers the core's queued work and Qt's events before every Turbo Vision event, so modal views get them too
+	// Delivers the core's queued work and Qt's events before every Turbo Vision event, so modal views get them too.
+	// Not before a queued event: a dialog that work opens would take it.
 	void getEvent(TEvent& event) override;
+	// True while an event queued with putEvent waits: the next getEvent returns it before reading input
+	[[nodiscard]] static bool hasPendingEvent() noexcept { return pending.what != evNothing; }
 	// The hint row and the key bar show the items of the top view's help context
 	void idle() override;
 	void handleEvent(TEvent& event) override;

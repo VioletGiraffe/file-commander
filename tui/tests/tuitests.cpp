@@ -1141,7 +1141,7 @@ TEST_CASE("In the favorites, F7 creates a group, Enter opens it, Backspace leave
 		QStringLiteral("the group removed"));
 }
 
-TEST_CASE("In the favorites, F2 does nothing on a separator, and Del removes it", "[tui]")
+TEST_CASE("In the favorites, F2 and Enter do nothing on a separator, and Del removes it", "[tui]")
 {
 	const Sandbox sandbox;
 	sandbox.createFile(QStringLiteral("work/in-work.txt"));
@@ -1160,8 +1160,10 @@ TEST_CASE("In the favorites, F2 does nothing on a separator, and Del removes it"
 
 	session->send(Keys::CtrlD);
 	requireText(*session, QStringLiteral("Add folder"));
-	// The cursor starts on the separator. Had F2 opened a prompt, Del would not reach the dialog.
+	// The cursor starts on the separator. Had F2 or Enter opened a prompt or closed the dialog, Del would not reach the dialog.
+	// Del follows Enter at once: a default-button press lagging behind Enter would close the confirmation Del opens.
 	session->send(Keys::F2);
+	session->send(Keys::Enter);
 	session->send(Keys::Delete);
 	requireText(*session, QStringLiteral("Remove the separator?"));
 	session->send(Keys::Enter);

@@ -73,6 +73,10 @@ used for it. A `CFileSystemObject` path must be absolute. Typed text (the addres
 copy/move destination) goes through `resolveUserPath()` first, which expands environment variables and resolves against
 the panel's folder.
 
+UI-thread code that only compares paths must not construct a `CFileSystemObject`: construction stats the path, which
+blocks for the network timeout on an unreachable share. `resolveUserPath()` returns the same normalized form, so the
+texts compare directly.
+
 Links are entries distinct from their targets:
 
 - `isLink()` is thin_io's `is_link`: POSIX symlinks and Windows name-surrogate reparse points (symlinks, junctions),

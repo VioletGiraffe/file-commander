@@ -22,6 +22,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <initializer_list>
 #include <thread>
@@ -237,6 +238,27 @@ const char* CTuiPathTitledWindow::getTitle(const short maxSize)
 	return _shownTitle.constData();
 }
 
+void CTuiButton::handleEvent(TEvent& event)
+{
+	// The cases where TButton::handleEvent starts its press animation
+	const auto isPressKey = [this](const KeyDownEvent& key) {
+		const char hotKeyChar = hotKey(title);
+		return key.keyCode != 0 && (key.keyCode == getAltCode(hotKeyChar)
+			|| (owner->phase == phPostProcess && hotKeyChar != 0 && hotKeyChar == (char)toupper(key.charScan.charCode))
+			|| ((state & sfFocused) && key.charScan.charCode == ' '));
+	};
+	const bool presses = (event.what == evKeyDown && isPressKey(event.keyDown))
+		|| (event.what == evBroadcast && event.message.command == cmDefault && amDefault && !(state & sfDisabled));
+	if (!presses)
+	{
+		TButton::handleEvent(event);
+		return;
+	}
+
+	press();
+	clearEvent(event);
+}
+
 QString progressBar(const std::optional<int> percent, const int width)
 {
 	const int barWidth = std::max(width - 5, 0);
@@ -328,7 +350,7 @@ DialogAnswer execDialog(const DialogSpec& spec)
 		for (const size_t i : row)
 		{
 			const int buttonRight = x + buttonWidth(spec.buttons[(qsizetype)i]);
-			auto* button = new TButton({ x, y, buttonRight, y + 2 }, stringView(buttonTitles[(qsizetype)i].toUtf8()),
+			auto* button = new CTuiButton({ x, y, buttonRight, y + 2 }, stringView(buttonTitles[(qsizetype)i].toUtf8()),
 				(ushort)(cmFirstChoice + i), (ushort)(spec.defaultButton == i ? bfDefault : bfNormal));
 			dialog->insert(button);
 			if (spec.focusedButton == i)
@@ -468,8 +490,8 @@ struct ListDialogExtras
 
 	const int buttonsRow = listTop + listHeight + 1, declineLeft = margin + acceptWidth + buttonGap;
 	// No hot keys: Enter presses the first button and Esc does what the second does
-	dialog->insert(new TButton({ margin, buttonsRow, margin + acceptWidth, buttonsRow + 2 }, stringView(acceptLabel.toUtf8()), cmOK, bfDefault));
-	dialog->insert(new TButton({ declineLeft, buttonsRow, declineLeft + declineWidth, buttonsRow + 2 }, stringView(declineLabel.toUtf8()), cmCancel, bfNormal));
+	dialog->insert(new CTuiButton({ margin, buttonsRow, margin + acceptWidth, buttonsRow + 2 }, stringView(acceptLabel.toUtf8()), cmOK, bfDefault));
+	dialog->insert(new CTuiButton({ declineLeft, buttonsRow, declineLeft + declineWidth, buttonsRow + 2 }, stringView(declineLabel.toUtf8()), cmCancel, bfNormal));
 
 	list->select();
 	if (initialItem < (size_t)items.size())
@@ -517,7 +539,7 @@ public:
 
 		// No hot key: Esc cancels too
 		const int middle = size.x / 2;
-		insert(new TButton({ middle - 6, 5, middle + 6, 7 }, "Cancel", cmCancel, bfNormal));
+		insert(new CTuiButton({ middle - 6, 5, middle + 6, 7 }, "Cancel", cmCancel, bfNormal));
 
 		showProgress();
 	}
@@ -535,10 +557,15 @@ public:
 
 	void getEvent(TEvent& event) override
 	{
-		if (_finished() && (state & sfModal))
+		// endState == 0: a button tracking the mouse keeps calling this until the mouse button is released, and those calls must fetch
+		if (_finished() && (state & sfModal) && endState == 0)
+		{
 			endModal(cmOK);
-		else
-			showProgress();
+			// Nothing is fetched: this dialog would handle the event while closing
+			event.what = evNothing;
+			return;
+		}
+		showProgress();
 		TDialog::getEvent(event);
 	}
 

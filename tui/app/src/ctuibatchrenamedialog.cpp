@@ -203,9 +203,9 @@ CTuiBatchRenameDialog::CTuiBatchRenameDialog(const TRect& bounds, const std::vec
 
 	const int closeX = right - otherButtonWidth, undoX = closeX - otherButtonWidth, renameX = undoX - renameButtonWidth;
 	// No default button: Enter in a field must not rename
-	insert(new TButton({ renameX, buttonY, undoX, buttonY + 2 }, "~R~ename", cmRename, bfNormal));
-	insert(new TButton({ undoX, buttonY, closeX, buttonY + 2 }, "~U~ndo", cmUndo, bfNormal));
-	insert(new TButton({ closeX, buttonY, right, buttonY + 2 }, "Close", cmCancel, bfNormal));
+	insert(new CTuiButton({ renameX, buttonY, undoX, buttonY + 2 }, "~R~ename", cmRename, bfNormal));
+	insert(new CTuiButton({ undoX, buttonY, closeX, buttonY + 2 }, "~U~ndo", cmUndo, bfNormal));
+	insert(new CTuiButton({ closeX, buttonY, right, buttonY + 2 }, "Close", cmCancel, bfNormal));
 	_status = new CTuiTextView({ labelX, statusY, renameX - 1, statusY + 1 }, {});
 	insert(_status);
 

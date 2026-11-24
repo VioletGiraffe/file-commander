@@ -27,7 +27,6 @@
 #define Uses_TKeys
 #define Uses_TScrollBar
 #define Uses_TView
-#define Uses_MsgBox
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
 #include <QFileInfo>
@@ -678,10 +677,7 @@ void CTuiPanel::activateCurrentItem()
 
 	const CController::ItemActivationResult result = _controller.itemActivated(row->hash(), _side);
 	if (result.code != FileOperationResultCode::Ok)
-	{
-		const QByteArray text = (result.errorText.isEmpty() ? QStringLiteral("Failed to open the item") : result.errorText).toUtf8();
-		messageBox(TStringView{ text.constData(), (size_t)text.size() }, mfError | mfOKButton);
-	}
+		showMessage(QStringLiteral("Error"), result.errorText.isEmpty() ? QStringLiteral("Failed to open the item") : result.errorText);
 	else if (result.isProgram)
 	{
 		if (auto ran = CTuiApplication::runInTerminal(result.pathToLaunch, {}, QFileInfo(result.pathToLaunch).absolutePath(), true); !ran)

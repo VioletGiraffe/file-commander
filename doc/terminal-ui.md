@@ -33,6 +33,11 @@ One thread. Turbo Vision owns the loop and no Qt event loop runs: `CTuiApplicati
 the controller's UI queue before every Turbo Vision event, so the core's notifications also arrive while a modal
 dialog is open.
 
+Enter and Esc in a dialog, and a button press, reach it as an event queued with `putEvent`, which the next `getEvent`
+returns. A dialog opened before then would take that event, so a `getEvent` override runs work that can open one only
+while `CTuiApplication::hasPendingEvent()` is false. A `getEvent` override that ends its dialog fetches nothing in that
+call, or the closing dialog would handle the event.
+
 ## Panels
 
 - At start, the left side shows the folder argument, or else the working folder: in the tab already showing it, else in
@@ -103,6 +108,9 @@ dialog is open.
   runs on the core's `CBatchRenameRun`, behind `waitWithProgressDialog`; cancelling pauses it and asks first.
 - A dialog button that Enter presses, or that does what Esc does, has no hot key (`DialogSpec::defaultButton`,
   `DialogSpec::escapeButton`).
+- Dialog buttons are `CTuiButton`, never `TButton`. `CTuiButton` is a workaround: a `TButton` key press fires 100 ms
+  later, into whichever dialog is on top by then and after the keys typed meanwhile. It copies `TButton`'s rule for which
+  keys press it.
 - A field's history is shared with the GUI's field through its settings key. Turbo Vision keeps every field's history in
   one block, which `main` enlarges before the application allocates it.
 - The viewer (F3) reads the whole file, as the GUI's text viewer does. It decodes with `QStringDecoder` alone, so a

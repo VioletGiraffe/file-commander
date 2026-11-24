@@ -1,4 +1,5 @@
 #include "ctuifileoperations.h"
+#include "ctuiapplication.h"
 #include "ctuidialogs.h"
 
 #include "ccontroller.h"
@@ -198,9 +199,9 @@ public:
 		insert(_text);
 
 		const int middle = size.x / 2;
-		_pauseButton = new TButton({ middle - 13, 8, middle - 1, 10 }, "~P~ause", cmPauseOperation, bfNormal);
+		_pauseButton = new CTuiButton({ middle - 13, 8, middle - 1, 10 }, "~P~ause", cmPauseOperation, bfNormal);
 		insert(_pauseButton);
-		_cancelButton = new TButton({ middle + 1, 8, middle + 13, 10 }, "Cancel", cmCancel, bfNormal);
+		_cancelButton = new CTuiButton({ middle + 1, 8, middle + 13, 10 }, "Cancel", cmCancel, bfNormal);
 		insert(_cancelButton);
 		_pauseButton->select();
 	}
@@ -229,7 +230,9 @@ public:
 
 	void getEvent(TEvent& event) override
 	{
-		processJobEvents();
+		// Not before a queued event: a question's dialog would take it
+		if (!CTuiApplication::hasPendingEvent())
+			processJobEvents();
 		// endState == 0: a button tracking the mouse keeps calling this until the mouse button is released, and those calls must fetch
 		if (_summary && (state & sfModal) && endState == 0)
 		{

@@ -4,6 +4,7 @@
 
 #include "compiler/compiler_warnings_control.h"
 
+#define Uses_TButton
 #define Uses_TDrawBuffer
 #define Uses_TPalette
 #define Uses_TView
@@ -79,6 +80,16 @@ public:
 
 private:
 	QByteArray _shownTitle;
+};
+
+// Workaround for TButton: its key press fires after a 100 ms animation, into whichever dialog is on top by then and after the keys typed meanwhile.
+// Presses on its keys at once. Its key rule is a copy of TButton::handleEvent's and must follow tvision's changes.
+class CTuiButton final : public TButton
+{
+public:
+	using TButton::TButton;
+
+	void handleEvent(TEvent& event) override;
 };
 
 struct DialogLine

@@ -136,7 +136,7 @@ public:
 			{
 				const int x = margin + column * (buttonWidth + buttonGap), y = buttonsTop + 2 * row;
 				const auto& [buttonTitle, command] = buttons[row][column];
-				insert(new TButton({ x, y, x + buttonWidth, y + 2 }, buttonTitle, command, command == cmGoToFavorite ? bfDefault : bfNormal));
+				insert(new CTuiButton({ x, y, x + buttonWidth, y + 2 }, buttonTitle, command, command == cmGoToFavorite ? bfDefault : bfNormal));
 			}
 		}
 
