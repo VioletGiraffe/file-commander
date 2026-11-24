@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795556860110,
+  "lastUpdate": 1795563048564,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -40974,6 +40974,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 501.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 58,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2f325de186f70c1d2e329ae149e42f1b281fda84",
+          "message": "macOS builds target 14.4, the minimum of the Qt 6.12.1 frameworks; fix the unused NoMarker warning",
+          "timestamp": "2026-11-25T01:19:03+02:00",
+          "tree_id": "89441faa8e9b44bcf4b2f1a43d6aec1c846d9e2b",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2f325de186f70c1d2e329ae149e42f1b281fda84"
+        },
+        "date": 1795563044467,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 27834,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 37774,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1897,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1165,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2183.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1213,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 501,
             "unit": "KB"
           },
           {
