@@ -102,6 +102,7 @@ the shell script also falls back to a `qmake` already on PATH.
 (`--settings-dir`) and, on Unix, `HOME` there too. The editor is the test executable itself, started with
 `--record <file>`: it writes its working folder and arguments to the file. With `--print-then-sleep <text>` it stands
 in for a long-running program. A test waits for what the screen shows, never for a fixed time.
+The status line's sizes follow the machine's locale (`QLocale::formattedDataSize`), so a test matches a size's number, not its unit.
 Turbo Vision writes each screen update row by row, top to bottom, and the test can read it in several pieces. So a
 test waits for the last text of an update it will check (the lowest row, the rightmost on that row) before it reads
 the text above it. A check that something did not happen first sends a later input with a visible effect and waits

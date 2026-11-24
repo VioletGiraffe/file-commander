@@ -27,6 +27,9 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
   common type — even though MSVC accepts it. Build the string imperatively, or wrap each branch in
   `QString{...}`.
 
+- `x = {}` is ambiguous on GCC and clang when `x` has more than one assignment operator, as `QPersistentModelIndex`
+  does (from itself and from `QModelIndex`); MSVC picks one. Name the type: `x = QPersistentModelIndex{}`.
+
 - No raw string literals inside macro arguments (`CHECK(f(R"(...)"))`): MSVC's default preprocessor does not
   recognize them there, so an inner `"` ends the literal (error C3688) and an inner comma splits the argument.
   GCC and clang accept it. Use an escaped literal, or a variable declared outside the macro.
