@@ -99,7 +99,9 @@ CPanel::FileListUpdateRequest CPanel::beginFileListUpdateLocked(CurrentDisplayMo
 	if (displayMode != SearchResultsMode)
 		_searchResultPaths.clear();
 
-	FileListUpdateRequest request{ ++_fileListGeneration, _currentDirObject.fullAbsolutePath(), displayMode, _searchResultPaths };
+	FileListUpdateRequest request{ ++_fileListGeneration, _currentDirObject.fullAbsolutePath(), displayMode, _searchResultPaths,
+		displayMode == AllObjectsMode ? std::make_shared<std::atomic<size_t>>(0) : nullptr };
+	_filesFoundByPendingFlattenedListing = request.filesFound;
 	// The committed list now belongs to a view we've left, and the accessors hide it from here on, so the UI has to
 	// be told to stop displaying it. Not a refresh: there are no contents to report until this update completes.
 	// Nothing displays an inactive tab, and no listing would follow to lift the invalidation anyway.
@@ -701,10 +703,13 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 		if (request.displayMode == AllObjectsMode)
 		{
 			scanDirectory(CFileSystemObject(request.path).fullAbsolutePath(),
-				[&items, showHiddenFiles](const QString& parentPath, const thin_io::directory_entry& entry, bool /*reachedThroughLink*/) {
+				[&items, showHiddenFiles, &filesFound = *request.filesFound](const QString& parentPath, const thin_io::directory_entry& entry, bool /*reachedThroughLink*/) {
 					CFileSystemObject item{ parentPath, entry };
 					if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
+					{
 						items.try_emplace(item.hash(), std::move(item));
+						filesFound.store(items.size(), std::memory_order_relaxed);
+					}
 				}, _abortBackgroundTasks);
 
 			// The scan reports no failure: an unlistable root yields no files, and so does a tree that has none
@@ -773,6 +778,7 @@ void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, File
 	_items.swap(items);
 	_itemsSourcePath = request.path;
 	_itemsSourceDisplayMode = request.displayMode;
+	_filesFoundByPendingFlattenedListing.reset();
 	enqueueContentsChangedNotificationLocked(operation, request.generation);
 	locker.unlock();
 
@@ -834,6 +840,15 @@ CPanel::CommittedListing CPanel::committedListing() const
 		listing.items.push_back(item);
 
 	return listing;
+}
+
+std::optional<size_t> CPanel::filesFoundByPendingFlattenedListing() const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!_filesFoundByPendingFlattenedListing)
+		return {};
+
+	return _filesFoundByPendingFlattenedListing->load(std::memory_order_relaxed);
 }
 
 uint64_t CPanel::navigationId() const

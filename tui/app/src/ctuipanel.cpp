@@ -424,6 +424,17 @@ void CTuiPanel::handleEvent(TEvent& event)
 		clearEvent(event);
 		return;
 	}
+	if (event.what == evBroadcast && event.message.command == cmTimerExpired && event.message.infoPtr == _flattenedListingProgressTimer)
+	{
+		if (!_controller.panel(_side).filesFoundByPendingFlattenedListing())
+		{
+			killTimer(_flattenedListingProgressTimer);
+			_flattenedListingProgressTimer = nullptr;
+		}
+		updateStatusLine();
+		clearEvent(event);
+		return;
+	}
 
 	TWindow::handleEvent(event);
 
@@ -581,6 +592,8 @@ void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	_listedView.reset();
 	if (!_showEmptyListTimer)
 		_showEmptyListTimer = setTimer(oldFrameHoldMs);
+	if (!_flattenedListingProgressTimer && _controller.panel(_side).filesFoundByPendingFlattenedListing())
+		_flattenedListingProgressTimer = setTimer(250, 250);
 }
 
 void CTuiPanel::showEmptyListWhileListing()
@@ -606,6 +619,12 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 	const std::optional<ListedView> listedView = listing.isCommitted ? std::optional{ ListedView{ panel.id(), panel.navigationId() } } : std::nullopt;
 	const bool refreshesShownView = listedView && listedView == _listedView;
 	_listedView = listedView;
+	// A refill without a listing (filter, sorting) keeps counting the listing still being collected
+	if (_listedView)
+	{
+		killTimer(_flattenedListingProgressTimer);
+		_flattenedListingProgressTimer = nullptr;
+	}
 
 	_fileList->setContents({
 		.items = std::move(listing.items),
@@ -636,6 +655,12 @@ void CTuiPanel::updateStatusLine()
 {
 	const CPanel& panel = _controller.panel(_side);
 	const QLocale locale;
+
+	if (const std::optional<size_t> filesFound = panel.filesFoundByPendingFlattenedListing(); filesFound && !_listedView)
+	{
+		_statusLine->setText({ { QStringLiteral("Collecting files: ") }, { locale.toString((qulonglong)*filesFound), true }, { QStringLiteral(" found") } });
+		return;
+	}
 
 	if (const FolderContentsSummary selected = panel.selectionSummary(); selected.numFiles + selected.numFolders > 0)
 	{

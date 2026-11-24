@@ -27,6 +27,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <stddef.h>
@@ -151,6 +152,8 @@ public:
 		bool isCommitted = false; // False, with the other fields empty, while no committed listing belongs to the current view
 	};
 	[[nodiscard]] CommittedListing committedListing() const;
+	// The files found so far by the flattened listing of the current view that is still being collected; empty when none is
+	[[nodiscard]] std::optional<size_t> filesFoundByPendingFlattenedListing() const;
 	// Advances on every setPath() and showAllFilesFromCurrentFolderAndBelow(), even to the folder already in view; a refresh keeps it.
 	// Changes only on the UI thread.
 	[[nodiscard]] uint64_t navigationId() const;
@@ -203,6 +206,7 @@ private:
 		QString path;
 		CurrentDisplayMode displayMode;
 		QStringList searchResultPaths; // SearchResultsMode only
+		std::shared_ptr<std::atomic<size_t>> filesFound; // AllObjectsMode only: written by the scan, read by the UI thread
 	};
 
 	struct FolderResolution
@@ -252,6 +256,8 @@ private:
 	// Folder sizes calculated on request, re-applied to every listing that still has the folder. Protected by _fileListAndCurrentDirMutex.
 	ankerl::unordered_dense::map<qulonglong /*hash*/, uint64_t, identity_hash> _calculatedDirSizes;
 	QStringList                                _searchResultPaths; // Under _fileListAndCurrentDirMutex; empty outside SearchResultsMode
+	// The current request's FileListUpdateRequest::filesFound until it publishes. Under _fileListAndCurrentDirMutex.
+	std::shared_ptr<const std::atomic<size_t>> _filesFoundByPendingFlattenedListing;
 	QString                                    _itemsSourcePath;
 	CurrentDisplayMode                         _itemsSourceDisplayMode = NormalMode;
 	uint64_t                                   _fileListGeneration = 0;

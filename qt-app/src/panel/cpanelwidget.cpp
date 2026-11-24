@@ -36,6 +36,7 @@
 #include "theme/ctintedsvgiconengine.h"
 #include "timing/ctimeelapsed.h"
 #include "utils/naturalsorting/cnaturalsorterqcollator.h"
+#include "widgets/cfadingnotice.h"
 #include "widgets/ctabstrip.h"
 #include "widgets/widgetutils.h"
 
@@ -51,6 +52,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QHelpEvent>
 #include <QImage>
 #include <QItemSelectionModel>
+#include <QLocale>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
@@ -170,6 +172,11 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	_oldFrameHoldTimer->setSingleShot(true);
 	_oldFrameHoldTimer->setInterval(100);
 	assert_r(connect(_oldFrameHoldTimer, &QTimer::timeout, this, &CPanelWidget::endOldFrameHold));
+
+	_flattenedListingProgressNotice = new CFadingNotice{ ui->_list };
+	_flattenedListingProgressTimer = new QTimer{ this };
+	_flattenedListingProgressTimer->setInterval(250); // The first update waits an interval, so a quick listing shows no notice
+	assert_r(connect(_flattenedListingProgressTimer, &QTimer::timeout, this, &CPanelWidget::showFlattenedListingProgress));
 
 	_frameGlow = std::make_unique<CGlowUnderlay>(*this, [this] { return frameGlow(); });
 	// A TabsOnFrame frame runs around the current tab
@@ -783,6 +790,12 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 
 	endOldFrameHold();
 	const bool modelReset = fillFromList(operation);
+	// A refill without a listing (another tab closed) keeps the notice over the listing still being collected
+	if (activeTab().navigationId)
+	{
+		_flattenedListingProgressTimer->stop();
+		_flattenedListingProgressNotice->hide();
+	}
 	// After an update too: what the view's selection does through moves and removals is Qt's to decide
 	applyCoreSelection();
 
@@ -803,6 +816,20 @@ void CPanelWidget::endOldFrameHold()
 
 	setUpdatesEnabled(true);
 	updateFrame();
+}
+
+void CPanelWidget::showFlattenedListingProgress()
+{
+	const std::optional<size_t> filesFound = _controller->panel(_panelPosition).filesFoundByPendingFlattenedListing();
+	if (!filesFound)
+	{
+		_flattenedListingProgressTimer->stop();
+		_flattenedListingProgressNotice->hide();
+		return;
+	}
+
+	_flattenedListingProgressNotice->showMessage(tr("Collecting files: %1 found").arg(QLocale{}.toString((qulonglong)*filesFound)),
+		ui->_list->viewport()->geometry(), CFadingNotice::Duration::UntilHidden);
 }
 
 void CPanelWidget::showContextMenuForItems()
@@ -1341,6 +1368,13 @@ void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	tab.cursorTargetHash = 0;
 	updateInfoLabel();
 	updateTabText(_activeTab);
+
+	// The notice of a view this one replaces must not show over it; a new one appears after the timer's interval
+	_flattenedListingProgressNotice->hide();
+	if (_controller->panel(_panelPosition).filesFoundByPendingFlattenedListing())
+		_flattenedListingProgressTimer->start();
+	else
+		_flattenedListingProgressTimer->stop();
 }
 
 // Only the tab on screen can repaint; switching to another re-attaches the shared view, which refetches every row.

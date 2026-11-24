@@ -133,5 +133,6 @@ private:
 	CTuiFilterLine* _filterLine;
 	CTuiStatusLine* _statusLine;
 	TTimerId _showEmptyListTimer = nullptr; // Non-null while the screen shows rows the list no longer holds
+	TTimerId _flattenedListingProgressTimer = nullptr; // Non-null while the list waits for a flattened listing
 	std::optional<ListedView> _listedView; // The view whose committed listing _fileList holds
 };

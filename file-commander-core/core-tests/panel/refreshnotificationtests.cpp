@@ -193,6 +193,43 @@ TEST_CASE("CPanel - flattened mode lists the files of the whole subtree", "[pane
 	CHECK(h.panel().itemHashExists(hashOf(tree.path() + QStringLiteral("/a"))));
 }
 
+TEST_CASE("CPanel - only a flattened listing still being collected reports the files it has found", "[panel][notifications]")
+{
+	TempTree tree;
+	tree.makeDir(QStringLiteral("a"));
+	tree.makeFile(QStringLiteral("top.txt"));
+	tree.makeFile(QStringLiteral("a/deep.txt"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+
+	h.worker().close();
+	h.panel().refreshFileList(refreshCauseOther);
+	CHECK_FALSE(h.panel().filesFoundByPendingFlattenedListing()); // A folder's own listing
+
+	h.worker().open();
+	h.settle();
+	h.worker().close();
+	h.panel().showAllFilesFromCurrentFolderAndBelow();
+	CHECK(h.panel().filesFoundByPendingFlattenedListing() == size_t{ 0 }); // Held before the scan starts
+
+	h.worker().open();
+	h.completeUpdate();
+	CHECK_FALSE(h.panel().filesFoundByPendingFlattenedListing());
+
+	h.worker().close();
+	h.panel().refreshFileList(refreshCauseOther);
+	CHECK(h.panel().filesFoundByPendingFlattenedListing().has_value());
+	h.panel().navigateUp(); // Supersedes the flattened listing
+	CHECK_FALSE(h.panel().filesFoundByPendingFlattenedListing());
+
+	h.worker().open();
+	h.settle();
+	CHECK_FALSE(h.panel().filesFoundByPendingFlattenedListing());
+}
+
 TEST_CASE("CPanel - a drain only ever delivers the notifications of its own tab", "[panel][notifications]")
 {
 	TempTree tree;

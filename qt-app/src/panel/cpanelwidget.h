@@ -26,6 +26,7 @@ namespace Ui {
 class CPanelWidget;
 }
 
+class CFadingNotice;
 class QItemSelectionModel;
 class QMenu;
 class QStandardItem;
@@ -138,6 +139,8 @@ private:
 	void fillFromPanel(FileListRefreshCause operation);
 	// Repaints the panel if onPanelContentsInvalidated() stopped its painting
 	void endOldFrameHold();
+	// Shows the pending flattened listing's file count over the empty list; hides the notice and stops its timer once none is pending
+	void showFlattenedListingProgress();
 	// The core's cursor target once listed; after a refresh, the cursor's item, or its row when the item is gone; after a navigation, the item
 	// remembered for the folder. previousRow: the cursor's row before the refill, -1 for none.
 	void placeCursorAfterFill(FileListRefreshCause operation, bool modelReset, int previousRow, qulonglong previousHash);
@@ -235,4 +238,6 @@ private:
 	Panel                           _panelPosition = Panel::UnknownPanel;
 	std::unique_ptr<CGlowUnderlay>  _frameGlow;
 	QTimer                        * _oldFrameHoldTimer = nullptr; // Active while the screen shows rows the model no longer holds
+	QTimer                        * _flattenedListingProgressTimer = nullptr; // Active while the list waits for a flattened listing
+	CFadingNotice                 * _flattenedListingProgressNotice = nullptr; // Owned by the list
 };

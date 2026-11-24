@@ -16,6 +16,10 @@ queue drain; [threading.md](threading.md) lists the queues and who drains them.
 | `IconsChangedListener` (`qt-app/src/iconprovider/ciconprovider.h`) | some icons changed: a precise icon arrived, or a cached one was marked stale (`onIconsChanged`); every icon is invalidated (`onAllIconsChanged`) | arrivals: deferred via the icon provider's queue; the rest: synchronous, on the main thread from the caller | `CPanelWidget` |
 | `CController::subscribeToPanelContents` | the active tab's list is committed | from the controller's own `onPanelContentsChanged`, so main thread, under the panel's list mutex; see [plugins.md](plugins.md) | plugin proxies |
 
+A front end's `fillFromPanel` also runs without a notification (a tab closed, the filter, sorting), so a refill does not
+mean a listing arrived. Display tied to a listing still being collected, such as the flattened listing's file count,
+ends only on a fill from a committed listing.
+
 ## Navigation path
 
 What one `CController::setPath` does, with the thread boundaries marked. Watcher-triggered refreshes and tab
