@@ -113,7 +113,7 @@ public:
 		{
 			// A press can make the row current, and with it draw the button under the cursor: only a press on a drawn button counts
 			const bool clicked = onButton && _pressedBrowseButton == index;
-			_pressedBrowseButton = {};
+			_pressedBrowseButton = QPersistentModelIndex{};
 			if (clicked)
 			{
 				_browseForFolder(index);
