@@ -26,6 +26,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -36,6 +37,7 @@ RESTORE_COMPILER_WARNINGS
 #include <vector>
 
 class ListableFolderProbe;
+struct FlattenedListingRecheck;
 
 enum class Panel
 {
@@ -99,7 +101,7 @@ struct CurrentPathChangedListener {
 class CPanel final
 {
 public:
-	// Only NormalMode has a folder watcher: in the others, the panel lists items from many folders
+	// NormalMode watches its folder, AllObjectsMode the tree under it; SearchResultsMode has no watch
 	enum CurrentDisplayMode {NormalMode, AllObjectsMode, SearchResultsMode};
 
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
@@ -132,11 +134,14 @@ public:
 	// Lists the paths that exist, in the deepest folder holding them all, else in the panel's folder. Starts with nothing selected.
 	// A navigation leaves the list.
 	void showSearchResults(QStringList paths);
-	// Keeps renamed items, and the items under renamed folders, in the search results. A view without a watcher lists again, once.
+	// Keeps renamed items, and the items under renamed folders, in the search results.
+	// A view its watch does not keep current (watchKeepsViewCurrent()) lists again, once.
 	// Each pair is an old and a new path, as CFileSystemObject::fullAbsolutePath().
 	// Old paths are as before the whole batch: a chain (a->b, b->c) moves the result a to b, not to c.
 	void itemsRenamed(const std::vector<std::pair<QString, QString>>& renamedPaths);
 	[[nodiscard]] CurrentDisplayMode displayMode() const;
+	// False for search results, and for a flattened view whose notifications may miss a change. UI thread only.
+	[[nodiscard]] bool watchKeepsViewCurrent() const;
 	// Switches to the appropriate directory and sets the cursor to the specified item
 	bool goToItem(const CFileSystemObject& item);
 
@@ -252,7 +257,8 @@ private:
 	// Advances the navigation id. cause: what the first contents notification after this navigation's listing reports.
 	void beginNavigationLocked(FileListRefreshCause cause);
 	void enqueueFileListUpdate(FileListUpdateRequest request);
-	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items);
+	// treeHoldsFolderLinks: AllObjectsMode only, see addFlattenedListingItems()
+	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, bool treeHoldsFolderLinks);
 	void sendContentsChangedNotification();
 	// Records the items of hashes as changed in _items: added, changed or removed. Requires the current view's committed listing.
 	void commitItemChangesLocked(const std::vector<qulonglong>& hashes);
@@ -261,7 +267,13 @@ private:
 	void enqueueContentsInvalidatedNotificationLocked(uint64_t generation) const;
 	[[nodiscard]] bool fileListGenerationIsCurrent(uint64_t generation) const;
 
-	void refreshIfWatcherDetectedChanges();
+	void watchView(const QString& path, CurrentDisplayMode displayMode);
+	// A flattened view applies the changed paths in place; the other views list again
+	void applyWatchedChanges();
+	[[nodiscard]] bool watchedChangesUpdateCanStartLocked() const;
+	// Rechecks the pending changed paths on the listing pool and commits what they hold now
+	void startWatchedChangesUpdateLocked();
+	void applyFlattenedListingRecheckLocked(FlattenedListingRecheck&& recheck);
 
 	template <typename Functor>
 	void execOnUiThread(Functor&& f, int tag = -1) const noexcept
@@ -287,6 +299,11 @@ private:
 	ankerl::unordered_dense::map<qulonglong /*hash*/, const std::atomic<uint64_t>*, identity_hash> _dirSizesBeingCalculated;
 	size_t                                     _dirSizeCalculationsQueued = 0; // Not started yet. Protected by _fileListAndCurrentDirMutex.
 	QStringList                                _searchResultPaths; // Under _fileListAndCurrentDirMutex; empty outside SearchResultsMode
+	// AllObjectsMode: the changed paths the watch reported that no update has taken yet. Under _fileListAndCurrentDirMutex.
+	ankerl::unordered_dense::map<QString, CFileSystemWatcher::ChangedPath, QStringHash, std::equal_to<>> _pendingWatchedChanges;
+	bool                                       _watchedChangesUpdateRunning = false; // Under _fileListAndCurrentDirMutex
+	bool                                       _listedTreeHoldsFolderLinks = false; // Of the committed flattened listing. Under _fileListAndCurrentDirMutex.
+	std::chrono::steady_clock::time_point      _watchedChangesUpdateStart; // UI thread only
 	// The current request's FileListUpdateRequest::filesFound until it publishes. Under _fileListAndCurrentDirMutex.
 	std::shared_ptr<const std::atomic<size_t>> _filesFoundByPendingFlattenedListing;
 	QString                                    _itemsSourcePath;

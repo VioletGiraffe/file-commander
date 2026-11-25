@@ -58,8 +58,8 @@ invalidates the reason given.
 
 - A Cut does not outlive the app: the clipboard is flushed only for a Copy, because a flushed Cut makes a second paste
   fail.
-- Flattened and search views refresh after a context menu verb ran; a verb whose handler finishes asynchronously can
-  complete after that refresh, and its changes show at the next one.
+- Search views, and flattened views their watch does not keep current, refresh after a context menu verb ran; a verb
+  whose handler finishes asynchronously can complete after that refresh, and its changes show at the next one.
 
 ## Locking
 

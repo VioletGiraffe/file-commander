@@ -56,6 +56,7 @@ CI runs every suite but `tui_test` this way on an exFAT and a FAT32 volume, on e
 - what an in-place model update costs against a reset, which is where the model's reset threshold comes from;
 - what the UI thread spends on a refresh that changed one file in a flattened listing: the panel's copy, the GUI model's update and the terminal UI list's update, each against applying the one change in place;
 - what applying a number of changes in place costs against a refill with every row, from one change to an eighth of the rows;
+- what removing the items under folders that left a flattened listing costs, which the panel does under its list mutex;
 - what one name filter change costs, with and without a view;
 - what the collator's sort costs by string and by sort key, and the memory of the keys and of a model beyond its rows.
 
@@ -85,7 +86,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | `fileoperationsui_test` | File-operation dialog and decision prompt |
 | `fso_test` | `CFileSystemObject`'s rules on entries built in memory: name split, type, hidden, executable, links, `[..]` |
 | `fso_test_high_level` | `CFileSystemObject` on the real filesystem: path semantics, name split, hidden and executable entries, links; the panel listing and its `[..]` |
-| `panel_test` | `CPanel`: navigation, history, current item, content access, selection, refresh notifications, lifetime. The file list rules: sort order, display name, name filter language. `CDirectorySnapshotPoller` |
+| `panel_test` | `CPanel`: navigation, history, current item, content access, selection, refresh notifications, lifetime, a flattened view's watched changes. The file list rules: sort order, display name, name filter language. `CDirectorySnapshotPoller` |
 | `controller_test` | `CController`'s tabs: saving and restoring them, tab ids, which tab is active after a move or a close. `CFavoriteLocations`: its rules, saving and loading, and the format of earlier versions |
 | `filesearchengine_test` | Search engine: name filters, content search, engine behavior |
 | `batchrename_test` | `CBatchRenameSession`, the batch rename dialog's model: the preview's states, applying and undoing, the saved options |

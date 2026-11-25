@@ -6,6 +6,7 @@
 
 #include "detail/file_list_hashmap.h"
 #include "filelist/sortedfilelist.h"
+#include "panellisting.h"
 
 #include "crandomdatagenerator.h"
 #include "qt_helpers.hpp"
@@ -783,6 +784,44 @@ TEST_CASE("Timings of a number of changes applied in place against a refill", "[
 			printSpread(listRefillMs);
 			printSpread(modelInPlaceMs);
 			printSpread(modelRefillMs);
+			std::printf("\n");
+		}
+	}
+}
+
+// A flattened view's in-place update after folders left its tree, which CPanel runs under the list mutex. Per row count:
+// one folder that held no listed item, such as a removed file the listing left out; one folder of 100 files; 100 such folders.
+TEST_CASE("Timings of removing the items under folders that left a flattened listing", "[.][filelist][update][timing]")
+{
+	CRandomDataGenerator random;
+	random.setSeed(g_randomSeed);
+
+	static constexpr int numSamples = 10;
+	std::printf("min, median and max of %d samples, ms\n", numSamples);
+	std::printf("%7s %8s %8s %23s\n", "rows", "folders", "removed", "sweep");
+	for (const int numRows : { 100'000, 500'000 })
+	{
+		const FileListHashMap base = flattenedListing(numRows, random);
+		std::vector<QString> manyFolders;
+		for (int i = 0; i < 100; ++i)
+			manyFolders.push_back(itemsFolder + QStringLiteral("0/%1/").arg(i));
+
+		const std::vector<std::vector<QString>> folderSets{ { itemsFolder + QStringLiteral("none/") }, { itemsFolder + QStringLiteral("0/0/") }, manyFolders };
+		for (const std::vector<QString>& folders : folderSets)
+		{
+			std::vector<double> samples;
+			size_t removedCount = 0;
+			for (int sample = 0; sample < numSamples; ++sample)
+			{
+				FileListHashMap items = base;
+				std::vector<QString> foldersToSweep = folders;
+				const auto start = std::chrono::steady_clock::now();
+				removedCount = removeItemsUnderFolders(items, std::move(foldersToSweep), FileListHashMap{}).size();
+				samples.push_back(msSince(start));
+			}
+
+			std::printf("%7d %8zu %8zu", numRows, folders.size(), removedCount);
+			printSpread(samples);
 			std::printf("\n");
 		}
 	}

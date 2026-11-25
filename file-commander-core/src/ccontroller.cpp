@@ -281,7 +281,7 @@ void CController::refreshUnwatchedViews()
 		if (_panels[(size_t)p].tabs.empty()) // After shutdown
 			continue;
 
-		if (panel(p).displayMode() != CPanel::NormalMode)
+		if (!panel(p).watchKeepsViewCurrent())
 			panel(p).refreshFileList();
 	}
 }

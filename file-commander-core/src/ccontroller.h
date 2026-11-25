@@ -68,8 +68,7 @@ public:
 
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI.
 	void refreshPanelContents(Panel p);
-	// Lists again each side's view that no folder watcher keeps current: a flattened folder, search results.
-	// Called when a file operation ends.
+	// Lists again each side's view that its watch does not keep current: see CPanel::watchKeepsViewCurrent(). Called when a file operation ends.
 	void refreshUnwatchedViews();
 	// Whether the panels list hidden entries. Persisted; a change refreshes both sides.
 	[[nodiscard]] bool showHiddenFiles() const;

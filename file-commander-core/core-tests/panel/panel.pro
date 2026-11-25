@@ -42,7 +42,8 @@ SOURCES += \
 	filelistrulestests.cpp \
 	sortedfilelisttests.cpp \
 	lifetimetests.cpp \
-	snapshotpollertests.cpp
+	snapshotpollertests.cpp \
+	flattenedwatchtests.cpp
 
 HEADERS += \
 	paneltesthelpers.h \

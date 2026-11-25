@@ -88,8 +88,10 @@ public:
 	};
 	// The cursor goes to the row whose hash is cursorItemHash, or to fallbackRow (clamped to the rows) when no row has it.
 	void setContents(Contents contents, qulonglong cursorItemHash, int fallbackRow);
-	// Brings in added, changed and removed items, as SortedFileList::applyChanges(). The cursor stays on its item, or else on its row.
-	void applyChanges(std::vector<CFileSystemObject> upserted, const std::vector<qulonglong>& removedHashes, const std::vector<qulonglong>& selectedItemHashes);
+	// Brings in added, changed and removed items, as SortedFileList::applyChanges().
+	// The cursor goes to the row whose hash is cursorItemHash, or else stays on its row.
+	void applyChanges(std::vector<CFileSystemObject> upserted, const std::vector<qulonglong>& removedHashes, const std::vector<qulonglong>& selectedItemHashes,
+		qulonglong cursorItemHash);
 	// Removes the rows and the selection. The screen keeps showing them until the next draw.
 	void clearRowsKeepingScreen();
 	// Draws the list that clearRowsKeepingScreen() emptied

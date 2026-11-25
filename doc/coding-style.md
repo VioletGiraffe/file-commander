@@ -81,6 +81,8 @@ and every source must see the same ones. A test binary links `catch2_runner`, Ca
 (`3rdparty/catch2/catch2.pri`, cpp-template-utils), and defines `main()` around `runCatchSession()` from `catch_runner.h`.
 It never includes `test_main.hpp`, which compiles the implementation a second time.
 
+No comma in a Catch2 test name: on the command line a comma separates test specs, so the name cannot select its test.
+
 Do not interpolate Catch2 test names into filesystem paths. Test titles may contain characters illegal in
 filenames on some platforms, such as `:` on Windows. Use a fixed `QTemporaryDir` template, or sanitize the title
 explicitly when retaining it provides real diagnostic value.

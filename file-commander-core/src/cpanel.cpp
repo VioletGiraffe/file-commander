@@ -30,6 +30,10 @@ enum {
 	ContentsChangedNotificationTag
 };
 
+// A flattened view's in-place updates start at most this often: the GUI's relayout after inserting or removing rows
+// grows with the rows. See core-engine.md, "File-list publication".
+static constexpr std::chrono::milliseconds watchedChangesUpdateInterval{ 250 };
+
 CPanel::CPanel(Panel position, CThreadPool& listingThreadPool, CThreadPool& workerThreadPool, qulonglong id, std::function<void()> wakeUiThread) :
 	_panelPosition(position),
 	_id(id),
@@ -80,7 +84,7 @@ void CPanel::setActive(bool active)
 		// setPath comes first: there is nothing to watch or list until the tab has been pointed at a folder.
 		assert_debug_only(!currentPath.isEmpty());
 
-		_watcher.setPathToWatch(displayMode == NormalMode ? currentPath : QString{});
+		watchView(currentPath, displayMode);
 		refreshFileList();
 	}
 	else
@@ -103,6 +107,7 @@ CPanel::FileListUpdateRequest CPanel::beginFileListUpdateLocked(CurrentDisplayMo
 	FileListUpdateRequest request{ ++_fileListGeneration, _currentDirObject.fullAbsolutePath(), displayMode, _searchResultPaths,
 		displayMode == AllObjectsMode ? std::make_shared<std::atomic<size_t>>(0) : nullptr };
 	_filesFoundByPendingFlattenedListing = request.filesFound;
+	_pendingWatchedChanges.clear(); // Made before the listing this starts, which reads the disk after them
 	// The committed list now belongs to a view we've left, and the accessors hide it from here on, so the UI has to
 	// be told to stop displaying it. Not a refresh: there are no contents to report until this update completes.
 	// Nothing displays an inactive tab, and no listing would follow to lift the invalidation anyway.
@@ -216,7 +221,7 @@ void CPanel::moveToFolder(FolderResolution resolution, FileListRefreshCause oper
 	// An inactive tab neither watches nor lists its folder; setActive does both when the tab becomes the displayed one.
 	const bool active = _active;
 	if (active)
-		_watcher.setPathToWatch(displayMode == NormalMode ? newPath : QString{});
+		watchView(newPath, displayMode);
 
 	// Use the previous view's committed list to remember the selected child when navigating down.
 	const auto newItemInPreviousFolder = _itemsSourcePath == oldPathObject.fullAbsolutePath() && _itemsSourceDisplayMode == oldDisplayMode ? _items.find(_currentDirObject.hash()) : _items.end();
@@ -232,7 +237,7 @@ void CPanel::moveToFolder(FolderResolution resolution, FileListRefreshCause oper
 	const auto request = beginFileListUpdateLocked(displayMode);
 	// Not listed: the listing would fail, and its recovery would find no folder either and end up here again
 	if (!resolution.listable)
-		publishFileListIfCurrent(request, {});
+		publishFileListIfCurrent(request, {}, false);
 	locker.unlock();
 
 	if (active && resolution.listable)
@@ -316,7 +321,8 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 		request = beginFileListUpdateLocked(AllObjectsMode);
 	}
 
-	_watcher.setPathToWatch({});
+	// Before the listing starts: a change made before the watch exists may go unreported
+	watchView(request.path, AllObjectsMode);
 	enqueueFileListUpdate(request);
 }
 
@@ -352,10 +358,8 @@ void CPanel::itemsRenamed(const std::vector<std::pair<QString, QString>>& rename
 			renamedFolders.push_back(&rename);
 	}
 
-	CurrentDisplayMode displayMode = NormalMode;
 	{
 		std::lock_guard locker(_fileListAndCurrentDirMutex);
-		displayMode = _currentDisplayMode;
 		for (QString& path : _searchResultPaths)
 		{
 			if (const auto renamed = newPathByOld.find(path); renamed != newPathByOld.end())
@@ -375,7 +379,7 @@ void CPanel::itemsRenamed(const std::vector<std::pair<QString, QString>>& rename
 		}
 	}
 
-	if (displayMode != NormalMode)
+	if (!watchKeepsViewCurrent())
 		refreshFileList();
 }
 
@@ -383,6 +387,29 @@ CPanel::CurrentDisplayMode CPanel::displayMode() const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	return _currentDisplayMode;
+}
+
+bool CPanel::watchKeepsViewCurrent() const
+{
+	CurrentDisplayMode displayMode = NormalMode;
+	bool treeHoldsFolderLinks = false;
+	{
+		std::lock_guard locker(_fileListAndCurrentDirMutex);
+		displayMode = _currentDisplayMode;
+		treeHoldsFolderLinks = _listedTreeHoldsFolderLinks;
+	}
+
+	switch (displayMode)
+	{
+	case NormalMode:
+		return true; // The poll covers the folder where notifications may miss a change
+	case AllObjectsMode:
+		return !treeHoldsFolderLinks && _watcher.notificationsReportEveryChange(); // The listing follows folder links, the watch does not
+	case SearchResultsMode:
+		return false;
+	}
+
+	assert_and_return_r(false, false);
 }
 
 // Switches to the appropriate directory and makes the specified item current
@@ -707,20 +734,15 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request)
 		CTimeElapsed timer{ true };
 		FileListHashMap items;
 		bool listed = true;
+		bool treeHoldsFolderLinks = false;
 		const bool showHiddenFiles = QSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
+		// Baseline the folder before the enumeration below, so the watcher's snapshot matches this listing
+		// (why: see captureBaselineState). Does nothing for search results, which have no watch.
+		_watcher.captureBaselineState();
 
 		if (request.displayMode == AllObjectsMode)
 		{
-			scanDirectory(CFileSystemObject(request.path).fullAbsolutePath(),
-				[&items, showHiddenFiles, &filesFound = *request.filesFound](const QString& parentPath, const thin_io::directory_entry& entry, bool /*reachedThroughLink*/) {
-					CFileSystemObject item{ parentPath, entry };
-					if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
-					{
-						items.try_emplace(item.hash(), std::move(item));
-						filesFound.store(items.size(), std::memory_order_relaxed);
-					}
-				}, _abortBackgroundTasks);
-
+			treeHoldsFolderLinks = addFlattenedListingItems(CFileSystemObject(request.path).fullAbsolutePath(), showHiddenFiles, items, _abortBackgroundTasks, request.filesFound.get());
 			// The scan reports no failure: an unlistable root yields no files, and so does a tree that has none
 			listed = !items.empty() || canListDirectory(request.path);
 		}
@@ -735,17 +757,10 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request)
 					items.try_emplace(item.hash(), std::move(item));
 			}
 		}
+		else if (auto listing = listDirectoryForPanel(request.path, showHiddenFiles))
+			items = std::move(*listing);
 		else
-		{
-			// Baseline the folder before the enumeration below, so the watcher's snapshot matches this listing
-			// (why: see captureBaselineState)
-			_watcher.captureBaselineState();
-
-			if (auto listing = listDirectoryForPanel(request.path, showHiddenFiles))
-				items = std::move(*listing);
-			else
-				listed = false;
-		}
+			listed = false;
 
 		if (!listed)
 		{
@@ -756,11 +771,11 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request)
 		if (const auto elapsedMs = timer.elapsed(); elapsedMs >= 100)
 			qInfo() << "Listing" << request.path << "took" << elapsedMs << "ms for" << items.size() << "items";
 
-		publishFileListIfCurrent(request, std::move(items));
+		publishFileListIfCurrent(request, std::move(items), treeHoldsFolderLinks);
 	}, _taskTag);
 }
 
-void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items)
+void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, const bool treeHoldsFolderLinks)
 {
 	std::unique_lock locker(_fileListAndCurrentDirMutex);
 	if (!fileListUpdateIsCurrentLocked(request))
@@ -787,6 +802,7 @@ void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, File
 	_items.swap(items);
 	_itemsSourcePath = request.path;
 	_itemsSourceDisplayMode = request.displayMode;
+	_listedTreeHoldsFolderLinks = treeHoldsFolderLinks;
 	_filesFoundByPendingFlattenedListing.reset();
 	_itemsChangedSinceNotification.reset();
 	_navigationListingCommitted = true;
@@ -1035,7 +1051,7 @@ bool CPanel::fileListGenerationIsCurrent(uint64_t generation) const
 void CPanel::uiThreadTimerTick()
 {
 	_uiThreadQueue.exec();
-	refreshIfWatcherDetectedChanges();
+	applyWatchedChanges();
 }
 
 void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *listener)
@@ -1053,8 +1069,104 @@ void CPanel::addCurrentPathChangedListener(CurrentPathChangedListener * listener
 	_currentPathChangedListeners.addSubscriber(listener);
 }
 
-void CPanel::refreshIfWatcherDetectedChanges()
+void CPanel::watchView(const QString& path, const CurrentDisplayMode displayMode)
 {
-	if (_watcher.changesDetected())
+	_watcher.setPathToWatch(displayMode == SearchResultsMode ? QString{} : path, displayMode == AllObjectsMode);
+}
+
+void CPanel::applyWatchedChanges()
+{
+	if (displayMode() != AllObjectsMode)
+	{
+		if (_watcher.changesDetected())
+			refreshFileList();
+		return;
+	}
+
+	CFileSystemWatcher::Changes changes = _watcher.takeChanges();
+	if (changes.rescan)
+	{
 		refreshFileList();
+		return;
+	}
+
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	for (CFileSystemWatcher::ChangedPath& change : changes.paths)
+	{
+		const auto [pending, inserted] = _pendingWatchedChanges.try_emplace(change.path, change);
+		if (!inserted)
+		{
+			pending->second.contentsMayBeNew |= change.contentsMayBeNew;
+			pending->second.contentsMayBeGone |= change.contentsMayBeGone;
+		}
+	}
+
+	if (watchedChangesUpdateCanStartLocked())
+		startWatchedChangesUpdateLocked();
+}
+
+bool CPanel::watchedChangesUpdateCanStartLocked() const
+{
+	// The current request's filesFound: a flattened listing is pending until it publishes, and its commit triggers no update
+	return !_pendingWatchedChanges.empty() && !_watchedChangesUpdateRunning && fileListBelongsToCurrentViewLocked() && !_filesFoundByPendingFlattenedListing
+		&& std::chrono::steady_clock::now() - _watchedChangesUpdateStart >= watchedChangesUpdateInterval;
+}
+
+void CPanel::startWatchedChangesUpdateLocked()
+{
+	std::vector<CFileSystemWatcher::ChangedPath> changes;
+	changes.reserve(_pendingWatchedChanges.size());
+	for (auto& [path, change] : _pendingWatchedChanges)
+		changes.push_back(std::move(change));
+	_pendingWatchedChanges.clear();
+
+	_watchedChangesUpdateRunning = true;
+	_watchedChangesUpdateStart = std::chrono::steady_clock::now();
+	_listingThreadPool.enqueue([this, generation = _fileListGeneration, changes = std::move(changes)] {
+		EXEC_ON_SCOPE_EXIT([this] {
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
+			_watchedChangesUpdateRunning = false;
+		});
+
+		const bool showHiddenFiles = QSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
+		FlattenedListingRecheck recheck = recheckFlattenedListing(changes, showHiddenFiles, _abortBackgroundTasks);
+		if (_abortBackgroundTasks)
+			return;
+
+		{
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
+			// A listing begun since then reads the disk after these changes, and may read it after this recheck did
+			if (generation != _fileListGeneration || !fileListBelongsToCurrentViewLocked())
+				return;
+
+			if (!recheck.listAgain)
+			{
+				applyFlattenedListingRecheckLocked(std::move(recheck));
+				return;
+			}
+		}
+
+		refreshFileList();
+	}, _taskTag);
+}
+
+void CPanel::applyFlattenedListingRecheckLocked(FlattenedListingRecheck&& recheck)
+{
+	// A listed file at the path means no folder left it
+	std::erase_if(recheck.vanishedFolderCandidates, [this](const QString& folder) { return _items.contains(pathHash(folder.chopped(1))); });
+	std::vector<qulonglong> changedHashes = removeItemsUnderFolders(_items, std::move(recheck.vanishedFolderCandidates), recheck.upserted);
+	for (const qulonglong hash : recheck.removedHashes)
+	{
+		if (_items.erase(hash) != 0)
+			changedHashes.push_back(hash);
+	}
+
+	for (auto& [hash, item] : recheck.upserted)
+	{
+		changedHashes.push_back(hash);
+		_items.insert_or_assign(hash, std::move(item));
+	}
+
+	if (!changedHashes.empty())
+		commitItemChangesLocked(changedHashes);
 }

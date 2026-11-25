@@ -199,12 +199,12 @@ void CTuiFileList::setContents(Contents contents, const qulonglong cursorItemHas
 }
 
 void CTuiFileList::applyChanges(std::vector<CFileSystemObject> upserted, const std::vector<qulonglong>& removedHashes,
-	const std::vector<qulonglong>& selectedItemHashes)
+	const std::vector<qulonglong>& selectedItemHashes, const qulonglong cursorItemHash)
 {
-	const CFileSystemObject* cursorItem = currentRow();
-	const qulonglong cursorItemHash = cursorItem ? cursorItem->hash() : 0;
+	const CFileSystemObject* previousCursorItem = currentRow();
+	const bool cursorStaysOnItem = previousCursorItem && previousCursorItem->hash() == cursorItemHash;
 	_list.applyChanges(std::move(upserted), removedHashes);
-	finishRowsChange(selectedItemHashes, cursorItemHash, cursorItem != nullptr, cursorRow());
+	finishRowsChange(selectedItemHashes, cursorItemHash, cursorStaysOnItem, cursorRow());
 }
 
 void CTuiFileList::finishRowsChange(const std::vector<qulonglong>& selectedItemHashes, qulonglong cursorItemHash, bool cursorStaysOnItem, int fallbackRow)

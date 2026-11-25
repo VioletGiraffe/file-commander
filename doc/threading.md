@@ -8,7 +8,7 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 
 | Owner | Mechanism | Work |
 |-------|-----------|------|
-| `CController` | shared listing pool, fixed size | `CPanel` file list updates across sides and tabs, and nothing else |
+| `CController` | shared listing pool, fixed size | `CPanel` file list updates and flattened views' in-place updates, across sides and tabs, and nothing else |
 | `CController` | shared application worker pool | Plugin background work and `CPanel` folder size calculations |
 | `CController` | UI execution queue | Plugin UI dispatch and work deferred past panel locks |
 | each `CPanel` | UI execution queue | Panel result publication and observer delivery |
@@ -51,6 +51,14 @@ Every asynchronous list replacement captures generation, path, and display mode,
 through `publishFileListIfCurrent()`. Invalidation only withdraws stale display data; committed notification is the
 point where cursor, selection, persistence, and plugin state may change. Screen-facing callbacks filter by active
 tab ID. See [core-engine.md](core-engine.md) for the complete publication boundary.
+
+A flattened view applies the changed paths its watch reports in place, through one update task at a time on the
+listing pool. The task rereads the paths outside the list mutex and commits under it:
+- A listing that starts drops the changes read before it: it reads the disk after them.
+- An update starts only while the view's listing is committed and no listing is pending.
+- An update commits only if no listing began after it started: that listing may have read the disk after the update did.
+- Changes read while an update runs wait for the next update.
+- An update that finds a new folder link starts a listing instead of committing, from its pool thread.
 
 ## Lock and teardown boundaries
 

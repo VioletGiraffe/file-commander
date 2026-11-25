@@ -647,9 +647,11 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause, const PanelConte
 	const bool navigated = cause == refreshCauseForwardNavigation || cause == refreshCauseCdUp;
 	_columnHeader->setSorting(panel.sortField(), panel.sortOrder());
 
+	// The cursor's item, or one a command put the cursor on: a renamed or created item
+	const qulonglong currentItemHash = _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix());
 	// A change that is not full describes the current view's listing, which the list holds if it holds this view's
 	if (!change.full && _listedView == ListedView{ panel.id(), panel.navigationId() })
-		_fileList->applyChanges(change.upserted, change.removedHashes, panel.selectedItemHashes());
+		_fileList->applyChanges(change.upserted, change.removedHashes, panel.selectedItemHashes(), currentItemHash);
 	else
 	{
 		CPanel::CommittedListing listing = panel.committedListing();
@@ -665,7 +667,7 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause, const PanelConte
 			.sortOrder = panel.sortOrder(),
 			.nameFilter = panel.nameFilter(),
 			.selectedItemHashes = panel.selectedItemHashes(),
-		}, _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()), navigated ? 0 : _fileList->cursorRow());
+		}, currentItemHash, navigated ? 0 : _fileList->cursorRow());
 	}
 	if (const CFileSystemObject* row = _fileList->currentRow())
 		_controller.setCurrentItemHashForCurrentFolder(_side, row->hash(), false);

@@ -42,9 +42,9 @@ panel carries that panel's task tag; destruction retires the tag in both pools b
 pools' declaration order makes them outlive all panels. Inactive tabs release their filesystem watcher and refresh
 when reactivated.
 
-A panel shows its folder, the flattened tree below it, or search results sent to it. The last two list items from many
-folders, and no watcher covers them: both front ends call `CController::refreshUnwatchedViews()` when a file operation
-ends.
+A panel shows its folder, the flattened tree below it, or search results sent to it. Search results have no watch.
+Both front ends call `CController::refreshUnwatchedViews()` when a file operation ends: it lists again the views their
+watch does not keep current (`CPanel::watchKeepsViewCurrent()`).
 
 ## File-list publication
 
@@ -54,7 +54,8 @@ An asynchronous operation that can replace a panel list must:
 2. Build the complete result in worker-local storage.
 3. Publish only through `publishFileListIfCurrent()`, which rechecks all three values.
 
-An operation that changes items of the committed listing in place (a calculated folder size) does so under the list
+An operation that changes items of the committed listing in place (a calculated folder size, a flattened view's
+watched changes) does so under the list
 mutex, only while the listing belongs to the current view, and records the items through `commitItemChangesLocked()`.
 The front ends then apply those items alone; a full refill compares every row. Past 700 items changed since the last
 notification, the next one is a full refill instead.
@@ -140,7 +141,23 @@ Panels watch their folder with `thin_io::directory_watcher` (`src/filesystemwatc
 - The watch is released when its volume is locked for eject, with no refresh and no re-arming: either would touch the
   volume during the eject. The removal itself refreshes the panel: on Windows the main window's device-removal message,
   elsewhere the volume list change.
-- Flattened recursive display and inactive tabs hold no watch.
+- A flattened view watches its tree recursively and applies the changed paths in place, rereading each on disk:
+  [threading.md](threading.md) has the ordering rules. A lost event, a polled change or a re-armed watch lists the tree
+  again. The poll covers only the top folder. The watch is armed on the UI thread; on Linux that lists every folder of
+  the tree to place an inotify watch on each, and an inotify queue overflow does it again. In-place updates start at
+  most every 250 ms: the GUI's relayout after inserting or removing rows takes about 43 ms at 500k rows.
+- The flattened listing follows folder links; no watch does. A tree holding one is listed again after a file
+  operation, a link that appears lists the tree again, and a change in a link's target otherwise goes unreported.
+- Removing the items under a path a folder may have left compares every row's path, under the list mutex. It is skipped
+  when the path held a listed file. inotify cannot tell a removed file from a removed link, so on Linux every removed
+  path the listing left out costs a sweep. Measured on the same i3-2310M with the `filelist_test` timing case:
+
+  | Folders swept | 100k rows | 500k rows |
+  |---|---|---|
+  | One holding no listed item | 6.8 ms | 34 ms |
+  | One holding 100 files | 9.6 ms | 48 ms |
+  | 100 holding 100 files each | 28 ms | 128 ms |
+- Search results and inactive tabs hold no watch.
 
 ## Other core areas
 
