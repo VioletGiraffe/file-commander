@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795620509272,
+  "lastUpdate": 1795631175797,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -41167,6 +41167,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "17ecee00466775aff3131cf30c6500d672f95aec",
+          "message": "Ctrl+B views follow changes through folder links, and arming their watch no longer stalls the UI: the listing arms it on the listing pool",
+          "timestamp": "2026-11-25T20:00:47+02:00",
+          "tree_id": "d142a5b974a41eb5c5da04ac365e108e7b7dbbe3",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/17ecee00466775aff3131cf30c6500d672f95aec"
+        },
+        "date": 1795631171660,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 28404,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 38495,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1944,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1214.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2183.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1253,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 505.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 60,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 36,
             "unit": "KB"
           },
           {
