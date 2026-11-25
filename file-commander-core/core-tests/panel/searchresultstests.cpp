@@ -67,7 +67,7 @@ TEST_CASE("CPanel - search results drop a vanished item when listed again, and k
 	REQUIRE(shownNames(h.panel()) == QStringList{ QStringLiteral("dir"), native(QStringLiteral("dir/inner.txt")), QStringLiteral("gone.txt") });
 
 	REQUIRE(QFile::remove(gone));
-	h.panel().refreshFileList(refreshCauseOther);
+	h.panel().refreshFileList();
 	h.settle();
 	CHECK(shownNames(h.panel()) == QStringList{ QStringLiteral("dir"), native(QStringLiteral("dir/inner.txt")) });
 

@@ -271,7 +271,7 @@ void CController::uiThreadTimerTick()
 
 void CController::refreshPanelContents(Panel p)
 {
-	panel(p).refreshFileList(refreshCauseOther);
+	panel(p).refreshFileList();
 }
 
 void CController::refreshUnwatchedViews()
@@ -282,7 +282,7 @@ void CController::refreshUnwatchedViews()
 			continue;
 
 		if (panel(p).displayMode() != CPanel::NormalMode)
-			panel(p).refreshFileList(refreshCauseOther);
+			panel(p).refreshFileList();
 	}
 }
 
@@ -308,7 +308,7 @@ void CController::refreshPanelsOnRemovedDrive(const QChar driveLetter)
 			continue;
 
 		if (panel(p).currentDirPathPosix().startsWith(driveRoot, Qt::CaseInsensitive))
-			panel(p).refreshFileList(refreshCauseOther);
+			panel(p).refreshFileList();
 	}
 }
 #endif
@@ -1175,7 +1175,7 @@ void CController::volumesChanged(bool significantChange) noexcept
 			continue;
 
 		if (const auto volume = currentVolumeInfo(p); !volume || !volume->isReady)
-			panel(p).refreshFileList(refreshCauseOther);
+			panel(p).refreshFileList();
 	}
 }
 

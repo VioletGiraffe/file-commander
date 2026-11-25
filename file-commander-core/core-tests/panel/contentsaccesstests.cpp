@@ -156,7 +156,7 @@ TEST_CASE("CPanel - the changes committed before a drain reach the listeners tog
 	h.listener().clear();
 	h.panel().displayDirSize(hashOf(first));
 	h.worker().waitUntilWorkComplete();
-	h.panel().refreshFileList(refreshCauseOther);
+	h.panel().refreshFileList();
 	h.completeUpdate();
 	CHECK(h.listener().only(PanelEvent::ContentsChanged).change.full);
 }
@@ -235,18 +235,18 @@ TEST_CASE("CPanel - a calculated folder size lasts as long as its folder", "[pan
 	REQUIRE(h.panel().itemByHash(hashOf(sub)).size() >= 1024);
 
 	// A refresh lists the folder anew, without the size.
-	h.panel().refreshFileList(refreshCauseOther);
+	h.panel().refreshFileList();
 	h.settle();
 	CHECK(h.panel().itemByHash(hashOf(sub)).size() >= 1024);
 
 	// A folder recreated under the same name is a different folder.
 	REQUIRE(QDir{ sub }.removeRecursively());
-	h.panel().refreshFileList(refreshCauseOther);
+	h.panel().refreshFileList();
 	h.settle();
 	REQUIRE_FALSE(h.panel().itemHashExists(hashOf(sub)));
 
 	tree.makeDir(QStringLiteral("sub"));
-	h.panel().refreshFileList(refreshCauseOther);
+	h.panel().refreshFileList();
 	h.settle();
 	CHECK(h.panel().itemByHash(hashOf(sub)).size() == 0);
 }

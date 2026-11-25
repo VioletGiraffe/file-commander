@@ -170,7 +170,7 @@ TEST_CASE("CPanel - refreshing a folder that has vanished falls back to the pare
 	h.listener().clear();
 
 	REQUIRE(QDir{ doomed }.removeRecursively());
-	h.panel().refreshFileList(refreshCauseOther);
+	h.panel().refreshFileList();
 	h.settle();
 
 	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');

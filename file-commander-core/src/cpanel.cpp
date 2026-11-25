@@ -81,7 +81,7 @@ void CPanel::setActive(bool active)
 		assert_debug_only(!currentPath.isEmpty());
 
 		_watcher.setPathToWatch(displayMode == NormalMode ? currentPath : QString{});
-		refreshFileList(refreshCauseOther);
+		refreshFileList();
 	}
 	else
 	{
@@ -227,15 +227,23 @@ void CPanel::moveToFolder(FolderResolution resolution, FileListRefreshCause oper
 		// Navigating upwards: the folder we're leaving becomes the current item of the one we're entering
 		setCurrentItemHashForFolder(_currentDirObject.fullAbsolutePath() /* where we are */, oldPathObject.hash() /* where we were */, false);
 
-	++_navigationId;
+	// A fallback to another folder is not the navigation asked for
+	beginNavigationLocked(pathSet ? operation : refreshCauseOther);
 	const auto request = beginFileListUpdateLocked(displayMode);
 	// Not listed: the listing would fail, and its recovery would find no folder either and end up here again
 	if (!resolution.listable)
-		publishFileListIfCurrent(request, {}, refreshCauseOther);
+		publishFileListIfCurrent(request, {});
 	locker.unlock();
 
 	if (active && resolution.listable)
-		enqueueFileListUpdate(request, pathSet ? operation : refreshCauseOther);
+		enqueueFileListUpdate(request);
+}
+
+void CPanel::beginNavigationLocked(FileListRefreshCause cause)
+{
+	++_navigationId;
+	_navigationCause = cause;
+	_navigationListingCommitted = false;
 }
 
 // Navigates up the directory tree
@@ -248,7 +256,7 @@ void CPanel::navigateUp()
 		if (const auto parentDir = _currentDirObject.parentDirPath(); !parentDir.isEmpty())
 			setPath(parentDir, refreshCauseCdUp);
 		else
-			sendContentsChangedNotification(refreshCauseOther);
+			sendContentsChangedNotification();
 	}
 }
 
@@ -304,12 +312,12 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	FileListUpdateRequest request;
 	{
 		std::lock_guard locker(_fileListAndCurrentDirMutex);
-		++_navigationId;
+		beginNavigationLocked(refreshCauseOther);
 		request = beginFileListUpdateLocked(AllObjectsMode);
 	}
 
 	_watcher.setPathToWatch({});
-	enqueueFileListUpdate(request, refreshCauseOther);
+	enqueueFileListUpdate(request);
 }
 
 void CPanel::showSearchResults(QStringList paths)
@@ -368,7 +376,7 @@ void CPanel::itemsRenamed(const std::vector<std::pair<QString, QString>>& rename
 	}
 
 	if (displayMode != NormalMode)
-		refreshFileList(refreshCauseOther);
+		refreshFileList();
 }
 
 CPanel::CurrentDisplayMode CPanel::displayMode() const
@@ -682,7 +690,7 @@ QString CPanel::selectedOrCurrentItemPathLines() const
 }
 
 // Enumerates objects in the current directory
-void CPanel::refreshFileList(FileListRefreshCause operation)
+void CPanel::refreshFileList()
 {
 	FileListUpdateRequest request;
 	{
@@ -690,12 +698,12 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		request = beginFileListUpdateLocked(_currentDisplayMode);
 	}
 
-	enqueueFileListUpdate(request, operation);
+	enqueueFileListUpdate(request);
 }
 
-void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefreshCause operation)
+void CPanel::enqueueFileListUpdate(FileListUpdateRequest request)
 {
-	_listingThreadPool.enqueue([this, request = std::move(request), operation]() {
+	_listingThreadPool.enqueue([this, request = std::move(request)]() {
 		CTimeElapsed timer{ true };
 		FileListHashMap items;
 		bool listed = true;
@@ -748,11 +756,11 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 		if (const auto elapsedMs = timer.elapsed(); elapsedMs >= 100)
 			qInfo() << "Listing" << request.path << "took" << elapsedMs << "ms for" << items.size() << "items";
 
-		publishFileListIfCurrent(request, std::move(items), operation);
+		publishFileListIfCurrent(request, std::move(items));
 	}, _taskTag);
 }
 
-void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, FileListRefreshCause operation)
+void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items)
 {
 	std::unique_lock locker(_fileListAndCurrentDirMutex);
 	if (!fileListUpdateIsCurrentLocked(request))
@@ -781,7 +789,8 @@ void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, File
 	_itemsSourceDisplayMode = request.displayMode;
 	_filesFoundByPendingFlattenedListing.reset();
 	_itemsChangedSinceNotification.reset();
-	enqueueContentsChangedNotificationLocked(operation, request.generation);
+	_navigationListingCommitted = true;
+	enqueueContentsChangedNotificationLocked(request.generation);
 	locker.unlock();
 
 	// A refresh of the same view never wakes the UI thread: the UI loop's wait paces repeated refills
@@ -935,10 +944,10 @@ void CPanel::displayDirSize(qulonglong dirHash)
 	}, _taskTag);
 }
 
-void CPanel::sendContentsChangedNotification(FileListRefreshCause operation)
+void CPanel::sendContentsChangedNotification()
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
-	enqueueContentsChangedNotificationLocked(operation, _fileListGeneration);
+	enqueueContentsChangedNotificationLocked(_fileListGeneration);
 }
 
 void CPanel::commitItemChangesLocked(const std::vector<qulonglong>& hashes)
@@ -960,7 +969,7 @@ void CPanel::commitItemChangesLocked(const std::vector<qulonglong>& hashes)
 			_selectedItemHashes.erase(hash);
 	}
 
-	enqueueContentsChangedNotificationLocked(refreshCauseOther, _fileListGeneration);
+	enqueueContentsChangedNotificationLocked(_fileListGeneration);
 }
 
 PanelContentsChange CPanel::takeContentsChangeLocked()
@@ -985,20 +994,23 @@ PanelContentsChange CPanel::takeContentsChangeLocked()
 	return change;
 }
 
-void CPanel::enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation)
+void CPanel::enqueueContentsChangedNotificationLocked(uint64_t generation)
 {
-	// The change is taken when the notification runs: one coalesced notification delivers every change committed before it
-	execOnUiThread([this, operation, generation]() {
+	// The change and the cause are taken when the notification runs: one coalesced notification delivers everything committed before it
+	execOnUiThread([this, generation]() {
 		PanelContentsChange change;
+		FileListRefreshCause cause = refreshCauseOther;
 		{
 			std::lock_guard locker(_fileListAndCurrentDirMutex);
 			if (generation != _fileListGeneration)
 				return;
 
 			change = takeContentsChangeLocked();
+			if (_navigationListingCommitted)
+				cause = std::exchange(_navigationCause, refreshCauseOther);
 		}
 
-		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::onPanelContentsChanged, _panelPosition, _id, operation, std::move(change));
+		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::onPanelContentsChanged, _panelPosition, _id, cause, std::move(change));
 	}, ContentsChangedNotificationTag);
 }
 
@@ -1044,5 +1056,5 @@ void CPanel::addCurrentPathChangedListener(CurrentPathChangedListener * listener
 void CPanel::refreshIfWatcherDetectedChanges()
 {
 	if (_watcher.changesDetected())
-		refreshFileList(refreshCauseOther);
+		refreshFileList();
 }

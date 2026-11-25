@@ -69,7 +69,8 @@ struct PanelContentsChangedListener
 {
 	virtual ~PanelContentsChangedListener() = default;
 
-	// A change that is not full describes the committed listing of the tab's current view
+	// A change that is not full describes the committed listing of the tab's current view.
+	// operation: the navigation's cause in the first notification after a navigation's listing; refreshCauseOther in the others.
 	virtual void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation, const PanelContentsChange& change) = 0;
 	// The tab has moved to a view whose listing isn't ready yet, so the contents it reports are empty until the
 	// onPanelContentsChanged that follows. Handle display only: anything derived from the contents (current item,
@@ -152,7 +153,7 @@ public:
 	[[nodiscard]] CFileSystemObject currentItem() const;
 
 	// Enumerates objects in the current directory
-	void refreshFileList(FileListRefreshCause operation);
+	void refreshFileList();
 	// Invokes fn(folder, contents) under the list lock, or not at all if no committed listing belongs to the
 	// current view. fn holds up this panel's refreshes, so it must be short.
 	void readCommittedContents(const std::function<void(const QString& folder, const FileListHashMap& contents)>& fn) const;
@@ -248,13 +249,15 @@ private:
 	// step is -1 for back, +1 for forward. The history cursor stays where it was when no entry in that direction can be listed.
 	bool navigateToNearestAccessibleHistoryEntry(ptrdiff_t step);
 
-	void enqueueFileListUpdate(FileListUpdateRequest request, FileListRefreshCause operation);
-	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, FileListRefreshCause operation);
-	void sendContentsChangedNotification(FileListRefreshCause operation);
+	// Advances the navigation id. cause: what the first contents notification after this navigation's listing reports.
+	void beginNavigationLocked(FileListRefreshCause cause);
+	void enqueueFileListUpdate(FileListUpdateRequest request);
+	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items);
+	void sendContentsChangedNotification();
 	// Records the items of hashes as changed in _items: added, changed or removed. Requires the current view's committed listing.
 	void commitItemChangesLocked(const std::vector<qulonglong>& hashes);
 	[[nodiscard]] PanelContentsChange takeContentsChangeLocked();
-	void enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation);
+	void enqueueContentsChangedNotificationLocked(uint64_t generation);
 	void enqueueContentsInvalidatedNotificationLocked(uint64_t generation) const;
 	[[nodiscard]] bool fileListGenerationIsCurrent(uint64_t generation) const;
 
@@ -273,6 +276,11 @@ private:
 	// The items committed in place since a contents notification last ran; nullopt when the next one must be full: a listing was committed since,
 	// or the items exceeded the cap in commitItemChangesLocked(). Under _fileListAndCurrentDirMutex.
 	std::optional<ankerl::unordered_dense::set<qulonglong, identity_hash>> _itemsChangedSinceNotification;
+	// The cause the first contents notification after the current navigation's listing reports; later ones report refreshCauseOther.
+	// Panel state, not part of the queued notification: a later notification replaces a queued one, and a refresh can replace the listing.
+	// Under _fileListAndCurrentDirMutex.
+	FileListRefreshCause                       _navigationCause = refreshCauseOther;
+	bool                                       _navigationListingCommitted = true; // A listing was committed since the last navigation. Under _fileListAndCurrentDirMutex.
 	// Folder sizes calculated on request, re-applied to every listing that still has the folder. Protected by _fileListAndCurrentDirMutex.
 	ankerl::unordered_dense::map<qulonglong /*hash*/, uint64_t, identity_hash> _calculatedDirSizes;
 	// Each running displayDirSize() task's counter, on the task's stack: removed as the task's frame unwinds. Protected by _fileListAndCurrentDirMutex.

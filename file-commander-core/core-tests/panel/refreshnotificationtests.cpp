@@ -67,7 +67,7 @@ TEST_CASE("CPanel - only a listing that replaces a withdrawn list wakes the UI t
 	h.settle();
 	CHECK(h.uiThreadWakeUps() == 1);
 
-	h.panel().refreshFileList(refreshCauseOther);
+	h.panel().refreshFileList();
 	h.settle();
 	CHECK(h.uiThreadWakeUps() == 1);
 
@@ -120,7 +120,7 @@ TEST_CASE("CPanel - refreshing the folder in view does not blank it", "[panel][n
 	h.listener().clear();
 
 	h.worker().close();
-	h.panel().refreshFileList(refreshCauseOther);
+	h.panel().refreshFileList();
 	h.tick();
 
 	CHECK(h.listener().count(PanelEvent::ContentsInvalidated) == 0);
@@ -131,6 +131,67 @@ TEST_CASE("CPanel - refreshing the folder in view does not blank it", "[panel][n
 	h.completeUpdate();
 
 	CHECK(h.listener().count(PanelEvent::ContentsChanged) == 1);
+}
+
+TEST_CASE("CPanel - a change committed after a navigation's listing, before the drain, keeps the navigation's cause", "[panel][notifications]")
+{
+	TempTree tree;
+	const QString folder = tree.makeDir(QStringLiteral("folder"));
+	const QString sub = tree.makeDir(QStringLiteral("folder/sub"));
+	tree.makeFile(QStringLiteral("folder/sub/data.bin"), QByteArray(1024, 'x'));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	h.listener().clear();
+
+	REQUIRE(h.panel().setPath(folder, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
+	h.worker().waitUntilWorkComplete();
+	// The listing is committed and its notification queued: the folder size result's notification replaces it in the queue
+	h.panel().displayDirSize(hashOf(sub));
+	h.completeUpdate();
+
+	const PanelEvent& event = h.listener().only(PanelEvent::ContentsChanged);
+	CHECK(event.cause == refreshCauseForwardNavigation);
+	CHECK(event.change.full);
+
+	// Delivered once: a later notification reports its own cause
+	h.listener().clear();
+	h.panel().displayDirSize(hashOf(sub));
+	h.completeUpdate();
+	CHECK(h.listener().only(PanelEvent::ContentsChanged).cause == refreshCauseOther);
+}
+
+TEST_CASE("CPanel - a refresh started before a navigation's notification is delivered keeps the navigation's cause", "[panel][notifications]")
+{
+	TempTree tree;
+	const QString folder = tree.makeDir(QStringLiteral("folder"));
+	tree.makeFile(QStringLiteral("folder/a.txt"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(folder, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	h.listener().clear();
+
+	SECTION("The refresh's listing replaces the navigation's pending listing")
+	{
+		h.worker().close();
+		REQUIRE(h.panel().setPath(tree.path(), refreshCauseCdUp) == FileOperationResultCode::Ok);
+		h.panel().refreshFileList();
+		h.worker().open();
+	}
+
+	SECTION("The refresh's notification replaces the notification of the navigation's committed listing")
+	{
+		REQUIRE(h.panel().setPath(tree.path(), refreshCauseCdUp) == FileOperationResultCode::Ok);
+		h.worker().waitUntilWorkComplete();
+		h.panel().refreshFileList();
+	}
+
+	h.completeUpdate();
+	CHECK(h.listener().only(PanelEvent::ContentsChanged).cause == refreshCauseCdUp);
 }
 
 TEST_CASE("CPanel - every navigation gets a new navigationId, a refresh keeps it", "[panel][notifications]")
@@ -144,7 +205,7 @@ TEST_CASE("CPanel - every navigation gets a new navigationId, a refresh keeps it
 	h.settle();
 	const uint64_t listed = h.panel().navigationId();
 
-	h.panel().refreshFileList(refreshCauseOther);
+	h.panel().refreshFileList();
 	h.settle();
 	CHECK(h.panel().navigationId() == listed);
 
@@ -206,7 +267,7 @@ TEST_CASE("CPanel - only a flattened listing still being collected reports the f
 	h.settle();
 
 	h.worker().close();
-	h.panel().refreshFileList(refreshCauseOther);
+	h.panel().refreshFileList();
 	CHECK_FALSE(h.panel().filesFoundByPendingFlattenedListing()); // A folder's own listing
 
 	h.worker().open();
@@ -220,7 +281,7 @@ TEST_CASE("CPanel - only a flattened listing still being collected reports the f
 	CHECK_FALSE(h.panel().filesFoundByPendingFlattenedListing());
 
 	h.worker().close();
-	h.panel().refreshFileList(refreshCauseOther);
+	h.panel().refreshFileList();
 	CHECK(h.panel().filesFoundByPendingFlattenedListing().has_value());
 	h.panel().navigateUp(); // Supersedes the flattened listing
 	CHECK_FALSE(h.panel().filesFoundByPendingFlattenedListing());

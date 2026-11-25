@@ -298,7 +298,7 @@ TEST_CASE("CPanel - a refresh keeps the selected items it still lists", "[panel]
 	panel.setItemsSelected({ hashOf(f.a), hashOf(f.b) }, true);
 
 	REQUIRE(QFile::remove(f.b));
-	panel.refreshFileList(refreshCauseOther);
+	panel.refreshFileList();
 	f.h.settle();
 
 	CHECK(panel.selectedItemHashes() == std::vector<qulonglong>{ hashOf(f.a) });
