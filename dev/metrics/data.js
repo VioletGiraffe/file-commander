@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795563048564,
+  "lastUpdate": 1795620509272,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -41073,6 +41073,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 58,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "73a7367157ba84d71c82568bf1bcb8d4afe308db",
+          "message": "After a navigation, the cursor is placed for the new folder even when a folder size or a refresh finishes before the folder is shown",
+          "timestamp": "2026-11-25T17:16:19+02:00",
+          "tree_id": "de0e6320feb267a43aec3dd8e8b99bc81e498213",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/73a7367157ba84d71c82568bf1bcb8d4afe308db"
+        },
+        "date": 1795620506204,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 28066,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 37774,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1908,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1173,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2183.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1222.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 502,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 58.5,
             "unit": "KB"
           },
           {
