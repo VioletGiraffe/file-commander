@@ -227,6 +227,8 @@ private:
 		CurrentDisplayMode displayMode;
 		QStringList searchResultPaths; // SearchResultsMode only
 		std::shared_ptr<std::atomic<size_t>> filesFound; // AllObjectsMode only: written by the scan, read by the UI thread
+		// AllObjectsMode: the listing arms the view's watch before it scans, off the UI thread: arming walks the tree
+		bool armsTreeWatch = false;
 	};
 
 	struct FolderResolution
@@ -256,9 +258,11 @@ private:
 
 	// Advances the navigation id. cause: what the first contents notification after this navigation's listing reports.
 	void beginNavigationLocked(FileListRefreshCause cause);
+	void listCurrentView(bool armsTreeWatch);
 	void enqueueFileListUpdate(FileListUpdateRequest request);
-	// treeHoldsFolderLinks: AllObjectsMode only, see addFlattenedListingItems()
-	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, bool treeHoldsFolderLinks);
+	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items);
+	// Arms the tree's watch on the calling thread and hands it to the UI thread, where it watches the view it was armed for if still displayed
+	void armTreeWatch(const QString& path);
 	void sendContentsChangedNotification();
 	// Records the items of hashes as changed in _items: added, changed or removed. Requires the current view's committed listing.
 	void commitItemChangesLocked(const std::vector<qulonglong>& hashes);
@@ -302,7 +306,6 @@ private:
 	// AllObjectsMode: the changed paths the watch reported that no update has taken yet. Under _fileListAndCurrentDirMutex.
 	ankerl::unordered_dense::map<QString, CFileSystemWatcher::ChangedPath, QStringHash, std::equal_to<>> _pendingWatchedChanges;
 	bool                                       _watchedChangesUpdateRunning = false; // Under _fileListAndCurrentDirMutex
-	bool                                       _listedTreeHoldsFolderLinks = false; // Of the committed flattened listing. Under _fileListAndCurrentDirMutex.
 	std::chrono::steady_clock::time_point      _watchedChangesUpdateStart; // UI thread only
 	// The current request's FileListUpdateRequest::filesFound until it publishes. Under _fileListAndCurrentDirMutex.
 	std::shared_ptr<const std::atomic<size_t>> _filesFoundByPendingFlattenedListing;

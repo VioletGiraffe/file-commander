@@ -171,12 +171,15 @@ TEST_CASE("CPanel - a flattened view leaves out a hidden file that appears while
 	CHECK(committedListingMatchesDisk(h, tree.path(), false));
 }
 
-TEST_CASE("CPanel - a flattened view lists its tree again when a folder link appears in it", "[panel][watcher]")
+TEST_CASE("CPanel - a flattened view follows the folder links that appear in it", "[panel][watcher]")
 {
 	TempTree tree;
 	const QString parent = tree.makeDir(QStringLiteral("a/b"));
 	tree.makeFile(QStringLiteral("a/top.txt"));
 	tree.makeFile(QStringLiteral("a/b/deep.txt"));
+	TempTree outside;
+	const QString target = outside.makeDir(QStringLiteral("target"));
+	outside.makeFile(QStringLiteral("target/linked.txt"));
 	if (filesystemHasNoLinks(tree.path()))
 	{
 		WARN("This filesystem has no links: test skipped");
@@ -189,8 +192,13 @@ TEST_CASE("CPanel - a flattened view lists its tree again when a folder link app
 
 	// A link to an ancestor: a listing refuses to follow it, a scan starting at the link would not
 	REQUIRE(createDirectoryLink(tree.path(QStringLiteral("a")), parent + QStringLiteral("/up")));
-	CHECK(h.pumpUntil([&] { return !h.panel().watchKeepsViewCurrent(); })); // No watch follows the link
+	REQUIRE(createDirectoryLink(target, parent + QStringLiteral("/side")));
+	CHECK(h.pumpUntil([&] { return h.panel().itemHashExists(hashOf(parent + QStringLiteral("/side/linked.txt"))); }));
 	CHECK(committedListingMatchesDisk(h, tree.path()));
+
+	outside.makeFile(QStringLiteral("target/added.txt"));
+	CHECK(h.pumpUntil([&] { return h.panel().itemHashExists(hashOf(parent + QStringLiteral("/side/added.txt"))); }));
+	CHECK(h.panel().watchKeepsViewCurrent());
 }
 
 TEST_CASE("CPanel - the watch keeps a folder and a flattened tree current but not search results", "[panel][watcher]")

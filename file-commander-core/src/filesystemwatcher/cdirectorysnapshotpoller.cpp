@@ -114,3 +114,14 @@ void CDirectorySnapshotPoller::captureBaselineState()
 	_previousState.swap(snapshot);
 	_previousStateGeneration = pathGeneration;
 }
+
+void CDirectorySnapshotPoller::setBaselineState(std::optional<thin_io::directory_snapshot> state)
+{
+	std::lock_guard locker{ _mutex };
+	if (_pathToWatch.isEmpty())
+		return;
+
+	// Replaces a baseline the poll loop may have taken since: an older baseline can report a change twice, but never hide one
+	_previousState = std::move(state);
+	_previousStateGeneration = _pathGeneration;
+}

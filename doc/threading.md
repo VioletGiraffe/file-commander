@@ -17,7 +17,7 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | `CFileSearchEngine` | interruptible thread plus bounded pool | Traversal and content matching |
 | volume enumerator and snapshot poller | periodic threads | Device polling; directory polling where notifications may miss changes |
 | `CIconProvider` | one COM apartment thread plus UI execution queue | Shell icon retrieval for the file list |
-| `CFileSystemWatcher` | `thin_io::directory_watcher`, read on the UI tick | Directory change notification; thin_io's own threads are in its README |
+| `CFileSystemWatcher` | `thin_io::directory_watcher`, read on the UI tick; a tree watch is armed on the listing pool | Directory change notification; thin_io's own threads are in its README |
 | `CFileComparator` | `CBackgroundTask` per comparison | One two-file content comparison; the UI polls it from a modal progress dialog |
 | `CFolderComparison` | `CBackgroundTask` per comparison | Tree scan and compare; the UI polls it from a modal progress dialog |
 | `CBatchRenameRun` | `CBackgroundTask` per step | One batch rename step's renames, on the items the session hands out; the UI polls it from a modal progress dialog |
@@ -59,6 +59,9 @@ listing pool. The task rereads the paths outside the list mutex and commits unde
 - An update commits only if no listing began after it started: that listing may have read the disk after the update did.
 - Changes read while an update runs wait for the next update.
 - An update that finds a new folder link starts a listing instead of committing, from its pool thread.
+
+The listing that enters a flattened view arms its watch on the pool thread and queues it to the UI thread, which
+takes it over only while the tab is active and still shows the flattened view of that folder.
 
 ## Lock and teardown boundaries
 

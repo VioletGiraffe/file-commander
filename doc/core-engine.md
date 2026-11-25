@@ -143,11 +143,13 @@ Panels watch their folder with `thin_io::directory_watcher` (`src/filesystemwatc
   elsewhere the volume list change.
 - A flattened view watches its tree recursively and applies the changed paths in place, rereading each on disk:
   [threading.md](threading.md) has the ordering rules. A lost event, a polled change or a re-armed watch lists the tree
-  again. The poll covers only the top folder. The watch is armed on the UI thread; on Linux that lists every folder of
-  the tree to place an inotify watch on each, and an inotify queue overflow does it again. In-place updates start at
-  most every 250 ms: the GUI's relayout after inserting or removing rows takes about 43 ms at 500k rows.
-- The flattened listing follows folder links; no watch does. A tree holding one is listed again after a file
-  operation, a link that appears lists the tree again, and a change in a link's target otherwise goes unreported.
+  again. The poll covers only the top folder. In-place updates start at most every 250 ms: the GUI's relayout after
+  inserting or removing rows takes about 43 ms at 500k rows.
+- Arming the tree's watch walks the whole tree to find its folder links, and on Linux to place an inotify watch on
+  each folder. The flattened listing arms it on the listing pool before it scans, and the UI thread takes it over.
+  A re-arm after the folder is lost or replaced, and the re-walk after an inotify queue overflow, run on the UI thread.
+- The watch follows folder links as the listing does. A link that appears lists the tree again: an in-place scan of
+  it would have no folders above it to break a cycle with.
 - Removing the items under a path a folder may have left compares every row's path, under the list mutex. It is skipped
   when the path held a listed file. inotify cannot tell a removed file from a removed link, so on Linux every removed
   path the listing left out costs a sweep. Measured on the same i3-2310M with the `filelist_test` timing case:

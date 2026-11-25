@@ -18,16 +18,41 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <utility>
 
-void CFileSystemWatcher::setPathToWatch(const QString& path, const bool recursive)
+void CFileSystemWatcher::setPathToWatch(const QString& path)
 {
 	_watchedPath = path;
-	_recursive = recursive;
+	_recursive = false;
 	_notifications.reset();
 	_rewatchPending = false;
 	if (path.isEmpty())
 		_poller.setPathToWatch({});
 	else
 		watchCurrentPath();
+}
+
+CFileSystemWatcher::PreparedTreeWatch CFileSystemWatcher::prepareTreeWatch(const QString& path)
+{
+	PreparedTreeWatch watch{ .path = path, .notifications = openNotifications(path, true) };
+	if (isPolledWith(watch.notifications))
+		watch.pollBaseline = CDirectorySnapshotPoller::snapshotDirectory(path);
+	return watch;
+}
+
+void CFileSystemWatcher::setPreparedTreeWatch(PreparedTreeWatch&& watch)
+{
+	_watchedPath = std::move(watch.path);
+	_recursive = true;
+	_notifications.reset();
+	_rewatchPending = false;
+	const bool polled = isPolledWith(watch.notifications);
+	useNotificationsOrPoll(std::move(watch.notifications));
+	if (polled)
+		_poller.setBaselineState(std::move(watch.pollBaseline));
+}
+
+bool CFileSystemWatcher::isPolledWith(const thin_io::filesystem_result<thin_io::directory_watcher>& notifications)
+{
+	return !notifications || notifications->coverage() == thin_io::watch_coverage::partial;
 }
 
 void CFileSystemWatcher::captureBaselineState()
@@ -134,7 +159,7 @@ bool CFileSystemWatcher::collectChangedPaths(const std::vector<thin_io::watch_ev
 
 bool CFileSystemWatcher::rewatchIfFolderIsBack()
 {
-	auto notifications = openNotifications();
+	auto notifications = openNotifications(_watchedPath, _recursive);
 	if (!notifications)
 		return false;
 
@@ -167,9 +192,9 @@ bool CFileSystemWatcher::endNotifications(const thin_io::watch_event& stop)
 	return true;
 }
 
-thin_io::filesystem_result<thin_io::directory_watcher> CFileSystemWatcher::openNotifications() const
+thin_io::filesystem_result<thin_io::directory_watcher> CFileSystemWatcher::openNotifications(const QString& path, const bool recursive)
 {
-	return thin_io::directory_watcher::watch(thin_io::native_path(_watchedPath).data(), { .recursive = _recursive });
+	return thin_io::directory_watcher::watch(thin_io::native_path(path).data(), { .recursive = recursive, .follow_directory_links = recursive });
 }
 
 void CFileSystemWatcher::useNotifications(thin_io::directory_watcher&& notifications)
@@ -180,7 +205,12 @@ void CFileSystemWatcher::useNotifications(thin_io::directory_watcher&& notificat
 
 void CFileSystemWatcher::watchCurrentPath()
 {
-	if (auto notifications = openNotifications())
+	useNotificationsOrPoll(openNotifications(_watchedPath, _recursive));
+}
+
+void CFileSystemWatcher::useNotificationsOrPoll(thin_io::filesystem_result<thin_io::directory_watcher>&& notifications)
+{
+	if (notifications)
 		useNotifications(std::move(*notifications));
 	else
 		pollInsteadOfNotifications(notifications.error());

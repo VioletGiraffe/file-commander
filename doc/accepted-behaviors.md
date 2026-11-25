@@ -21,6 +21,10 @@ invalidates the reason given.
   listed every 2 s anyway.
 - A tab keeps its parked `CDirectorySnapshotPoller` thread from its first poll until the tab closes: only folders
   without dependable notifications are polled, so few tabs ever start one.
+- A folder link's target that moves while a flattened view follows the link goes unnoticed on Windows, and on Linux
+  when it moves with one of its ancestors: the view keeps showing the moved folder's changes under the dangling link
+  until it is listed again. Noticing it would take a watch on each target's parent on Windows and on its ancestors on
+  Linux. macOS reports it.
 
 ## Content search
 

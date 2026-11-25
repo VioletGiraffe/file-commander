@@ -32,14 +32,17 @@ public:
 	// absorbed into the baseline and never reported. Call this when you take your own snapshot of the folder, to
 	// pin the baseline to that moment instead. Scans synchronously on the calling thread.
 	void captureBaselineState();
+	// The same for a snapshot taken before setPathToWatch, by snapshotDirectory() of the path it set
+	void setBaselineState(std::optional<thin_io::directory_snapshot> state);
 	// Poll this function to find out if there were any changes since the last check.
 	// This method is thread-safe.
 	bool changesDetected() noexcept;
 
-private:
-	void onCheckForChanges();
 	// nullopt when the folder can't be listed: deleting an empty folder must still differ from its baseline.
 	[[nodiscard]] static std::optional<thin_io::directory_snapshot> snapshotDirectory(const QString& path);
+
+private:
+	void onCheckForChanges();
 	void processChangesAndNotifySubscribers(std::optional<thin_io::directory_snapshot>&& newState, uint64_t pathGeneration);
 
 private:

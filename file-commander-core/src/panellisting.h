@@ -32,7 +32,7 @@ bool addFlattenedListingItems(const QString& folderPath, bool showHiddenFiles, F
 // The current state of the paths a flattened listing's watch reported
 struct FlattenedListingRecheck
 {
-	// A link to a folder appeared: only a new listing follows it as a listing would, and records that the tree holds one.
+	// A link to a folder appeared: only a new listing follows it as a listing would, breaking cycles through the folders above it.
 	// The other fields are then incomplete.
 	bool listAgain = false;
 	FileListHashMap upserted; // The items at the paths, and under the folders that appeared at them

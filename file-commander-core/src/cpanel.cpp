@@ -85,7 +85,7 @@ void CPanel::setActive(bool active)
 		assert_debug_only(!currentPath.isEmpty());
 
 		watchView(currentPath, displayMode);
-		refreshFileList();
+		listCurrentView(displayMode == AllObjectsMode);
 	}
 	else
 	{
@@ -237,7 +237,7 @@ void CPanel::moveToFolder(FolderResolution resolution, FileListRefreshCause oper
 	const auto request = beginFileListUpdateLocked(displayMode);
 	// Not listed: the listing would fail, and its recovery would find no folder either and end up here again
 	if (!resolution.listable)
-		publishFileListIfCurrent(request, {}, false);
+		publishFileListIfCurrent(request, {});
 	locker.unlock();
 
 	if (active && resolution.listable)
@@ -321,8 +321,8 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 		request = beginFileListUpdateLocked(AllObjectsMode);
 	}
 
-	// Before the listing starts: a change made before the watch exists may go unreported
 	watchView(request.path, AllObjectsMode);
+	request.armsTreeWatch = true;
 	enqueueFileListUpdate(request);
 }
 
@@ -391,20 +391,12 @@ CPanel::CurrentDisplayMode CPanel::displayMode() const
 
 bool CPanel::watchKeepsViewCurrent() const
 {
-	CurrentDisplayMode displayMode = NormalMode;
-	bool treeHoldsFolderLinks = false;
-	{
-		std::lock_guard locker(_fileListAndCurrentDirMutex);
-		displayMode = _currentDisplayMode;
-		treeHoldsFolderLinks = _listedTreeHoldsFolderLinks;
-	}
-
-	switch (displayMode)
+	switch (displayMode())
 	{
 	case NormalMode:
 		return true; // The poll covers the folder where notifications may miss a change
 	case AllObjectsMode:
-		return !treeHoldsFolderLinks && _watcher.notificationsReportEveryChange(); // The listing follows folder links, the watch does not
+		return _watcher.notificationsReportEveryChange();
 	case SearchResultsMode:
 		return false;
 	}
@@ -719,12 +711,18 @@ QString CPanel::selectedOrCurrentItemPathLines() const
 // Enumerates objects in the current directory
 void CPanel::refreshFileList()
 {
+	listCurrentView(false);
+}
+
+void CPanel::listCurrentView(const bool armsTreeWatch)
+{
 	FileListUpdateRequest request;
 	{
 		std::lock_guard locker(_fileListAndCurrentDirMutex);
 		request = beginFileListUpdateLocked(_currentDisplayMode);
 	}
 
+	request.armsTreeWatch = armsTreeWatch;
 	enqueueFileListUpdate(request);
 }
 
@@ -734,15 +732,17 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request)
 		CTimeElapsed timer{ true };
 		FileListHashMap items;
 		bool listed = true;
-		bool treeHoldsFolderLinks = false;
 		const bool showHiddenFiles = QSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
+		// Before the enumeration below: a change made before the watch exists may go unreported
+		if (request.armsTreeWatch)
+			armTreeWatch(request.path);
 		// Baseline the folder before the enumeration below, so the watcher's snapshot matches this listing
 		// (why: see captureBaselineState). Does nothing for search results, which have no watch.
 		_watcher.captureBaselineState();
 
 		if (request.displayMode == AllObjectsMode)
 		{
-			treeHoldsFolderLinks = addFlattenedListingItems(CFileSystemObject(request.path).fullAbsolutePath(), showHiddenFiles, items, _abortBackgroundTasks, request.filesFound.get());
+			addFlattenedListingItems(CFileSystemObject(request.path).fullAbsolutePath(), showHiddenFiles, items, _abortBackgroundTasks, request.filesFound.get());
 			// The scan reports no failure: an unlistable root yields no files, and so does a tree that has none
 			listed = !items.empty() || canListDirectory(request.path);
 		}
@@ -771,11 +771,25 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request)
 		if (const auto elapsedMs = timer.elapsed(); elapsedMs >= 100)
 			qInfo() << "Listing" << request.path << "took" << elapsedMs << "ms for" << items.size() << "items";
 
-		publishFileListIfCurrent(request, std::move(items), treeHoldsFolderLinks);
+		publishFileListIfCurrent(request, std::move(items));
 	}, _taskTag);
 }
 
-void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, const bool treeHoldsFolderLinks)
+void CPanel::armTreeWatch(const QString& path)
+{
+	auto watch = std::make_unique<CFileSystemWatcher::PreparedTreeWatch>(CFileSystemWatcher::prepareTreeWatch(path));
+	execOnUiThread([this, watch = std::move(watch)]() mutable {
+		{
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
+			if (!_active || _currentDisplayMode != AllObjectsMode || _currentDirObject.fullAbsolutePath() != watch->path)
+				return;
+		}
+
+		_watcher.setPreparedTreeWatch(std::move(*watch));
+	});
+}
+
+void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items)
 {
 	std::unique_lock locker(_fileListAndCurrentDirMutex);
 	if (!fileListUpdateIsCurrentLocked(request))
@@ -802,7 +816,6 @@ void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, File
 	_items.swap(items);
 	_itemsSourcePath = request.path;
 	_itemsSourceDisplayMode = request.displayMode;
-	_listedTreeHoldsFolderLinks = treeHoldsFolderLinks;
 	_filesFoundByPendingFlattenedListing.reset();
 	_itemsChangedSinceNotification.reset();
 	_navigationListingCommitted = true;
@@ -1071,7 +1084,8 @@ void CPanel::addCurrentPathChangedListener(CurrentPathChangedListener * listener
 
 void CPanel::watchView(const QString& path, const CurrentDisplayMode displayMode)
 {
-	_watcher.setPathToWatch(displayMode == SearchResultsMode ? QString{} : path, displayMode == AllObjectsMode);
+	// A flattened view's listing arms its watch (FileListUpdateRequest::armsTreeWatch); search results have none
+	_watcher.setPathToWatch(displayMode == NormalMode ? path : QString{});
 }
 
 void CPanel::applyWatchedChanges()
