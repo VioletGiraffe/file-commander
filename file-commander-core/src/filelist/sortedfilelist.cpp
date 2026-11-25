@@ -14,11 +14,18 @@ SortedFileList::SortedFileList(SortedFileListObserver& observer, const InitialOr
 {
 }
 
+// The fields an update compares: an item whose new data differs in them is a changed row
+static bool itemDataDiffers(const CFileSystemObject& l, const CFileSystemObject& r)
+{
+	return l.size() != r.size() || l.modificationTime() != r.modificationTime() || l.type() != r.type();
+}
+
 void SortedFileList::setRows(std::vector<CFileSystemObject> rows, QString listedFolder)
 {
 	_observer.beforeReset();
 
 	_rows = std::move(rows);
+	rebuildRowIndexByHash();
 	_sortKeys.clear();
 	_sorter.clearExtensionKeyCache();
 	_sorter.setListedFolder(std::move(listedFolder));
@@ -28,7 +35,6 @@ void SortedFileList::setRows(std::vector<CFileSystemObject> rows, QString listed
 
 	updateContentsSummary();
 	_displayedRows = displayedRowsInOrder();
-	_displayRowByHashIsStale = true;
 
 	_observer.afterReset();
 }
@@ -36,11 +42,6 @@ void SortedFileList::setRows(std::vector<CFileSystemObject> rows, QString listed
 bool SortedFileList::updateRows(std::vector<CFileSystemObject> rows)
 {
 	const auto oldRowCount = (uint32_t)_rows.size();
-
-	ankerl::unordered_dense::map<qulonglong, uint32_t, identity_hash> oldRowByHash;
-	oldRowByHash.reserve(oldRowCount);
-	for (uint32_t i = 0; i < oldRowCount; ++i)
-		oldRowByHash.emplace(_rows[i].hash(), i);
 
 	std::vector<int> displayRowOfOldRow(oldRowCount, -1);
 	for (int displayRow = 0, numDisplayed = (int)_displayedRows.size(); displayRow < numDisplayed; ++displayRow)
@@ -55,9 +56,9 @@ bool SortedFileList::updateRows(std::vector<CFileSystemObject> rows)
 	for (uint32_t i = 0, numRows = (uint32_t)rows.size(); i < numRows; ++i)
 	{
 		const CFileSystemObject& row = rows[i];
-		const auto old = oldRowByHash.find(row.hash());
+		const auto old = _rowIndexByHash.find(row.hash());
 		// A hash collision is a different item
-		if (old == oldRowByHash.end() || _rows[old->second].fullAbsolutePath() != row.fullAbsolutePath() || _rows[old->second].isCdUp() != row.isCdUp())
+		if (old == _rowIndexByHash.end() || _rows[old->second].fullAbsolutePath() != row.fullAbsolutePath() || _rows[old->second].isCdUp() != row.isCdUp())
 		{
 			addedRows.push_back(i);
 			numDisplayedChanges += _nameFilter.matches(row.fullName()) ? 1 : 0;
@@ -65,8 +66,7 @@ bool SortedFileList::updateRows(std::vector<CFileSystemObject> rows)
 		}
 
 		oldRowKept[old->second] = true;
-		const CFileSystemObject& oldRow = _rows[old->second];
-		if (oldRow.size() != row.size() || oldRow.modificationTime() != row.modificationTime() || oldRow.type() != row.type())
+		if (itemDataDiffers(_rows[old->second], row))
 		{
 			changedRows.emplace_back(old->second, i);
 			numDisplayedChanges += displayRowOfOldRow[old->second] >= 0 ? 1 : 0;
@@ -88,30 +88,15 @@ bool SortedFileList::updateRows(std::vector<CFileSystemObject> rows)
 		_rows[oldRowIndex] = std::move(rows[newRowIndex]);
 		_sortKeys[oldRowIndex] = _sorter.sortKeysFor(_rows[oldRowIndex]);
 
-		int displayRow = displayRowOfOldRow[oldRowIndex];
+		const int displayRow = displayRowOfOldRow[oldRowIndex];
 		if (displayRow < 0)
 			continue;
 
-		// A move, unlike a removal and an insertion, keeps the row's selection and open editor
-		const int destination = moveDestination(oldRowIndex, displayRow);
-		if (destination != displayRow && destination != displayRow + 1)
-		{
-			const auto first = _displayedRows.begin();
-			_observer.beforeMove(displayRow, destination);
-			if (destination < displayRow)
-				std::rotate(first + destination, first + displayRow, first + displayRow + 1);
-			else
-				std::rotate(first + displayRow, first + displayRow + 1, first + destination);
+		const int newDisplayRow = moveRowToSortedPosition(displayRow);
+		for (int row = std::min(displayRow, newDisplayRow), last = std::max(displayRow, newDisplayRow); row <= last; ++row)
+			displayRowOfOldRow[_displayedRows[(size_t)row]] = row;
 
-			for (int row = std::min(displayRow, destination), end = std::max(displayRow + 1, destination); row < end; ++row)
-				displayRowOfOldRow[_displayedRows[(size_t)row]] = row;
-
-			_displayRowByHashIsStale = true;
-			_observer.afterMove();
-			displayRow = displayRowOfOldRow[oldRowIndex];
-		}
-
-		_observer.rowChanged(displayRow);
+		_observer.rowChanged(newDisplayRow);
 	}
 
 	std::vector<int> removedDisplayRows;
@@ -120,23 +105,7 @@ bool SortedFileList::updateRows(std::vector<CFileSystemObject> rows)
 		if (!oldRowKept[i] && displayRowOfOldRow[i] >= 0)
 			removedDisplayRows.push_back(displayRowOfOldRow[i]);
 	}
-
-	// Bottom up, so the rows of the runs still to remove keep their numbers
-	std::sort(removedDisplayRows.begin(), removedDisplayRows.end(), std::greater{});
-	for (size_t runBegin = 0, numRemoved = removedDisplayRows.size(); runBegin < numRemoved;)
-	{
-		size_t runEnd = runBegin + 1;
-		while (runEnd < numRemoved && removedDisplayRows[runEnd] == removedDisplayRows[runEnd - 1] - 1)
-			++runEnd;
-
-		const int firstRow = removedDisplayRows[runEnd - 1], lastRow = removedDisplayRows[runBegin];
-		_observer.beforeRemove(firstRow, lastRow);
-		_displayedRows.erase(_displayedRows.begin() + firstRow, _displayedRows.begin() + lastRow + 1);
-		_displayRowByHashIsStale = true;
-		_observer.afterRemove();
-
-		runBegin = runEnd;
-	}
+	removeDisplayedRows(std::move(removedDisplayRows));
 
 	std::vector<uint32_t> insertedRows;
 	for (const uint32_t addedRow : addedRows)
@@ -147,31 +116,7 @@ bool SortedFileList::updateRows(std::vector<CFileSystemObject> rows)
 		_sortKeys.push_back(_sorter.sortKeysFor(rows[addedRow]));
 		_rows.push_back(std::move(rows[addedRow]));
 	}
-
-	std::sort(insertedRows.begin(), insertedRows.end(), [this](uint32_t l, uint32_t r) {
-		return rowLessThan(l, r);
-	});
-
-	for (size_t runBegin = 0, numInserted = insertedRows.size(); runBegin < numInserted;)
-	{
-		const uint32_t firstInRun = insertedRows[runBegin];
-		const auto position = std::partition_point(_displayedRows.cbegin(), _displayedRows.cend(), [&](uint32_t rowIndex) {
-			return rowLessThan(rowIndex, firstInRun);
-		});
-
-		// The run takes in every next row that also sorts above the row at position
-		size_t runEnd = runBegin + 1;
-		while (runEnd < numInserted && (position == _displayedRows.cend() || rowLessThan(insertedRows[runEnd], *position)))
-			++runEnd;
-
-		const auto firstRow = (int)(position - _displayedRows.cbegin());
-		_observer.beforeInsert(firstRow, firstRow + (int)(runEnd - runBegin) - 1);
-		_displayedRows.insert(position, insertedRows.cbegin() + (ptrdiff_t)runBegin, insertedRows.cbegin() + (ptrdiff_t)runEnd);
-		_displayRowByHashIsStale = true;
-		_observer.afterInsert();
-
-		runBegin = runEnd;
-	}
+	insertDisplayedRows(std::move(insertedRows));
 
 	// Drops the removed rows from _rows; indices, not display rows, change
 	std::vector<uint32_t> compactedIndex(_rows.size());
@@ -190,14 +135,67 @@ bool SortedFileList::updateRows(std::vector<CFileSystemObject> rows)
 		++numKept;
 	}
 
+	const bool rowsRemoved = numKept < _rows.size();
 	_rows.resize(numKept);
 	// Not resize(): the keys have no default constructor
 	_sortKeys.erase(_sortKeys.begin() + numKept, _sortKeys.end());
 	for (uint32_t& rowIndex : _displayedRows)
 		rowIndex = compactedIndex[rowIndex];
 
+	if (rowsRemoved)
+		rebuildRowIndexByHash();
+	else
+	{
+		for (uint32_t i = oldRowCount, numRows = (uint32_t)_rows.size(); i < numRows; ++i)
+			_rowIndexByHash.emplace(_rows[i].hash(), i);
+	}
+
 	updateContentsSummary();
 	return true;
+}
+
+void SortedFileList::applyChanges(std::vector<CFileSystemObject> upserted, const std::vector<qulonglong>& removedHashes)
+{
+	assert_and_return_r(!_inArrivalOrder, );
+
+	std::vector<uint32_t> removedRows;
+	for (const qulonglong hash : removedHashes)
+	{
+		if (const auto rowIndex = _rowIndexByHash.find(hash); rowIndex != _rowIndexByHash.end())
+			removedRows.push_back(rowIndex->second);
+	}
+
+	std::vector<CFileSystemObject> addedItems;
+	for (CFileSystemObject& item : upserted)
+	{
+		const auto rowIndex = _rowIndexByHash.find(item.hash());
+		if (rowIndex != _rowIndexByHash.end() && _rows[rowIndex->second].fullAbsolutePath() == item.fullAbsolutePath())
+		{
+			changeRow(rowIndex->second, std::move(item));
+			continue;
+		}
+
+		// A hash collision is a different item
+		if (rowIndex != _rowIndexByHash.end())
+			removedRows.push_back(rowIndex->second);
+		addedItems.push_back(std::move(item));
+	}
+
+	removeRows(std::move(removedRows));
+
+	std::vector<uint32_t> insertedRows;
+	for (CFileSystemObject& item : addedItems)
+	{
+		const auto rowIndex = (uint32_t)_rows.size();
+		if (_nameFilter.matches(item.fullName()))
+			insertedRows.push_back(rowIndex);
+
+		_contentsSummary.add(item);
+		_sortKeys.push_back(_sorter.sortKeysFor(item));
+		_rowIndexByHash.emplace(item.hash(), rowIndex);
+		_rows.push_back(std::move(item));
+	}
+	insertDisplayedRows(std::move(insertedRows));
 }
 
 void SortedFileList::addRows(std::vector<CFileSystemObject> rows)
@@ -210,6 +208,7 @@ void SortedFileList::addRows(std::vector<CFileSystemObject> rows)
 
 		_contentsSummary.add(row);
 		_sortKeys.push_back(_sorter.sortKeysFor(row));
+		_rowIndexByHash.emplace(row.hash(), (uint32_t)_rows.size());
 		_rows.push_back(std::move(row));
 	}
 
@@ -221,7 +220,6 @@ void SortedFileList::addRows(std::vector<CFileSystemObject> rows)
 		const auto firstRow = (int)_displayedRows.size();
 		_observer.beforeInsert(firstRow, firstRow + (int)displayedNewRows.size() - 1);
 		_displayedRows.insert(_displayedRows.end(), displayedNewRows.cbegin(), displayedNewRows.cend());
-		_displayRowByHashIsStale = true;
 		_observer.afterInsert();
 		return;
 	}
@@ -233,7 +231,6 @@ void SortedFileList::addRows(std::vector<CFileSystemObject> rows)
 	const auto oldRowCount = (ptrdiff_t)_displayedRows.size();
 	_displayedRows.insert(_displayedRows.end(), displayedNewRows.cbegin(), displayedNewRows.cend());
 	std::inplace_merge(_displayedRows.begin(), _displayedRows.begin() + oldRowCount, _displayedRows.end(), lessThan);
-	_displayRowByHashIsStale = true;
 	_observer.afterReorder(SortedFileListReorderCause::Addition);
 }
 
@@ -300,11 +297,33 @@ const CFileSystemObject& SortedFileList::rowAt(int row) const
 
 int SortedFileList::rowOf(qulonglong hash) const
 {
-	if (_displayRowByHashIsStale)
-		rebuildDisplayRowByHash();
+	const auto rowIndex = _rowIndexByHash.find(hash);
+	return rowIndex != _rowIndexByHash.end() ? displayRowOf(rowIndex->second) : -1;
+}
 
-	const auto row = _displayRowByHash.find(hash);
-	return row != _displayRowByHash.end() ? row->second : -1;
+std::vector<int> SortedFileList::rowsOf(const std::vector<qulonglong>& hashes) const
+{
+	std::vector<int> rows;
+	rows.reserve(hashes.size());
+	// Estimated, not measured: a search's 20 or so key comparisons cost about as much as indexing 16 rows
+	if (hashes.size() * 16 < _displayedRows.size())
+	{
+		for (const qulonglong hash : hashes)
+			rows.push_back(rowOf(hash));
+		return rows;
+	}
+
+	ankerl::unordered_dense::map<qulonglong, int, identity_hash> displayRowByHash;
+	displayRowByHash.reserve(_displayedRows.size());
+	for (int row = 0, numRows = (int)_displayedRows.size(); row < numRows; ++row)
+		displayRowByHash.emplace(_rows[_displayedRows[(size_t)row]].hash(), row);
+
+	for (const qulonglong hash : hashes)
+	{
+		const auto row = displayRowByHash.find(hash);
+		rows.push_back(row != displayRowByHash.end() ? row->second : -1);
+	}
+	return rows;
 }
 
 int SortedFileList::firstFileRow() const
@@ -356,14 +375,136 @@ int SortedFileList::moveDestination(uint32_t rowIndex, int displayRow) const
 	return (int)(std::partition_point(moved + 1, _displayedRows.cend(), sortsAboveRow) - first);
 }
 
-void SortedFileList::rebuildDisplayRowByHash() const
+int SortedFileList::displayRowOf(uint32_t rowIndex) const
 {
-	_displayRowByHash.clear();
-	_displayRowByHash.reserve(_displayedRows.size());
-	for (int row = 0, numRows = (int)_displayedRows.size(); row < numRows; ++row)
-		_displayRowByHash.emplace(_rows[_displayedRows[(size_t)row]].hash(), row);
+	// The sort order is total, so the search lands on the row itself when it is displayed
+	const auto position = std::partition_point(_displayedRows.cbegin(), _displayedRows.cend(), [&](uint32_t otherRowIndex) {
+		return rowLessThan(otherRowIndex, rowIndex);
+	});
+	return position != _displayedRows.cend() && *position == rowIndex ? (int)(position - _displayedRows.cbegin()) : -1;
+}
 
-	_displayRowByHashIsStale = false;
+int SortedFileList::moveRowToSortedPosition(int displayRow)
+{
+	const int destination = moveDestination(_displayedRows[(size_t)displayRow], displayRow);
+	if (destination == displayRow || destination == displayRow + 1)
+		return displayRow;
+
+	// A move, unlike a removal and an insertion, keeps the row's selection and open editor
+	const auto first = _displayedRows.begin();
+	_observer.beforeMove(displayRow, destination);
+	if (destination < displayRow)
+		std::rotate(first + destination, first + displayRow, first + displayRow + 1);
+	else
+		std::rotate(first + displayRow, first + displayRow + 1, first + destination);
+	_observer.afterMove();
+
+	return destination < displayRow ? destination : destination - 1;
+}
+
+void SortedFileList::insertDisplayedRows(std::vector<uint32_t> rowIndices)
+{
+	std::sort(rowIndices.begin(), rowIndices.end(), [this](uint32_t l, uint32_t r) {
+		return rowLessThan(l, r);
+	});
+
+	for (size_t runBegin = 0, numInserted = rowIndices.size(); runBegin < numInserted;)
+	{
+		const uint32_t firstInRun = rowIndices[runBegin];
+		const auto position = std::partition_point(_displayedRows.cbegin(), _displayedRows.cend(), [&](uint32_t rowIndex) {
+			return rowLessThan(rowIndex, firstInRun);
+		});
+
+		// The run takes in every next row that also sorts above the row at position
+		size_t runEnd = runBegin + 1;
+		while (runEnd < numInserted && (position == _displayedRows.cend() || rowLessThan(rowIndices[runEnd], *position)))
+			++runEnd;
+
+		const auto firstRow = (int)(position - _displayedRows.cbegin());
+		_observer.beforeInsert(firstRow, firstRow + (int)(runEnd - runBegin) - 1);
+		_displayedRows.insert(position, rowIndices.cbegin() + (ptrdiff_t)runBegin, rowIndices.cbegin() + (ptrdiff_t)runEnd);
+		_observer.afterInsert();
+
+		runBegin = runEnd;
+	}
+}
+
+void SortedFileList::removeDisplayedRows(std::vector<int> displayRows)
+{
+	// Bottom up, so the rows of the runs still to remove keep their numbers
+	std::sort(displayRows.begin(), displayRows.end(), std::greater{});
+	for (size_t runBegin = 0, numRemoved = displayRows.size(); runBegin < numRemoved;)
+	{
+		size_t runEnd = runBegin + 1;
+		while (runEnd < numRemoved && displayRows[runEnd] == displayRows[runEnd - 1] - 1)
+			++runEnd;
+
+		const int firstRow = displayRows[runEnd - 1], lastRow = displayRows[runBegin];
+		_observer.beforeRemove(firstRow, lastRow);
+		_displayedRows.erase(_displayedRows.begin() + firstRow, _displayedRows.begin() + lastRow + 1);
+		_observer.afterRemove();
+
+		runBegin = runEnd;
+	}
+}
+
+void SortedFileList::changeRow(uint32_t rowIndex, CFileSystemObject&& row)
+{
+	CFileSystemObject& oldRow = _rows[rowIndex];
+	if (!itemDataDiffers(oldRow, row))
+		return;
+
+	// Before the new data changes where the row sorts
+	const int displayRow = displayRowOf(rowIndex);
+	_contentsSummary.remove(oldRow);
+	_contentsSummary.add(row);
+	// A type change can change the name and extension the row sorts by
+	oldRow = std::move(row);
+	_sortKeys[rowIndex] = _sorter.sortKeysFor(oldRow);
+
+	if (displayRow >= 0)
+		_observer.rowChanged(moveRowToSortedPosition(displayRow));
+}
+
+void SortedFileList::removeRows(std::vector<uint32_t> rowIndices)
+{
+	std::vector<int> displayRows;
+	for (const uint32_t rowIndex : rowIndices)
+	{
+		if (const int displayRow = displayRowOf(rowIndex); displayRow >= 0)
+			displayRows.push_back(displayRow);
+	}
+	removeDisplayedRows(std::move(displayRows));
+
+	// The last row moves into each gap: in sorted order, a row's index doesn't affect where it shows.
+	// Highest first, so the last row is never one still to remove.
+	std::sort(rowIndices.begin(), rowIndices.end(), std::greater{});
+	for (const uint32_t rowIndex : rowIndices)
+	{
+		_contentsSummary.remove(_rows[rowIndex]);
+		_rowIndexByHash.erase(_rows[rowIndex].hash());
+
+		if (const auto lastRowIndex = (uint32_t)_rows.size() - 1; rowIndex != lastRowIndex)
+		{
+			const int lastDisplayRow = displayRowOf(lastRowIndex);
+			_rows[rowIndex] = std::move(_rows[lastRowIndex]);
+			_sortKeys[rowIndex] = std::move(_sortKeys[lastRowIndex]);
+			_rowIndexByHash[_rows[rowIndex].hash()] = rowIndex;
+			if (lastDisplayRow >= 0)
+				_displayedRows[(size_t)lastDisplayRow] = rowIndex;
+		}
+
+		_rows.pop_back();
+		_sortKeys.pop_back();
+	}
+}
+
+void SortedFileList::rebuildRowIndexByHash()
+{
+	_rowIndexByHash.clear();
+	_rowIndexByHash.reserve(_rows.size());
+	for (uint32_t i = 0, numRows = (uint32_t)_rows.size(); i < numRows; ++i)
+		_rowIndexByHash.emplace(_rows[i].hash(), i);
 }
 
 void SortedFileList::updateContentsSummary()
@@ -377,6 +518,5 @@ void SortedFileList::refilterAndResort(SortedFileListReorderCause cause)
 {
 	_observer.beforeReorder(cause);
 	_displayedRows = displayedRowsInOrder();
-	_displayRowByHashIsStale = true;
 	_observer.afterReorder(cause);
 }

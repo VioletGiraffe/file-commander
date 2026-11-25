@@ -52,7 +52,7 @@ public:
 	void setState(ushort aState, Boolean enable) override;
 	TPalette& getPalette() const override;
 
-	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
+	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation, const PanelContentsChange& change) override;
 	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
 
 	// Lists the volumes and shows the chosen one
@@ -70,7 +70,8 @@ private:
 	// False for a command the panel does not carry out
 	bool runCommand(ushort command);
 
-	void fillFromPanel(FileListRefreshCause cause = refreshCauseOther);
+	// change: what onPanelContentsChanged() received; a full one, the default, refills from the panel's committed listing
+	void fillFromPanel(FileListRefreshCause cause = refreshCauseOther, const PanelContentsChange& change = {});
 	// For a listing that is still running when _showEmptyListTimer expires
 	void showEmptyListWhileListing();
 	// Copies the core's selection into the list

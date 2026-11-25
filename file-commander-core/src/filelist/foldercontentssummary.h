@@ -23,4 +23,18 @@ struct FolderContentsSummary {
 
 		size += item.size();
 	}
+
+	// Undoes add(item)
+	void remove(const CFileSystemObject& item)
+	{
+		if (item.isCdUp())
+			return;
+
+		if (item.isFile())
+			--numFiles;
+		else if (item.isDir())
+			--numFolders;
+
+		size -= item.size();
+	}
 };

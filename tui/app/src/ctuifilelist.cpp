@@ -195,8 +195,22 @@ void CTuiFileList::setContents(Contents contents, const qulonglong cursorItemHas
 	else
 		_list.setRows(std::move(contents.items), std::move(contents.listedFolder));
 
+	finishRowsChange(contents.selectedItemHashes, cursorItemHash, cursorStaysOnItem, fallbackRow);
+}
+
+void CTuiFileList::applyChanges(std::vector<CFileSystemObject> upserted, const std::vector<qulonglong>& removedHashes,
+	const std::vector<qulonglong>& selectedItemHashes)
+{
+	const CFileSystemObject* cursorItem = currentRow();
+	const qulonglong cursorItemHash = cursorItem ? cursorItem->hash() : 0;
+	_list.applyChanges(std::move(upserted), removedHashes);
+	finishRowsChange(selectedItemHashes, cursorItemHash, cursorItem != nullptr, cursorRow());
+}
+
+void CTuiFileList::finishRowsChange(const std::vector<qulonglong>& selectedItemHashes, qulonglong cursorItemHash, bool cursorStaysOnItem, int fallbackRow)
+{
 	_selectedItemHashes.clear();
-	_selectedItemHashes.insert(contents.selectedItemHashes.begin(), contents.selectedItemHashes.end());
+	_selectedItemHashes.insert(selectedItemHashes.begin(), selectedItemHashes.end());
 	_provisionalDirSizes.clear();
 
 	const int cursorItemRow = _list.rowOf(cursorItemHash);

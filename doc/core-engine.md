@@ -54,6 +54,24 @@ An asynchronous operation that can replace a panel list must:
 2. Build the complete result in worker-local storage.
 3. Publish only through `publishFileListIfCurrent()`, which rechecks all three values.
 
+An operation that changes items of the committed listing in place (a calculated folder size) does so under the list
+mutex, only while the listing belongs to the current view, and records the items through `commitItemChangesLocked()`.
+The front ends then apply those items alone; a full refill compares every row. Past 700 items changed since the last
+notification, the next one is a full refill instead.
+
+Measured on a 2-core i3-2310M with the `filelist_test` timing cases, sorted by name, rows spread over folders:
+
+| | 100k rows | 500k rows |
+|---|---|---|
+| Refill for one changed file, GUI | 40-61 ms | 190-300 ms |
+| One change applied in place, GUI | 9-16 ms, mostly the view's relayout | 43-54 ms, mostly the view's relayout |
+| Each further change in place, GUI | about 0.07 ms | about 0.36 ms, about 0.28 ms of it in the Qt model and view |
+| GUI break-even against a refill | about 700 changes | about 700 changes |
+| Terminal UI break-even | past 20k changes | between 20k and 62k changes |
+
+The cap follows the GUI. An insertion or removal shifts the display order, a `std::vector` of row indices: that makes a
+change's cost grow with the rows in both front ends.
+
 Accessors hide a retained list as soon as it no longer describes the current view. Invalidation means only that the
 old list is no longer displayable; cursor, selection, persistence, and plugin state update only after a committed
 contents notification. Screen-facing listeners filter all notifications by stable tab ID. See

@@ -102,6 +102,12 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 	return updatedInPlace;
 }
 
+void CFileListModel::applyChanges(std::vector<CFileSystemObject> upserted, const std::vector<qulonglong>& removedHashes)
+{
+	_list.applyChanges(std::move(upserted), removedHashes);
+	dropProvisionalDirSizes();
+}
+
 void CFileListModel::addRows(std::vector<CFileSystemObject> rows)
 {
 	_list.addRows(std::move(rows));
@@ -190,6 +196,11 @@ QModelIndex CFileListModel::indexByHash(qulonglong hash) const
 {
 	const int row = _list.rowOf(hash);
 	return row >= 0 ? createIndex(row, 0) : QModelIndex{};
+}
+
+std::vector<int> CFileListModel::rowsOf(const std::vector<qulonglong>& hashes) const
+{
+	return _list.rowsOf(hashes);
 }
 
 int CFileListModel::firstFileRow() const
@@ -451,12 +462,13 @@ void CFileListModel::beforeReorder(SortedFileListReorderCause cause)
 
 void CFileListModel::afterReorder(SortedFileListReorderCause cause)
 {
+	const std::vector<int> newRows = _list.rowsOf(_hashesBeforeReorder);
 	QModelIndexList newIndexes;
 	newIndexes.reserve(_indexesBeforeReorder.size());
 	for (qsizetype i = 0; i < _indexesBeforeReorder.size(); ++i)
 	{
-		const QModelIndex newRow = indexByHash(_hashesBeforeReorder[(size_t)i]);
-		newIndexes.push_back(newRow.isValid() ? createIndex(newRow.row(), _indexesBeforeReorder[i].column()) : QModelIndex{});
+		const int newRow = newRows[(size_t)i];
+		newIndexes.push_back(newRow >= 0 ? createIndex(newRow, _indexesBeforeReorder[i].column()) : QModelIndex{});
 	}
 
 	changePersistentIndexList(_indexesBeforeReorder, newIndexes);

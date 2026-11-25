@@ -46,7 +46,7 @@ call, or the closing dialog would handle the event.
   strip shows while the side has more than one tab. It wraps onto up to three rows, past which it scrolls by row to
   keep the active tab in view, or by the mouse wheel; a mark in its last column shows hidden rows. [tabs.md](tabs.md) has the core's side.
 - The rows are a copy of `CPanel::committedListing()` in a `SortedFileList`. A refresh of the same view updates it in
-  place, so unchanged rows keep their sort keys. Sorting, the name filter and the selection belong to the `CPanel`, as in
+  place, so unchanged rows keep their sort keys; a notification carrying changes made in place applies only those. Sorting, the name filter and the selection belong to the `CPanel`, as in
   the Qt UI; the list shows a copy of the selection, refreshed after every change made through the core.
 - When the core withdraws a list, the panel empties its rows at once but keeps the old frame on screen briefly, so a
   listing that arrives in time replaces it with no blank frame.

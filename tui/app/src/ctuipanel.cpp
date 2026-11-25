@@ -607,10 +607,10 @@ TPalette& CTuiPanel::getPalette() const
 	return panelPalette();
 }
 
-void CTuiPanel::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation)
+void CTuiPanel::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation, const PanelContentsChange& change)
 {
 	if (isActiveTab(p, tabId))
-		fillFromPanel(operation);
+		fillFromPanel(operation, change);
 }
 
 void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
@@ -636,7 +636,7 @@ void CTuiPanel::showEmptyListWhileListing()
 	updateTabStrip();
 }
 
-void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
+void CTuiPanel::fillFromPanel(const FileListRefreshCause cause, const PanelContentsChange& change)
 {
 	killTimer(_showEmptyListTimer);
 	_showEmptyListTimer = nullptr;
@@ -647,20 +647,26 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 	const bool navigated = cause == refreshCauseForwardNavigation || cause == refreshCauseCdUp;
 	_columnHeader->setSorting(panel.sortField(), panel.sortOrder());
 
-	CPanel::CommittedListing listing = panel.committedListing();
-	const std::optional<ListedView> listedView = listing.isCommitted ? std::optional{ ListedView{ panel.id(), panel.navigationId() } } : std::nullopt;
-	const bool refreshesShownView = listedView && listedView == _listedView;
-	_listedView = listedView;
+	// A change that is not full describes the current view's listing, which the list holds if it holds this view's
+	if (!change.full && _listedView == ListedView{ panel.id(), panel.navigationId() })
+		_fileList->applyChanges(change.upserted, change.removedHashes, panel.selectedItemHashes());
+	else
+	{
+		CPanel::CommittedListing listing = panel.committedListing();
+		const std::optional<ListedView> listedView = listing.isCommitted ? std::optional{ ListedView{ panel.id(), panel.navigationId() } } : std::nullopt;
+		const bool refreshesShownView = listedView && listedView == _listedView;
+		_listedView = listedView;
 
-	_fileList->setContents({
-		.items = std::move(listing.items),
-		.listedFolder = std::move(listing.folder),
-		.refreshesShownView = refreshesShownView,
-		.sortField = panel.sortField(),
-		.sortOrder = panel.sortOrder(),
-		.nameFilter = panel.nameFilter(),
-		.selectedItemHashes = panel.selectedItemHashes(),
-	}, _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()), navigated ? 0 : _fileList->cursorRow());
+		_fileList->setContents({
+			.items = std::move(listing.items),
+			.listedFolder = std::move(listing.folder),
+			.refreshesShownView = refreshesShownView,
+			.sortField = panel.sortField(),
+			.sortOrder = panel.sortOrder(),
+			.nameFilter = panel.nameFilter(),
+			.selectedItemHashes = panel.selectedItemHashes(),
+		}, _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()), navigated ? 0 : _fileList->cursorRow());
+	}
 	if (const CFileSystemObject* row = _fileList->currentRow())
 		_controller.setCurrentItemHashForCurrentFolder(_side, row->hash(), false);
 

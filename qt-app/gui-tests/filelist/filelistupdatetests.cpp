@@ -4,6 +4,9 @@
 #include "panel/filelistwidget/filelistlook.h"
 #include "panel/filelistwidget/model/cfilelistmodel.h"
 
+#include "detail/file_list_hashmap.h"
+#include "filelist/sortedfilelist.h"
+
 #include "crandomdatagenerator.h"
 #include "qt_helpers.hpp"
 
@@ -35,6 +38,7 @@ RESTORE_COMPILER_WARNINGS
 #include <iterator>
 #include <map>
 #include <numeric>
+#include <random>
 #include <set>
 #include <stdint.h>
 #include <stdio.h>
@@ -138,17 +142,19 @@ TEST_CASE("An update past a number of changes resets instead, whatever the share
 	CHECK_FALSE(model.indexByHash(pathHash("/folder/old0.txt")).isValid());
 }
 
-TEST_CASE("Random updates keep the rows, their order and the persistent indexes right", "[filelist][update]")
+TEST_CASE("Random updates and changes applied in place keep the rows, their order and the persistent indexes right", "[filelist][update]")
 {
 	const int sortColumn = GENERATE(NameColumn, ExtColumn, SizeColumn, DateColumn);
 	const Qt::SortOrder sortOrder = GENERATE(Qt::AscendingOrder, Qt::DescendingOrder);
 	const QString nameFilter = GENERATE(QString{}, QStringLiteral("*[A-G]*"));
+	const bool inPlace = GENERATE(false, true); // applyChanges() rather than updateRows()
 
 	INFO("Random seed: " << g_randomSeed);
 	CRandomDataGenerator random;
 	random.setSeed(g_randomSeed);
 
 	Listing listing;
+	std::set<QString> touchedPaths; // Since the last update
 	const auto addRandomRow = [&] {
 		const bool folder = random.randomNumber(0, 3) == 0;
 		// Few names, sizes and times, so rows often tie on the sort key
@@ -157,6 +163,7 @@ TEST_CASE("Random updates keep the rows, their order and the persistent indexes 
 		const time_t modificationTime = random.randomNumber<time_t>(0, 3);
 		const CFileSystemObjectProperties row = itemProperties(folder ? Directory : File, name, extension, size, modificationTime);
 		listing[row.fullPath] = row;
+		touchedPaths.insert(row.fullPath);
 	};
 	const auto randomListedRow = [&] {
 		return std::next(listing.begin(), random.randomNumber<ptrdiff_t>(0, (ptrdiff_t)listing.size() - 1));
@@ -185,12 +192,17 @@ TEST_CASE("Random updates keep the rows, their order and the persistent indexes 
 		const qulonglong currentBefore = model.itemHash(selection.currentIndex());
 
 		for (int i = random.randomNumber(0, 10); i > 0 && !listing.empty(); --i)
-			listing.erase(randomListedRow());
+		{
+			const auto row = randomListedRow();
+			touchedPaths.insert(row->first);
+			listing.erase(row);
+		}
 		for (int i = random.randomNumber(0, 10); i > 0; --i)
 			addRandomRow();
 		for (int i = random.randomNumber(0, 10); i > 0 && !listing.empty(); --i)
 		{
 			CFileSystemObjectProperties& row = randomListedRow()->second;
+			touchedPaths.insert(row.fullPath);
 			row.size = random.randomNumber<uint64_t>(0u, 3u);
 			row.modificationTime = random.randomNumber<time_t>(0, 3);
 			// A bundle sorts with the files
@@ -198,7 +210,26 @@ TEST_CASE("Random updates keep the rows, their order and the persistent indexes 
 				row.type = Bundle;
 		}
 
-		REQUIRE(model.updateRows(rowsOf(listing)));
+		if (inPlace)
+		{
+			// Each touched path once, as it is now, as the panel reports changes. Repeats change nothing: a row that may be unchanged, a hash no row has.
+			if (!listing.empty())
+				touchedPaths.insert(randomListedRow()->first);
+			std::vector<CFileSystemObject> upserted;
+			std::vector<qulonglong> removedHashes{ pathHash("/folder/absent") };
+			for (const QString& path : touchedPaths)
+			{
+				if (const auto row = listing.find(path); row != listing.end())
+					upserted.emplace_back(row->second);
+				else
+					removedHashes.push_back(pathHash(path));
+			}
+
+			model.applyChanges(std::move(upserted), removedHashes);
+		}
+		else
+			REQUIRE(model.updateRows(rowsOf(listing)));
+		touchedPaths.clear();
 
 		CFileListModel reference{ nullptr };
 		reference.sort(sortColumn, sortOrder);
@@ -217,6 +248,17 @@ TEST_CASE("Random updates keep the rows, their order and the persistent indexes 
 
 		if (reference.indexByHash(currentBefore).isValid())
 			CHECK(model.itemHash(selection.currentIndex()) == currentBefore);
+
+		// rowsOf() indexes every row for this many hashes; indexByHash() searches
+		std::vector<qulonglong> listedHashes;
+		for (const auto& [path, properties] : listing)
+			listedHashes.push_back(pathHash(path));
+		const std::vector<int> rows = model.rowsOf(listedHashes);
+		for (size_t i = 0; i < listedHashes.size(); ++i)
+		{
+			CHECK(rows[i] == reference.indexByHash(listedHashes[i]).row());
+			CHECK(model.indexByHash(listedHashes[i]).row() == rows[i]);
+		}
 	}
 
 	model.setNameFilter({});
@@ -475,6 +517,273 @@ TEST_CASE("Timings of an update against a reset", "[.][filelist][update][timing]
 				const double resetMs = timeMs(column, [](CFileListModel& model, std::vector<CFileSystemObject> rows) { model.setRows(std::move(rows), itemsFolder); });
 				std::printf("%8d %8d %6s %12.1f %12.1f\n", numRows, numChanges, columnNames[column], updateMs, resetMs);
 			}
+		}
+	}
+}
+
+// The listing as CPanel::committedListing() copies it out of the panel's map
+static std::vector<CFileSystemObject> copyRows(const FileListHashMap& items)
+{
+	std::vector<CFileSystemObject> rows;
+	rows.reserve(items.size());
+	for (const auto& [hash, item] : items)
+		rows.push_back(item);
+	return rows;
+}
+
+static double msSince(std::chrono::steady_clock::time_point start)
+{
+	return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+}
+
+// Min, median and max
+static void printSpread(std::vector<double> samples)
+{
+	std::ranges::sort(samples);
+	std::printf(" %7.1f %7.1f %7.1f", samples.front(), samples[samples.size() / 2], samples.back());
+}
+
+static CFileSystemObject makeFile(const QString& fullPath, uint64_t size)
+{
+	CFileSystemObjectProperties properties;
+	properties.type = File;
+	properties.fullPath = fullPath;
+	properties.size = size;
+	return CFileSystemObject{ std::move(properties) };
+}
+
+// A flattened listing: 100 files per folder, 100 folders per parent, so the name column shows each file's folders
+static FileListHashMap flattenedListing(int numRows, CRandomDataGenerator& random)
+{
+	FileListHashMap listing;
+	listing.reserve((size_t)numRows);
+	for (int i = 0; i < numRows; ++i)
+	{
+		const QString path = itemsFolder + QStringLiteral("%1/%2/%3.%4").arg(i / 10'000).arg(i / 100 % 100).arg(random.randomString(12), random.randomString(3));
+		CFileSystemObject file = makeFile(path, random.randomNumber<uint64_t>(0u, 1'000'000u));
+		listing.try_emplace(file.hash(), std::move(file));
+	}
+	return listing;
+}
+
+static void showRowsInView(CFileListModel& model, QTreeView& view, int sortColumn, const FileListHashMap& items)
+{
+	model.sort(sortColumn, Qt::AscendingOrder);
+	model.setRows(copyRows(items), itemsFolder);
+	view.setUniformRowHeights(true);
+	view.setModel(&model);
+	(void)view.indexAt({ 0, 0 }); // Lays the rows out
+}
+
+// The items of itemHashes as target has them, as the panel reports changes committed in place
+static void changesToReach(const FileListHashMap& target, const std::vector<qulonglong>& itemHashes, std::vector<CFileSystemObject>& upserted,
+	std::vector<qulonglong>& removedHashes)
+{
+	for (const qulonglong hash : itemHashes)
+	{
+		if (const auto item = target.find(hash); item != target.end())
+			upserted.push_back(item->second);
+		else
+			removedHashes.push_back(hash);
+	}
+}
+
+// What the UI thread spends on a flattened listing's refresh that changed one file:
+//   copy - the listing copied out of the panel's map, as CPanel::committedListing() does;
+//   model - CFileListModel::updateRows() with a view, the GUI's refill;
+//   list - SortedFileList::updateRows(), the terminal UI's refill;
+//   model and list in place - their applyChanges() given the one changed item, as a change committed in place reaches them.
+// Samples alternate between applying the change and taking it back, so each one is a one-file update.
+TEST_CASE("Timings of a one-file refresh of a flattened listing", "[.][filelist][update][timing]")
+{
+	CRandomDataGenerator random;
+	random.setSeed(g_randomSeed);
+
+	static constexpr int numSamples = 10;
+	std::printf("min, median and max of %d samples, ms\n", numSamples);
+	std::printf("%7s %8s %5s %23s %23s %23s %23s %23s\n", "rows", "change", "sort", "copy", "model", "list", "model in place", "list in place");
+	for (const int numRows : { 10'000, 100'000, 500'000 })
+	{
+		const FileListHashMap base = flattenedListing(numRows, random);
+
+		const CFileSystemObject& changedFile = std::next(base.begin(), (ptrdiff_t)random.randomNumber<size_t>(0, base.size() - 1))->second;
+		const qulonglong changedHash = changedFile.hash();
+		FileListHashMap resized = base;
+		resized.at(changedHash) = makeFile(changedFile.fullAbsolutePath(), changedFile.size() + 1);
+
+		FileListHashMap added = base;
+		CFileSystemObject newFile = makeFile(itemsFolder + QStringLiteral("0/0/new.txt"), 1);
+		const qulonglong newFileHash = newFile.hash();
+		added.try_emplace(newFileHash, std::move(newFile));
+
+		FileListHashMap removed = base;
+		removed.erase(changedHash);
+
+		struct Change
+		{
+			const char* name;
+			const FileListHashMap* listing;
+			qulonglong itemHash; // The item it changes
+		};
+		const Change changes[]{ { "resized", &resized, changedHash }, { "added", &added, newFileHash }, { "removed", &removed, changedHash } };
+		const std::pair<int, FileListSortField> sortings[]{ { NameColumn, FileListSortField::Name }, { SizeColumn, FileListSortField::Size } };
+		for (const auto& [column, field] : sortings)
+		{
+			CFileListModel model{ nullptr }, modelInPlace{ nullptr };
+			QTreeView view, viewInPlace;
+			showRowsInView(model, view, column, base);
+			showRowsInView(modelInPlace, viewInPlace, column, base);
+
+			NullSortedFileListObserver observer;
+			SortedFileList list{ observer }, listInPlace{ observer };
+			for (SortedFileList* sortedList : { &list, &listInPlace })
+			{
+				sortedList->setSorting(field, Qt::AscendingOrder);
+				sortedList->setRows(copyRows(base), itemsFolder);
+			}
+
+			for (const auto& [changeName, changed, changedItemHash] : changes)
+			{
+				std::vector<double> copyMs, modelMs, listMs, modelInPlaceMs, listInPlaceMs;
+				for (int sample = 0; sample < numSamples; ++sample)
+				{
+					const FileListHashMap& target = sample % 2 == 0 ? *changed : base;
+					std::vector<CFileSystemObject> upserted;
+					std::vector<qulonglong> removedHashes;
+					changesToReach(target, { changedItemHash }, upserted, removedHashes);
+
+					auto inPlaceStart = std::chrono::steady_clock::now();
+					modelInPlace.applyChanges(upserted, removedHashes);
+					(void)viewInPlace.indexAt({ 0, 0 });
+					modelInPlaceMs.push_back(msSince(inPlaceStart));
+
+					inPlaceStart = std::chrono::steady_clock::now();
+					listInPlace.applyChanges(std::move(upserted), removedHashes);
+					listInPlaceMs.push_back(msSince(inPlaceStart));
+
+					auto start = std::chrono::steady_clock::now();
+					std::vector<CFileSystemObject> modelRows = copyRows(target);
+					copyMs.push_back(msSince(start));
+					std::vector<CFileSystemObject> listRows = modelRows;
+
+					start = std::chrono::steady_clock::now();
+					const bool modelUpdated = model.updateRows(std::move(modelRows));
+					(void)view.indexAt({ 0, 0 });
+					modelMs.push_back(msSince(start));
+
+					start = std::chrono::steady_clock::now();
+					const bool listUpdated = list.updateRows(std::move(listRows));
+					listMs.push_back(msSince(start));
+
+					// A reset would time another path
+					REQUIRE(modelUpdated);
+					REQUIRE(listUpdated);
+				}
+
+				std::printf("%7d %8s %5s", numRows, changeName, field == FileListSortField::Name ? "name" : "size");
+				printSpread(copyMs);
+				printSpread(modelMs);
+				printSpread(listMs);
+				printSpread(modelInPlaceMs);
+				printSpread(listInPlaceMs);
+				std::printf("\n");
+			}
+		}
+	}
+}
+
+// What applying a number of changes in place costs, against refilling with every row:
+//   list - SortedFileList, the terminal UI's list;
+//   model - CFileListModel with a view, the GUI's.
+// A refill copies the listing out of the panel's map, then updates the rows, or resets them past SortedFileList::MaxChangesForUpdate.
+// The changes are a third each removed, resized and added files, scattered over the folders. Sorted by name.
+// Samples alternate between applying the changes and taking them back.
+TEST_CASE("Timings of a number of changes applied in place against a refill", "[.][filelist][update][timing]")
+{
+	CRandomDataGenerator random;
+	random.setSeed(g_randomSeed);
+	std::mt19937 shuffler{ g_randomSeed };
+
+	std::printf("Sorted by name; min, median and max of the samples, ms\n");
+	std::printf("%7s %7s %23s %23s %23s %23s\n", "rows", "changes", "list in place", "list refill", "model in place", "model refill");
+	for (const int numRows : { 100'000, 500'000 })
+	{
+		const FileListHashMap base = flattenedListing(numRows, random);
+		std::vector<qulonglong> shuffledHashes;
+		shuffledHashes.reserve(base.size());
+		for (const auto& [hash, item] : base)
+			shuffledHashes.push_back(hash);
+		std::ranges::shuffle(shuffledHashes, shuffler);
+
+		NullSortedFileListObserver observer;
+		SortedFileList listInPlace{ observer }, listRefilled{ observer };
+		for (SortedFileList* list : { &listInPlace, &listRefilled })
+		{
+			list->setSorting(FileListSortField::Name, Qt::AscendingOrder);
+			list->setRows(copyRows(base), itemsFolder);
+		}
+		CFileListModel modelInPlace{ nullptr }, modelRefilled{ nullptr };
+		QTreeView viewInPlace, viewRefilled;
+		showRowsInView(modelInPlace, viewInPlace, NameColumn, base);
+		showRowsInView(modelRefilled, viewRefilled, NameColumn, base);
+
+		for (const int numChanges : { 1, 10, 100, 1'000, 5'000, 20'000, numRows / 8 })
+		{
+			FileListHashMap changed = base;
+			std::vector<qulonglong> changedHashes;
+			const int third = numChanges / 3;
+			for (int i = 0; i < third; ++i)
+			{
+				const qulonglong removedHash = shuffledHashes[(size_t)i], resizedHash = shuffledHashes[(size_t)(third + i)];
+				changed.erase(removedHash);
+				CFileSystemObject& resized = changed.at(resizedHash);
+				resized = makeFile(resized.fullAbsolutePath(), resized.size() + 1);
+				changedHashes.push_back(removedHash);
+				changedHashes.push_back(resizedHash);
+			}
+			for (int i = 2 * third; i < numChanges; ++i)
+			{
+				const QString path = itemsFolder + QStringLiteral("%1/%2/new%3.txt").arg(random.randomNumber(0, numRows / 10'000 - 1)).arg(random.randomNumber(0, 99)).arg(i);
+				CFileSystemObject added = makeFile(path, (uint64_t)i);
+				changedHashes.push_back(added.hash());
+				changed.try_emplace(added.hash(), std::move(added));
+			}
+
+			const int numSamples = numChanges > 5'000 ? 2 : 6;
+			std::vector<double> listInPlaceMs, listRefillMs, modelInPlaceMs, modelRefillMs;
+			for (int sample = 0; sample < numSamples; ++sample)
+			{
+				const FileListHashMap& target = sample % 2 == 0 ? changed : base;
+				std::vector<CFileSystemObject> upserted;
+				std::vector<qulonglong> removedHashes;
+				changesToReach(target, changedHashes, upserted, removedHashes);
+				std::vector<CFileSystemObject> upsertedForModel = upserted;
+
+				auto start = std::chrono::steady_clock::now();
+				listInPlace.applyChanges(std::move(upserted), removedHashes);
+				listInPlaceMs.push_back(msSince(start));
+
+				start = std::chrono::steady_clock::now();
+				(void)listRefilled.updateRows(copyRows(target));
+				listRefillMs.push_back(msSince(start));
+
+				start = std::chrono::steady_clock::now();
+				modelInPlace.applyChanges(std::move(upsertedForModel), removedHashes);
+				(void)viewInPlace.indexAt({ 0, 0 });
+				modelInPlaceMs.push_back(msSince(start));
+
+				start = std::chrono::steady_clock::now();
+				(void)modelRefilled.updateRows(copyRows(target));
+				(void)viewRefilled.indexAt({ 0, 0 });
+				modelRefillMs.push_back(msSince(start));
+			}
+
+			std::printf("%7d %7d", numRows, numChanges);
+			printSpread(listInPlaceMs);
+			printSpread(listRefillMs);
+			printSpread(modelInPlaceMs);
+			printSpread(modelRefillMs);
+			std::printf("\n");
 		}
 	}
 }

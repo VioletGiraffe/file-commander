@@ -163,7 +163,7 @@ QStringList expectedRowTexts(std::vector<CFileSystemObject> items, const QString
 
 } // namespace
 
-TEST_CASE("Sorted file list - random updates, filters and sortings are notified as they happen", "[sortedfilelist]")
+TEST_CASE("Sorted file list - random updates, changes applied in place, filters and sortings are notified as they happen", "[sortedfilelist]")
 {
 	static const FileListSortField fields[] = { FileListSortField::Name, FileListSortField::Extension, FileListSortField::Size, FileListSortField::Date };
 	static const QString filters[] = { QString{}, QStringLiteral("a"), QStringLiteral("1;b") };
@@ -226,6 +226,20 @@ TEST_CASE("Sorted file list - random updates, filters and sortings are notified 
 				o.list.addRows(std::move(added));
 				break;
 			}
+			case 3:
+			{
+				// Every new item upserted: the unchanged ones repeat what the list has, which changes nothing
+				std::vector<CFileSystemObject> newItems = randomItems();
+				std::vector<qulonglong> removedHashes{ makeItem(File, "absent").hash() };
+				for (const CFileSystemObject& item : items)
+				{
+					if (std::ranges::none_of(newItems, [&item](const CFileSystemObject& newItem) { return newItem.hash() == item.hash(); }))
+						removedHashes.push_back(item.hash());
+				}
+				items = newItems;
+				o.list.applyChanges(std::move(newItems), removedHashes);
+				break;
+			}
 			default:
 				items = randomItems();
 				REQUIRE(o.list.updateRows(items));
@@ -234,6 +248,26 @@ TEST_CASE("Sorted file list - random updates, filters and sortings are notified 
 
 			o.observer.checkRows();
 			CHECK(o.observer.copy == expectedRowTexts(items, filterText, field, order));
+
+			FolderContentsSummary expectedSummary;
+			std::vector<qulonglong> hashes;
+			for (const CFileSystemObject& item : items)
+			{
+				expectedSummary.add(item);
+				hashes.push_back(item.hash());
+			}
+			CHECK(o.list.contentsSummary().numFiles == expectedSummary.numFiles);
+			CHECK(o.list.contentsSummary().numFolders == expectedSummary.numFolders);
+			CHECK(o.list.contentsSummary().size == expectedSummary.size);
+
+			// rowsOf() indexes every row for this many hashes; rowOf() searches
+			const std::vector<int> rows = o.list.rowsOf(hashes);
+			for (size_t i = 0; i < items.size(); ++i)
+			{
+				const int expectedRow = (int)o.observer.copy.indexOf(rowText(items[i]));
+				CHECK(o.list.rowOf(hashes[i]) == expectedRow);
+				CHECK(rows[i] == expectedRow);
+			}
 		}
 	}
 }

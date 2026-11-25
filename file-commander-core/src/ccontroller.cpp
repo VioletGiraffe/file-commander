@@ -668,7 +668,7 @@ void CController::saveHistoryList(Panel p)
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_VISITED_LOCATIONS : KEY_RPANEL_VISITED_LOCATIONS, QStringList(visitedDeque.cbegin(), visitedDeque.cend()));
 }
 
-void CController::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause /*operation*/)
+void CController::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause /*operation*/, const PanelContentsChange& /*change*/)
 {
 	savePanelState(p); // Every tab is persisted, so this deliberately doesn't filter by tabId
 

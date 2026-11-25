@@ -79,7 +79,7 @@ public:
 	void closeAllTabsExceptCurrent();
 
 	// CPanel observers
-	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
+	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation, const PanelContentsChange& change) override;
 	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
 	void onIconsChanged(const std::vector<qulonglong>& objectHashes) override;
 	void onAllIconsChanged() override;
@@ -136,8 +136,9 @@ private slots:
 
 private:
 	// Returns true if it reset the model
-	bool fillFromList(FileListRefreshCause operation);
-	void fillFromPanel(FileListRefreshCause operation);
+	bool fillFromList(FileListRefreshCause operation, const PanelContentsChange& change);
+	// change: what onPanelContentsChanged() received; a full one, the default, refills from the panel's committed listing
+	void fillFromPanel(FileListRefreshCause operation, const PanelContentsChange& change = {});
 	// Repaints the panel if onPanelContentsInvalidated() stopped its painting
 	void endOldFrameHold();
 	// Shows the files a pending flattened listing has found over the empty list, and the running sizes of folders in their Size cells.

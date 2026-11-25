@@ -27,7 +27,7 @@ enum class SortedFileListReorderCause { Sort, Filter, Addition };
 
 // Receives each change to a SortedFileList's rows twice, before and after it, matching QAbstractItemModel's begin and end calls.
 // Before a change, the rows are at their old positions; after it, at the new ones.
-// updateRows() puts a changed row's new data in place before moving it, and calls rowChanged() after the move.
+// updateRows() and applyChanges() put a changed row's new data in place before moving it, and call rowChanged() after the move.
 class SortedFileListObserver
 {
 public:
@@ -88,6 +88,10 @@ public:
 	// tracks by row number stays on its row. Returns false if it reset instead: past a number of changes, one reset is cheaper.
 	// The rows are in the folder setRows() took.
 	bool updateRows(std::vector<CFileSystemObject> rows);
+	// Brings in added, changed and removed items row by row, as updateRows() does, at a cost that grows with the number of changes rather than of rows.
+	// upserted: the added and changed items. Each hash comes at most once per call; repeating a change in a later call does nothing.
+	// Requires sorted rows.
+	void applyChanges(std::vector<CFileSystemObject> upserted, const std::vector<qulonglong>& removedHashes);
 	// Each row where it sorts, in one reorder; none if the filter hides them all. Requires rows not listed yet.
 	// One merge: linear in the rows already listed, whatever the number added.
 	// In arrival order: one insertion at the end.
@@ -107,6 +111,8 @@ public:
 	[[nodiscard]] int rowCount() const noexcept;
 	[[nodiscard]] const CFileSystemObject& rowAt(int row) const;
 	[[nodiscard]] int rowOf(qulonglong hash) const; // -1 if no row has it, or the filter hides it
+	// Parallel to hashes, each as rowOf()
+	[[nodiscard]] std::vector<int> rowsOf(const std::vector<qulonglong>& hashes) const;
 	// The topmost row holding a file (folders always sort above files), or -1 if there are no files. Requires sorted rows.
 	[[nodiscard]] int firstFileRow() const;
 	// Totals over every item, the hidden ones included
@@ -118,7 +124,17 @@ private:
 	[[nodiscard]] std::vector<uint32_t> displayedRowsInOrder() const;
 	// Where _rows[rowIndex] sorts among the displayed rows other than 'displayRow', as the destination of moving displayRow
 	[[nodiscard]] int moveDestination(uint32_t rowIndex, int displayRow) const;
-	void rebuildDisplayRowByHash() const;
+	// -1 when the filter hides the row. Requires _displayedRows in order.
+	[[nodiscard]] int displayRowOf(uint32_t rowIndex) const;
+	// Moves the row at displayRow to where its sort keys place it. Returns its new display row.
+	int moveRowToSortedPosition(int displayRow);
+	// Indices into _rows of rows not displayed yet, in any order
+	void insertDisplayedRows(std::vector<uint32_t> rowIndices);
+	void removeDisplayedRows(std::vector<int> displayRows);
+	void changeRow(uint32_t rowIndex, CFileSystemObject&& row);
+	// Indices into _rows
+	void removeRows(std::vector<uint32_t> rowIndices);
+	void rebuildRowIndexByHash();
 	void updateContentsSummary();
 	void refilterAndResort(SortedFileListReorderCause cause);
 
@@ -132,8 +148,8 @@ private:
 	FileNameFilter _nameFilter;
 	// Indices into _rows: the rows the filter lets through, in display order
 	std::vector<uint32_t> _displayedRows;
-	// Rebuilt by the first lookup after _displayedRows changes: updateRows() changes it once per single-row change
-	mutable ankerl::unordered_dense::map<qulonglong, int, identity_hash> _displayRowByHash;
-	mutable bool _displayRowByHashIsStale = false;
+	// Every row's index in _rows, the hidden ones included. A display row is found by a search in _displayedRows: an index of display rows
+	// would change with every insertion and removal.
+	ankerl::unordered_dense::map<qulonglong, uint32_t, identity_hash> _rowIndexByHash;
 	FolderContentsSummary _contentsSummary;
 };

@@ -51,6 +51,16 @@ enum FileListRefreshCause
 	refreshCauseOther
 };
 
+// What changed in a tab's committed listing since the previous contents notification
+struct PanelContentsChange
+{
+	// Refill from CPanel::committedListing(): a listing was committed, or too many items changed to list. The other fields are then empty.
+	bool full = true;
+	// Changes committed in place, each read from the listing as it is now: applying one again changes nothing
+	std::vector<CFileSystemObject> upserted; // Added and changed items
+	std::vector<qulonglong> removedHashes;
+};
+
 // Callbacks name the tab they come from: a listener is attached to every tab of a side, so a listener that only
 // deals with the one on screen (as opposed to, say, persisting all of them) must compare tabId against
 // CController::activeTabId() rather than assume the notification is about the tab it's showing. Applies to
@@ -59,7 +69,8 @@ struct PanelContentsChangedListener
 {
 	virtual ~PanelContentsChangedListener() = default;
 
-	virtual void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) = 0;
+	// A change that is not full describes the committed listing of the tab's current view
+	virtual void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation, const PanelContentsChange& change) = 0;
 	// The tab has moved to a view whose listing isn't ready yet, so the contents it reports are empty until the
 	// onPanelContentsChanged that follows. Handle display only: anything derived from the contents (current item,
 	// selection, persisted state, data published to plugins) must wait for that notification.
@@ -239,8 +250,11 @@ private:
 
 	void enqueueFileListUpdate(FileListUpdateRequest request, FileListRefreshCause operation);
 	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, FileListRefreshCause operation);
-	void sendContentsChangedNotification(FileListRefreshCause operation) const;
-	void enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation) const;
+	void sendContentsChangedNotification(FileListRefreshCause operation);
+	// Records the items of hashes as changed in _items: added, changed or removed. Requires the current view's committed listing.
+	void commitItemChangesLocked(const std::vector<qulonglong>& hashes);
+	[[nodiscard]] PanelContentsChange takeContentsChangeLocked();
+	void enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation);
 	void enqueueContentsInvalidatedNotificationLocked(uint64_t generation) const;
 	[[nodiscard]] bool fileListGenerationIsCurrent(uint64_t generation) const;
 
@@ -256,6 +270,9 @@ private:
 	CFileSystemObject                          _currentDirObject;
 	CFileSystemWatcher                         _watcher;
 	FileListHashMap                            _items;
+	// The items committed in place since a contents notification last ran; nullopt when the next one must be full: a listing was committed since,
+	// or the items exceeded the cap in commitItemChangesLocked(). Under _fileListAndCurrentDirMutex.
+	std::optional<ankerl::unordered_dense::set<qulonglong, identity_hash>> _itemsChangedSinceNotification;
 	// Folder sizes calculated on request, re-applied to every listing that still has the folder. Protected by _fileListAndCurrentDirMutex.
 	ankerl::unordered_dense::map<qulonglong /*hash*/, uint64_t, identity_hash> _calculatedDirSizes;
 	// Each running displayDirSize() task's counter, on the task's stack: removed as the task's frame unwinds. Protected by _fileListAndCurrentDirMutex.

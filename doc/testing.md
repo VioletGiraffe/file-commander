@@ -54,6 +54,8 @@ CI runs every suite but `tui_test` this way on an exFAT and a FAT32 volume, on e
 `filelist_test`'s `[timing]` cases run only when named. They print:
 
 - what an in-place model update costs against a reset, which is where the model's reset threshold comes from;
+- what the UI thread spends on a refresh that changed one file in a flattened listing: the panel's copy, the GUI model's update and the terminal UI list's update, each against applying the one change in place;
+- what applying a number of changes in place costs against a refill with every row, from one change to an eighth of the rows;
 - what one name filter change costs, with and without a view;
 - what the collator's sort costs by string and by sort key, and the memory of the keys and of a model beyond its rows.
 
@@ -94,7 +96,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | `xdgapplications_test` | The applications freedesktop.org entries and MIME associations register for file types, and their command lines; on fixture folders. The lookup by the files' MIME types; a launch (Linux, macOS) |
 | `fileoperationlaunch_test` | File-operation launch: destination intent, the confirmation field's prefill, request construction, deletion backend |
 | `fileoperations_gui_test` | Launched operations routed to the dialog or the native shell, end to end |
-| `filelist_test` | File list from `qt-app/src`, on rows built in memory: the model's display, filtering, lookups and in-place updates under Qt's model contract; the view's rename editor and scroll position through updates |
+| `filelist_test` | File list from `qt-app/src`, on rows built in memory: the model's display, filtering, lookups, row-by-row updates and changes applied in place under Qt's model contract; the view's rename editor and scroll position through updates |
 | `csvviewer_test` | CSV viewer: parser, table model, comment list model |
 | `tui_test` | Terminal UI: the status rows, the menus, activating a row by double click, tabs, the start folder, the column header and the columns a narrow panel keeps, the file commands and their dialogs, selection by pattern and by extension, finding files by name and by contents, sorting the results and going to a result, batch renaming and its undo, occupied space and each folder's size, favorites and the folder history, all files below a folder, jumping to the first file, folder comparison, the viewer's encodings, wrapping, hex and search, quick view, copying paths over SSH, hidden files, and handing the terminal to the editor, a program and the shell |
 

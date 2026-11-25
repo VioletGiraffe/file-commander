@@ -780,6 +780,7 @@ void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, File
 	_itemsSourcePath = request.path;
 	_itemsSourceDisplayMode = request.displayMode;
 	_filesFoundByPendingFlattenedListing.reset();
+	_itemsChangedSinceNotification.reset();
 	enqueueContentsChangedNotificationLocked(operation, request.generation);
 	locker.unlock();
 
@@ -929,24 +930,75 @@ void CPanel::displayDirSize(qulonglong dirHash)
 
 			it->second.setDirSize(stats.occupiedSpace);
 			_calculatedDirSizes[dirHash] = stats.occupiedSpace;
-			enqueueContentsChangedNotificationLocked(refreshCauseOther, _fileListGeneration);
+			commitItemChangesLocked({ dirHash });
 		}
 	}, _taskTag);
 }
 
-void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) const
+void CPanel::sendContentsChangedNotification(FileListRefreshCause operation)
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	enqueueContentsChangedNotificationLocked(operation, _fileListGeneration);
 }
 
-void CPanel::enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation) const
+void CPanel::commitItemChangesLocked(const std::vector<qulonglong>& hashes)
 {
-	execOnUiThread([this, operation, generation]() {
-		if (!fileListGenerationIsCurrent(generation))
-			return;
+	assert_debug_only(fileListBelongsToCurrentViewLocked());
 
-		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::onPanelContentsChanged, _panelPosition, _id, operation);
+	if (_itemsChangedSinceNotification)
+	{
+		_itemsChangedSinceNotification->insert(hashes.cbegin(), hashes.cend());
+		// Past this many, the GUI refills faster than it applies the changes: see core-engine.md, "File-list publication"
+		static constexpr size_t maxItemChangesPerNotification = 700;
+		if (_itemsChangedSinceNotification->size() > maxItemChangesPerNotification)
+			_itemsChangedSinceNotification.reset();
+	}
+
+	for (const qulonglong hash : hashes)
+	{
+		if (!_items.contains(hash))
+			_selectedItemHashes.erase(hash);
+	}
+
+	enqueueContentsChangedNotificationLocked(refreshCauseOther, _fileListGeneration);
+}
+
+PanelContentsChange CPanel::takeContentsChangeLocked()
+{
+	PanelContentsChange change;
+	// A notification sent while the view's listing is pending finds the previous view's items
+	if (!_itemsChangedSinceNotification || !fileListBelongsToCurrentViewLocked())
+	{
+		_itemsChangedSinceNotification.emplace();
+		return change;
+	}
+
+	change.full = false;
+	for (const qulonglong hash : *_itemsChangedSinceNotification)
+	{
+		if (const auto item = _items.find(hash); item != _items.end())
+			change.upserted.push_back(item->second);
+		else
+			change.removedHashes.push_back(hash);
+	}
+	_itemsChangedSinceNotification->clear();
+	return change;
+}
+
+void CPanel::enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation)
+{
+	// The change is taken when the notification runs: one coalesced notification delivers every change committed before it
+	execOnUiThread([this, operation, generation]() {
+		PanelContentsChange change;
+		{
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
+			if (generation != _fileListGeneration)
+				return;
+
+			change = takeContentsChangeLocked();
+		}
+
+		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::onPanelContentsChanged, _panelPosition, _id, operation, std::move(change));
 	}, ContentsChangedNotificationTag);
 }
 

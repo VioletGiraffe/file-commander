@@ -1,5 +1,7 @@
 #include "paneltesthelpers.h"
 
+#include <set>
+
 TEST_CASE("CPanel - a panel with no committed listing exposes nothing", "[panel][contents]")
 {
 	PanelHarness h;
@@ -103,16 +105,60 @@ TEST_CASE("CPanel - displayDirSize fills in the size of a listed folder", "[pane
 	h.listener().clear();
 
 	h.panel().displayDirSize(hashOf(sub));
-	h.settle();
+	h.completeUpdate();
 
 	CHECK(h.panel().itemByHash(hashOf(sub)).size() >= 1024);
-	CHECK(h.listener().count(PanelEvent::ContentsChanged) >= 1);
+	// The listeners receive the folder alone, as it is now
+	const PanelContentsChange& change = h.listener().only(PanelEvent::ContentsChanged).change;
+	CHECK_FALSE(change.full);
+	REQUIRE(change.upserted.size() == 1);
+	CHECK(change.upserted.front().hash() == hashOf(sub));
+	CHECK(change.upserted.front().size() >= 1024);
+	CHECK(change.removedHashes.empty());
 
 	// Nothing to calculate for a file, so nothing is reported either.
+	// Settled first: the drain above can start a refresh, whose notification would count below.
+	h.settle();
 	h.listener().clear();
 	h.panel().displayDirSize(hashOf(file));
 	h.settle();
 	CHECK(h.listener().count(PanelEvent::ContentsChanged) == 0);
+}
+
+TEST_CASE("CPanel - the changes committed before a drain reach the listeners together, and a listing after them replaces them", "[panel][contents]")
+{
+	TempTree tree;
+	const QString first = tree.makeDir(QStringLiteral("first"));
+	tree.makeFile(QStringLiteral("first/data.bin"), QByteArray(1024, 'x'));
+	const QString second = tree.makeDir(QStringLiteral("second"));
+	tree.makeFile(QStringLiteral("second/data.bin"), QByteArray(2048, 'x'));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	h.listener().clear();
+
+	h.panel().displayDirSize(hashOf(first));
+	h.panel().displayDirSize(hashOf(second));
+	h.completeUpdate();
+
+	const PanelContentsChange& change = h.listener().only(PanelEvent::ContentsChanged).change;
+	CHECK_FALSE(change.full);
+	std::set<qulonglong> upsertedHashes;
+	for (const CFileSystemObject& item : change.upserted)
+		upsertedHashes.insert(item.hash());
+	CHECK(upsertedHashes == std::set<qulonglong>{ hashOf(first), hashOf(second) });
+
+	// The listing commits after the change and before the drain: one notification, a full one.
+	// Settled first, as in the test above.
+	h.settle();
+	h.listener().clear();
+	h.panel().displayDirSize(hashOf(first));
+	h.worker().waitUntilWorkComplete();
+	h.panel().refreshFileList(refreshCauseOther);
+	h.completeUpdate();
+	CHECK(h.listener().only(PanelEvent::ContentsChanged).change.full);
 }
 
 TEST_CASE("CPanel - a folder size calculation reports itself until it finishes", "[panel][contents]")

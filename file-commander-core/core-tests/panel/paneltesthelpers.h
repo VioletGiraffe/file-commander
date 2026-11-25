@@ -152,6 +152,7 @@ struct PanelEvent
 	FileListRefreshCause cause = refreshCauseOther; // ContentsChanged only
 	QString path;                                   // The folder for CurrentItemChanged, the new path for CurrentPathChanged
 	qulonglong itemHash = 0;                        // CurrentItemChanged only
+	PanelContentsChange change;                     // ContentsChanged only
 };
 
 // Records what the panel reports, in order. Order is the point: the two contents notifications share a queue tag,
@@ -159,9 +160,9 @@ struct PanelEvent
 class RecordingListener final : public PanelContentsChangedListener, public CurrentItemChangedListener, public CurrentPathChangedListener
 {
 public:
-	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override
+	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation, const PanelContentsChange& change) override
 	{
-		_events.push_back(PanelEvent{ PanelEvent::ContentsChanged, p, tabId, operation, {}, 0 });
+		_events.push_back(PanelEvent{ PanelEvent::ContentsChanged, p, tabId, operation, {}, 0, change });
 	}
 
 	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override

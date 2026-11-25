@@ -64,13 +64,15 @@ public:
 	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder);
 	// Every persistent index (selection, cursor, an open editor) stays on its row. Returns false if it reset the model instead.
 	bool updateRows(std::vector<CFileSystemObject> rows);
+	// Every persistent index stays on its row, as with updateRows()
+	void applyChanges(std::vector<CFileSystemObject> upserted, const std::vector<qulonglong>& removedHashes);
 	void addRows(std::vector<CFileSystemObject> rows);
 	void setNameFilter(const QString& filterText);
 
 	// The items' rows are in italics, with a tooltip: a search found the items by following a directory link
 	void markReachedThroughLink(const std::vector<uint64_t>& itemHashes);
 	// These folders' Size cells show the size followed by "...": sizes still being calculated.
-	// A folder missing from a later call keeps its last size until setRows() or updateRows(), which bring the calculated one.
+	// A folder missing from a later call keeps its last size until setRows(), updateRows() or applyChanges(), which bring the calculated one.
 	void setProvisionalDirSizes(const std::vector<std::pair<qulonglong /*hash*/, uint64_t>>& sizes);
 
 	void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
@@ -81,6 +83,7 @@ public:
 	[[nodiscard]] const CFileSystemObject& rowAt(const QModelIndex& index) const;
 	[[nodiscard]] qulonglong itemHash(const QModelIndex& index) const; // 0 for an invalid index
 	[[nodiscard]] QModelIndex indexByHash(qulonglong hash) const; // Invalid if no row has it, or the filter hides it
+	[[nodiscard]] std::vector<int> rowsOf(const std::vector<qulonglong>& hashes) const;
 	[[nodiscard]] int firstFileRow() const;
 	[[nodiscard]] const FolderContentsSummary& contentsSummary() const noexcept;
 

@@ -696,34 +696,44 @@ CPanelWidget::PanelTab& CPanelWidget::activeTab()
 	return _tabs[(size_t)_activeTab];
 }
 
-bool CPanelWidget::fillFromList(FileListRefreshCause operation)
+bool CPanelWidget::fillFromList(FileListRefreshCause operation, const PanelContentsChange& change)
 {
 	const QModelIndex previousCurrentIndex = _selectionModel->currentIndex();
 	const int previousCurrentRow = previousCurrentIndex.row();
 	const qulonglong previousCurrentHash = _model->itemHash(previousCurrentIndex);
 
 	const CPanel& panel = _controller->panel(_panelPosition);
-	CPanel::CommittedListing listing = panel.committedListing();
-
 	PanelTab& tab = activeTab();
-	const std::optional<uint64_t> navigationId = listing.isCommitted ? std::optional{ panel.navigationId() } : std::nullopt;
-	// A refresh keeps the scroll position, the cursor, the selection and an open editor; a navigation starts over
-	const bool refresh = navigationId && navigationId == tab.navigationId;
-	tab.navigationId = navigationId;
-	if (!refresh)
-		tab.cursorTargetHash = 0;
-
 	bool modelReset = true;
 	{
 		const QScopedValueRollback refilling{ _refillingList, true };
-		if (refresh)
+		// A change that is not full describes the current view's listing: the model holds it when the navigation ids match
+		if (!change.full && tab.navigationId == panel.navigationId())
 		{
 			const CFileListView::ScrollPosition scrollPosition = ui->_list->scrollPosition();
-			modelReset = !_model->updateRows(std::move(listing.items));
+			_model->applyChanges(change.upserted, change.removedHashes);
 			ui->_list->restoreScrollPosition(scrollPosition);
+			modelReset = false;
 		}
 		else
-			_model->setRows(std::move(listing.items), std::move(listing.folder));
+		{
+			CPanel::CommittedListing listing = panel.committedListing();
+			const std::optional<uint64_t> navigationId = listing.isCommitted ? std::optional{ panel.navigationId() } : std::nullopt;
+			// A refresh keeps the scroll position, the cursor, the selection and an open editor; a navigation starts over
+			const bool refresh = navigationId && navigationId == tab.navigationId;
+			tab.navigationId = navigationId;
+			if (!refresh)
+				tab.cursorTargetHash = 0;
+
+			if (refresh)
+			{
+				const CFileListView::ScrollPosition scrollPosition = ui->_list->scrollPosition();
+				modelReset = !_model->updateRows(std::move(listing.items));
+				ui->_list->restoreScrollPosition(scrollPosition);
+			}
+			else
+				_model->setRows(std::move(listing.items), std::move(listing.folder));
+		}
 
 		placeCursorAfterFill(operation, modelReset, previousCurrentRow, previousCurrentHash);
 	}
@@ -784,12 +794,12 @@ QModelIndex CPanelWidget::takeListedCursorTarget()
 	return target;
 }
 
-void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
+void CPanelWidget::fillFromPanel(FileListRefreshCause operation, const PanelContentsChange& change)
 {
 	const auto fillStart = std::chrono::steady_clock::now();
 
 	endOldFrameHold();
-	const bool modelReset = fillFromList(operation);
+	const bool modelReset = fillFromList(operation, change);
 	// The refill can bring the listing the notice is over, a calculated folder size, or another tab with its own progress
 	showBackgroundProgress();
 	// After an update too: what the view's selection does through moves and removals is Qt's to decide
@@ -908,12 +918,8 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 
 void CPanelWidget::applyCoreSelection()
 {
-	std::vector<int> rows;
-	for (const qulonglong hash : _controller->panel(_panelPosition).selectedItemHashes())
-	{
-		if (const QModelIndex index = _model->indexByHash(hash); index.isValid())
-			rows.push_back(index.row());
-	}
+	std::vector<int> rows = _model->rowsOf(_controller->panel(_panelPosition).selectedItemHashes());
+	std::erase(rows, -1);
 
 	// Runs of adjacent rows as single ranges: a large selection is usually a few runs
 	std::ranges::sort(rows);
@@ -1353,12 +1359,12 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	return QWidget::eventFilter(object, e);
 }
 
-void CPanelWidget::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation)
+void CPanelWidget::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation, const PanelContentsChange& change)
 {
 	if (!displaysTab(p, tabId))
 		return;
 
-	fillFromPanel(operation);
+	fillFromPanel(operation, change);
 	updateTabText(_activeTab);
 }
 

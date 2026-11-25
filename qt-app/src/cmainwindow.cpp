@@ -1445,7 +1445,7 @@ void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)
 			currentPanelChanged(Panel::RightPanel);
 }
 
-void CMainWindow::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause /*operation*/)
+void CMainWindow::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause /*operation*/, const PanelContentsChange& /*change*/)
 {
 	if (tabId == _controller->activeTabId(p))
 		updatePathBarAndWindowTitle(p);

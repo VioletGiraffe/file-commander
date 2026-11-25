@@ -88,6 +88,8 @@ public:
 	};
 	// The cursor goes to the row whose hash is cursorItemHash, or to fallbackRow (clamped to the rows) when no row has it.
 	void setContents(Contents contents, qulonglong cursorItemHash, int fallbackRow);
+	// Brings in added, changed and removed items, as SortedFileList::applyChanges(). The cursor stays on its item, or else on its row.
+	void applyChanges(std::vector<CFileSystemObject> upserted, const std::vector<qulonglong>& removedHashes, const std::vector<qulonglong>& selectedItemHashes);
 	// Removes the rows and the selection. The screen keeps showing them until the next draw.
 	void clearRowsKeepingScreen();
 	// Draws the list that clearRowsKeepingScreen() emptied
@@ -99,7 +101,7 @@ public:
 	void setSelectedItems(const std::vector<qulonglong>& itemHashes);
 	[[nodiscard]] bool isSelected(qulonglong itemHash) const noexcept;
 	// These folders' Size cells show the size in the column separators' colour: sizes still being calculated.
-	// A folder missing from a later call keeps its last size until setContents() or clearRowsKeepingScreen(), which bring the calculated one.
+	// A folder missing from a later call keeps its last size until setContents(), applyChanges() or clearRowsKeepingScreen(), which bring the calculated one.
 	void setProvisionalDirSizes(const std::vector<std::pair<qulonglong /*hash*/, uint64_t>>& sizes);
 
 	// Called when the user moves the cursor to another row
@@ -110,6 +112,8 @@ public:
 private:
 	[[nodiscard]] int rowCount() const noexcept override;
 	void cursorMovedByUser() override;
+	// After the rows change: takes the selection, drops the provisional sizes and places the cursor as setContents() does
+	void finishRowsChange(const std::vector<qulonglong>& selectedItemHashes, qulonglong cursorItemHash, bool cursorStaysOnItem, int fallbackRow);
 
 private:
 	NullSortedFileListObserver _listObserver;
