@@ -25,6 +25,10 @@ invalidates the reason given.
   when it moves with one of its ancestors: the view keeps showing the moved folder's changes under the dangling link
   until it is listed again. Noticing it would take a watch on each target's parent on Windows and on its ancestors on
   Linux. macOS reports it.
+- On a case-insensitive Linux volume (FAT, exFAT, a casefold folder), a rename that changes only a name's case leaves
+  the old spelling next to the new one in a flattened view until the view is listed again: Linux has no call that reads a name's stored
+  spelling (see `get_directory_entry`), and listing the parent folder instead would list a FAT folder for every object
+  built from a path.
 
 ## Content search
 

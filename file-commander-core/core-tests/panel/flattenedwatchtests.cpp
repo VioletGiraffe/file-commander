@@ -104,10 +104,12 @@ TEST_CASE("CPanel - a flattened view applies the file changes in its tree in pla
 
 	CHECK(committedListingMatchesDisk(h, tree.path()));
 
-#ifndef __APPLE__ // macOS reads a path back in the spelling asked for, so a rename that changes only the case leaves the old spelling listed
 	REQUIRE(QDir{}.rename(moved, tree.path(QStringLiteral("a/Moved.txt"))));
-	CHECK(committedListingMatchesDisk(h, tree.path()));
+#ifdef __linux__
+	// A case-insensitive volume keeps the old spelling listed: Linux reads a path back in the case asked for (see get_directory_entry)
+	if (!QFileInfo::exists(moved))
 #endif
+		CHECK(committedListingMatchesDisk(h, tree.path()));
 
 	CHECK(h.listener().count(PanelEvent::ContentsChanged) > 0);
 	CHECK(everyContentsChangeWasInPlace(h.listener()));
