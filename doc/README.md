@@ -95,6 +95,8 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
   listing time goes.
 - [filelist-map-performance.md](filelist-map-performance.md): measured costs of the candidate containers for the file
   list map, and why it is `segmented_map`.
+- [filestatistics-performance.md](filestatistics-performance.md): measured costs of the parts of a statistics or
+  folder size scan.
 - [coding-style.md](coding-style.md): authoring rules.
 - [TODO.md](TODO.md), [styling-todo.md](styling-todo.md), [code-review-plan.md](code-review-plan.md), and
   [release-metadata-audit.md](release-metadata-audit.md): process and deferred-work documents.

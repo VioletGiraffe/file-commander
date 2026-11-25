@@ -157,6 +157,20 @@ candidate's total at every size, against `FileListHashMap`, with and without `re
   Small maps are therefore warmer in cache here than in the application.
 - The default sizes up to 1M entries need about 0.5 GB of memory.
 
+## File statistics benchmark
+
+`filestatistics_benchmark` times `calculateStatsFor` on three trees: a large one, a narrow chain, and many small
+folders sized at once on a pool the size of the application pool. It splits a one-thread scan into its parts, and times
+a copy of the scan with each part replaced in turn; the source's header lists the cases. It is built like
+`listing_benchmark` and never run by the test scripts; `--help` lists the options. The results:
+[filestatistics-performance.md](filestatistics-performance.md).
+
+- `--generate <root>` creates the trees once, about 108k files. The files are under 600 bytes, so NTFS keeps them in
+  the file records.
+- Every copy of the scan is checked against `calculateStatsFor` before timing, and the run stops on a difference. A
+  change to the scan in `filestatistics.cpp` needs the same change in the copy.
+- The 4-thread cases vary by up to 15% from run to run on a 2-core machine: compare runs, not single samples.
+
 ## CI
 
 CI runs the test job only when a changed file matches the `changes` job's path filter in `CI.yml`. A new test, or a
