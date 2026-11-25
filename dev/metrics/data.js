@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795638762496,
+  "lastUpdate": 1795644207643,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -41345,6 +41345,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 36,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "1cedba4ed7c13c2013f100f2bf73a5e475d3cde5",
+          "message": "Statistics scans and folder sizes run on a dedicated pool instead of starting threads on every call, so sizing many folders is much faster and no longer holds up plugin tasks or moving to the trash\n\nThe main window deletes every tool window still open when it is destroyed, so no scan outlives the controller's pool.",
+          "timestamp": "2026-11-25T23:49:47+02:00",
+          "tree_id": "d3dc3552a9ded502f373fde8978bbfcd62179bfe",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/1cedba4ed7c13c2013f100f2bf73a5e475d3cde5"
+        },
+        "date": 1795644202539,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 28412,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 38495,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1949.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1220,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2183.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1255,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 507.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 60,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 37.5,
             "unit": "KB"
           },
           {
