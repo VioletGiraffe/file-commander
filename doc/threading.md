@@ -9,7 +9,8 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | Owner | Mechanism | Work |
 |-------|-----------|------|
 | `CController` | shared listing pool, fixed size | `CPanel` file list updates and flattened views' in-place updates, across sides and tabs, and nothing else |
-| `CController` | shared application worker pool | Plugin background work and `CPanel` folder size calculations |
+| `CController` | shared statistics pool, 4 workers | `calculateStatsFor`: the Statistics command's scans and `CPanel` folder size calculations, and nothing else |
+| `CController` | shared application worker pool | Plugin background work and moving to the trash |
 | `CController` | UI execution queue | Plugin UI dispatch and work deferred past panel locks |
 | each `CPanel` | UI execution queue | Panel result publication and observer delivery |
 | each `CFileOperationJob` | interruptible thread | One copy, move, or delete request |
@@ -23,7 +24,7 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | `CBatchRenameRun` | `CBackgroundTask` per step | One batch rename step's renames, on the items the session hands out; the UI polls it from a modal progress dialog |
 | `CFileStatisticsScan` | `CBackgroundTask` per scan | The Statistics command's scan; the GUI's Statistics window polls it, the TUI a modal progress dialog |
 | `CFolderAvailabilityChecker` | one-thread pool per volume, abandoning running tasks at destruction | Whether folders exist, for the favorites editor, which polls it. A check of an unreachable network share can block for tens of seconds |
-| `calculateStatsFor` | transient scan-thread team | Parallel directory statistics, joined before returning |
+| `calculateStatsFor` | the calling thread and the caller's pool (`parallelFor`) | Parallel directory statistics, complete on return |
 | `CShellCommand` | `QProcess` owned by the UI thread | One command-line command; Qt reads its pipe and signals the owning thread |
 
 `CMainWindow` drains every tab's panel queue, the icon provider's queue, and the controller UI queue on a timer.
@@ -35,8 +36,10 @@ enumerator drains its own notification queue on its own timer. Which listener ea
 
 Both search front ends take their results from a `CFileSearchResultsBuffer` on the UI thread, on a timer: the search
 threads only lock it to add theirs. Each front end aborts and joins its search before the buffer dies.
-`calculateStatsFor` runs its scan team on whatever thread calls it: a `CFileStatisticsScan` thread, or a pool worker
-for a panel dir-size task, under the panel's abort flag. Concurrent calls each spawn their own team.
+`calculateStatsFor` scans on whatever thread calls it, and on the statistics pool's workers: the caller is a
+`CFileStatisticsScan` thread, or a statistics pool worker for a panel dir-size task, under the panel's abort flag.
+A scan holds the pool's workers until it ends, so a long one delays the scans queued behind it, never other work.
+A dir-size task waits for no other task: its own thread can complete the scan when every worker is busy.
 A path bar folder's menu lists that folder on the UI thread as it opens: the folder is an ancestor of one just listed.
 A file's context menu looks up Open With's applications and the files' types on the UI thread as it opens.
 On macOS, `NSWorkspace` reports a failed Open With launch on a background queue, which hands it to the main queue.
@@ -94,6 +97,9 @@ takes it over only while the tab is active and still shows the flattened view of
 - Destroying a `CFileStatisticsScan`, `CFolderComparison` or `CFileComparator`, or cancelling a `CBatchRenameRun`, joins
   its thread on the UI thread: closing the Statistics window or cancelling a progress dialog waits until the work
   notices the cancellation. A statistics scan notices it between directory listings, a batch rename between items.
+- A `CFileStatisticsScan` scans on the controller's statistics pool, so it must be destroyed before the controller.
+  The GUI's Statistics window has no parent, so `~CMainWindow` deletes it with every other open tool window
+  (`CMainWindow::trackToolWindow`), and `main()` destroys the main window first.
 - A paused `CBatchRenameRun` waits on a condition variable before its next item. Cancelling and destruction set the
   cancellation flag before waking it, so it renames nothing more.
 
@@ -104,7 +110,7 @@ Application shutdown is an explicit quiescence boundary. `main()` calls `CContro
 window and plugin modules are still alive. The controller takes the plugin-access gate exclusively, saves final
 state, stops the volume enumerator, destroys the panels and retires their work, and establishes the empty state
 before releasing the gate and discarding queued UI work. The shared application pool stops later in the controller
-destructor, after plugin proxies have retired their tagged work.
+destructor, after plugin proxies have retired their tagged work, and the statistics pool with the controller's members.
 
 ## File-operation handshake
 

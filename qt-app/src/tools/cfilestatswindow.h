@@ -26,6 +26,8 @@ class QTreeView;
 class CFileStatsWindow final : public QMainWindow, private IconsChangedListener
 {
 public:
+	// Must be destroyed before controller: the scan runs on the controller's statistics pool.
+	// ~CMainWindow deletes it if it is still open: see CMainWindow::trackToolWindow.
 	CFileStatsWindow(QWidget* parent, std::vector<QString> paths, CController& controller, CIconProvider& iconProvider);
 	~CFileStatsWindow() override;
 

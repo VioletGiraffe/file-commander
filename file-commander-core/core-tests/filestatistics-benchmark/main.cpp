@@ -8,8 +8,8 @@
 // Cases:
 //   part:*   - one thread lists every folder of the tree, adding each part of the per-entry work in turn
 //   real:*   - calculateStatsFor itself
-//   mirror:* - a copy of its scan with each suspected part replaceable, checked against calculateStatsFor before timing
-//   team:*   - starting and joining calculateStatsFor's threads without any work
+//   mirror:* - a copy of its scan with each suspected part replaceable, checked against calculateStatsFor before timing.
+//              mirror:own-threads is the scan as it was before it ran on the caller's pool: threads started by every call.
 
 #include "cfilesystemobject.h"
 #include "filesystemhelpers/filestatistics.h"
@@ -19,7 +19,6 @@
 #include "directoryscan/thinioqstring.h"
 #include "qt_paths.hpp" // thin_io
 #include "threading/cthreadpool.h"
-#include "threading/thread_helpers.h"
 #include "utility/performance_cores.hpp"
 #include "utility/power_throttling.hpp"
 
@@ -44,6 +43,7 @@ RESTORE_COMPILER_WARNINGS
 #include <memory>
 #include <mutex>
 #include <numeric>
+#include <optional>
 #include <random>
 #include <stdint.h>
 #include <stdio.h>
@@ -187,10 +187,10 @@ using IdentitySet = ankerl::unordered_dense::set<thin_io::entry_identity, EntryI
 
 struct MirrorOptions
 {
+	// Threads started by every call, the calling thread only waiting for them, instead of the pool's workers and the calling thread
+	bool ownThreads = false;
 	// P3: a thread keeps one subfolder and queues the rest under one lock, waking only as many waiting threads as it queued folders
 	bool leanQueue = false;
-	// F1: the calling thread scans, and a helper thread starts only for a queued folder no thread waits for. Requires leanQueue.
-	bool lazyTeam = false;
 	// F2: an entry becomes a CFileSystemObject only as a largest-file candidate
 	bool objectPerEntry = true;
 	// F3: a file no larger than the smallest of the largest files is not inserted
@@ -199,8 +199,15 @@ struct MirrorOptions
 	bool largestFiles = true;
 };
 
-// The first entry is scanParallel as it is
+// The narrow and small workloads, of few files, time these variants only
+[[nodiscard]] static bool changesThreadingOnly(const MirrorOptions& options)
+{
+	return options.objectPerEntry && !options.largestFilesEarlyOut && options.largestFiles;
+}
+
+// mirror:current is scanParallel as it is
 static const std::vector<std::pair<const char*, MirrorOptions>> MirrorVariants{
+	{ "mirror:own-threads", { .ownThreads = true } },
 	{ "mirror:current", {} },
 	{ "mirror:P3-lean-queue", { .leanQueue = true } },
 	{ "mirror:F3-early-out", { .largestFilesEarlyOut = true } },
@@ -269,8 +276,20 @@ static void scanFolder(const QString& dir, FileStatistics& stats, std::vector<QS
 	}
 }
 
+// The thread count of ownThreads, as calculateStatsFor chose it
+[[nodiscard]] static size_t ownThreadCount()
+{
+	return std::clamp(std::thread::hardware_concurrency(), 1u, 5u);
+}
+
+// The thread count calculateStatsFor uses with pool
+[[nodiscard]] static size_t poolThreadCount(const CThreadPool& pool)
+{
+	return pool.maxWorkersCount() + 1;
+}
+
 // One root folder, which must exist: the root's own handling is not under study
-static FileStatistics mirrorScan(const QString& root, const size_t numThreads, const MirrorOptions& options, std::atomic<uint64_t>& occupiedSpaceSoFar)
+static FileStatistics mirrorScan(const QString& root, CThreadPool& pool, const MirrorOptions& options, std::atomic<uint64_t>& occupiedSpaceSoFar)
 {
 	FileStatistics rootStats;
 	rootStats.folders = 1;
@@ -283,11 +302,10 @@ static FileStatistics mirrorScan(const QString& root, const size_t numThreads, c
 	size_t outstandingItems = 1;
 	size_t waitingThreads = 0; // Read by leanQueue only
 
-	std::vector<FileStatistics> threadResults(numThreads);
-	std::vector<std::thread> threads; // lazyTeam: guarded by queueMutex while threads run
-	threads.reserve(numThreads);
+	const size_t threadCount = options.ownThreads ? ownThreadCount() : poolThreadCount(pool);
+	std::vector<FileStatistics> threadResults(threadCount);
 
-	std::function<void(size_t)> work = [&](const size_t index) {
+	const auto work = [&](const size_t index) {
 		FileStatistics& stats = threadResults[index];
 		stats.largestFiles.reserve(MaxLargeFiles + 1);
 		QString dir;
@@ -344,9 +362,6 @@ static FileStatistics mirrorScan(const QString& root, const size_t numThreads, c
 
 				finished = outstandingItems == 0;
 				threadsToWake = std::min(newDirs.size(), waitingThreads);
-				// A helper per queued folder that no waiting thread takes
-				for (size_t queued = dirsToScan.size(); options.lazyTeam && queued > waitingThreads && threads.size() + 1 < numThreads; --queued)
-					threads.emplace_back(work, threads.size() + 1);
 			}
 
 			if (finished)
@@ -359,16 +374,16 @@ static FileStatistics mirrorScan(const QString& root, const size_t numThreads, c
 		}
 	};
 
-	if (options.lazyTeam)
-		work(0);
-	else
+	if (options.ownThreads)
 	{
-		for (size_t i = 0; i < numThreads; ++i)
+		std::vector<std::thread> threads;
+		for (size_t i = 0; i < threadCount; ++i)
 			threads.emplace_back(work, i);
+		for (auto& t : threads)
+			t.join();
 	}
-
-	for (auto& t : threads)
-		t.join();
+	else
+		pool.parallelFor(threadCount, work);
 
 	threadResults.push_back(std::move(rootStats));
 	FileStatistics merged;
@@ -386,21 +401,6 @@ static FileStatistics mirrorScan(const QString& root, const size_t numThreads, c
 }
 
 // ---------------------------------------------------------------- Measurement
-
-[[nodiscard]] static size_t defaultThreadCount()
-{
-	return std::clamp(std::thread::hardware_concurrency(), 1u, 5u); // As calculateStatsFor chooses
-}
-
-// CController's application pool size: optimalCpuCount() in ccontroller.cpp
-[[nodiscard]] static uint32_t applicationPoolSize()
-{
-	const auto cpu = CpuCount::get();
-	uint32_t cores = std::max(cpu.performanceCoreCount(), cpu.efficiencyCoreCount());
-	if (cores > 1 && cores == cpu.logicalProcessorCount())
-		cores -= 1;
-	return cores;
-}
 
 struct Case
 {
@@ -459,15 +459,13 @@ static void measure(const QString& title, const std::vector<Case>& cases, const 
 }
 
 // Every mirror variant must find what calculateStatsFor finds; files of equal size can differ in the largest files
-static void checkMirrorAgainstReal(const QString& root, const size_t numThreads)
+static void checkMirrorAgainstReal(const QString& root, CThreadPool& pool)
 {
 	std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
-	const FileStatistics real = calculateStatsFor({ root }, false, {}, &occupiedSpaceSoFar, numThreads);
-	std::vector<std::pair<const char*, MirrorOptions>> variants = MirrorVariants;
-	variants.emplace_back("mirror:F1-lazy-team", MirrorOptions{ .leanQueue = true, .lazyTeam = true });
-	for (const auto& [name, options] : variants)
+	const FileStatistics real = calculateStatsFor({ root }, pool, false, {}, &occupiedSpaceSoFar);
+	for (const auto& [name, options] : MirrorVariants)
 	{
-		const FileStatistics mirrored = mirrorScan(root, numThreads, options, occupiedSpaceSoFar);
+		const FileStatistics mirrored = mirrorScan(root, pool, options, occupiedSpaceSoFar);
 		const bool sameLargest = !options.largestFiles || largestFileSizes(mirrored) == largestFileSizes(real);
 		if (mirrored.files != real.files || mirrored.folders != real.folders || mirrored.occupiedSpace != real.occupiedSpace || !sameLargest)
 		{
@@ -539,24 +537,24 @@ static std::vector<Case> partCases(const QString& root)
 	};
 }
 
-static Case realCase(const QString& root, const size_t numThreads)
+static Case realCase(const QString& root, CThreadPool& pool)
 {
-	return { "real:" + std::to_string(numThreads) + "-threads", [root, numThreads] {
+	return { "real:pool-" + std::to_string(pool.maxWorkersCount()), [root, &pool] {
 		std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
-		return calculateStatsFor({ root }, false, {}, &occupiedSpaceSoFar, numThreads).files;
+		return calculateStatsFor({ root }, pool, false, {}, &occupiedSpaceSoFar).files;
 	} };
 }
 
-static Case mirrorCase(const QString& root, const size_t numThreads, std::string name, const MirrorOptions options)
+static Case mirrorCase(const QString& root, CThreadPool& pool, std::string name, const MirrorOptions options)
 {
-	return { std::move(name), [root, numThreads, options] {
+	return { std::move(name), [root, &pool, options] {
 		std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
-		return mirrorScan(root, numThreads, options, occupiedSpaceSoFar).files;
+		return mirrorScan(root, pool, options, occupiedSpaceSoFar).files;
 	} };
 }
 
-// The small folders' sizes, calculated as CPanel::displayDirSize does: each one a task on the application pool
-static Case poolCase(CThreadPool& pool, std::shared_ptr<const std::vector<QString>> folders, std::string name, std::function<uint64_t(const QString&)> scan)
+// The small folders' sizes, calculated as CPanel::displayDirSize does: each one a task on the statistics pool, scanning on that pool
+static Case smallFoldersCase(CThreadPool& pool, std::shared_ptr<const std::vector<QString>> folders, std::string name, std::function<uint64_t(const QString&)> scan)
 {
 	return { std::move(name), [&pool, folders, scan] {
 		std::atomic<uint64_t> files{ 0 };
@@ -570,74 +568,60 @@ static Case poolCase(CThreadPool& pool, std::shared_ptr<const std::vector<QStrin
 	} };
 }
 
-static void measureWorkloads(const QString& root, const std::vector<size_t>& threadCounts, const size_t warmupRounds, const size_t timedRounds)
+// poolSizes: the worker counts of the pools calculateStatsFor is timed with on the trees. The mirror runs on a pool of the statistics pool's size.
+static void measureWorkloads(const QString& root, const std::vector<uint32_t>& poolSizes, const size_t warmupRounds, const size_t timedRounds)
 {
-	const size_t numThreads = defaultThreadCount();
 	const QString tree = root + QStringLiteral("/tree");
 	const QString narrow = root + QStringLiteral("/narrow");
 
-	checkMirrorAgainstReal(tree, numThreads);
-	checkMirrorAgainstReal(narrow, numThreads);
+	std::vector<std::unique_ptr<CThreadPool>> pools;
+	for (const uint32_t size : poolSizes)
+		pools.push_back(std::make_unique<CThreadPool>(size, "Benchmark pool"));
+	CThreadPool statisticsPool{ StatisticsThreadPoolWorkers, "Benchmark statistics pool" };
+	statisticsPool.waitUntilStarted();
+	for (auto& pool : pools)
+		pool->waitUntilStarted();
 
+	const QString mirrorThreads = QStringLiteral("mirror: %1 pool threads, %2 own threads").arg(poolThreadCount(statisticsPool)).arg(ownThreadCount());
+	checkMirrorAgainstReal(tree, statisticsPool);
+	checkMirrorAgainstReal(narrow, statisticsPool);
+
+	for (const QString& workload : { tree, narrow })
 	{
-		std::vector<Case> cases = partCases(tree);
-		for (const size_t count : threadCounts)
-			cases.push_back(realCase(tree, count));
+		std::vector<Case> cases = workload == tree ? partCases(tree) : std::vector<Case>{};
+		for (auto& pool : pools)
+			cases.push_back(realCase(workload, *pool));
 		for (const auto& [name, options] : MirrorVariants)
-			cases.push_back(mirrorCase(tree, numThreads, name, options));
-		measure(QStringLiteral("tree (mirror: %1 threads)").arg(numThreads), cases, warmupRounds, timedRounds);
-	}
-
-	{
-		std::vector<Case> cases;
-		for (const size_t count : threadCounts)
-			cases.push_back(realCase(narrow, count));
-		cases.push_back(mirrorCase(narrow, numThreads, "mirror:current", {}));
-		cases.push_back(mirrorCase(narrow, numThreads, "mirror:P3-lean-queue", { .leanQueue = true }));
-		cases.push_back(mirrorCase(narrow, numThreads, "mirror:F1-lazy-team", { .leanQueue = true, .lazyTeam = true }));
-		measure(QStringLiteral("narrow (mirror: %1 threads)").arg(numThreads), cases, warmupRounds, timedRounds);
+		{
+			if (workload == tree || changesThreadingOnly(options))
+				cases.push_back(mirrorCase(workload, statisticsPool, name, options));
+		}
+		measure(QStringLiteral("%1 (%2)").arg(QDir{ workload }.dirName(), mirrorThreads), cases, warmupRounds, timedRounds);
 	}
 
 	{
 		std::vector<QString> smallFolders = foldersOf(root + QStringLiteral("/small"));
 		smallFolders.erase(smallFolders.begin()); // The parent of the small folders
 		for (const QString& folder : smallFolders)
-			checkMirrorAgainstReal(folder, numThreads);
+			checkMirrorAgainstReal(folder, statisticsPool);
 
 		const auto folders = std::make_shared<const std::vector<QString>>(std::move(smallFolders));
-		const uint32_t poolSize = applicationPoolSize();
-		CThreadPool pool{ poolSize, "Benchmark application pool" };
-		pool.waitUntilStarted();
-
-		const auto real = [](const size_t count) {
-			return [count](const QString& folder) {
+		const auto scanWith = [&statisticsPool](const std::optional<MirrorOptions> options) {
+			return [&statisticsPool, options](const QString& folder) {
 				std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
-				return calculateStatsFor({ folder }, false, {}, &occupiedSpaceSoFar, count).files;
-			};
-		};
-		const auto mirror = [numThreads](const MirrorOptions options) {
-			return [numThreads, options](const QString& folder) {
-				std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
-				return mirrorScan(folder, numThreads, options, occupiedSpaceSoFar).files;
+				return options ? mirrorScan(folder, statisticsPool, *options, occupiedSpaceSoFar).files
+					: calculateStatsFor({ folder }, statisticsPool, false, {}, &occupiedSpaceSoFar).files;
 			};
 		};
 
-		std::vector<Case> cases;
-		for (const size_t count : threadCounts)
-			cases.push_back(poolCase(pool, folders, "real:" + std::to_string(count) + "-threads", real(count)));
-		cases.push_back(poolCase(pool, folders, "mirror:current", mirror({})));
-		cases.push_back(poolCase(pool, folders, "mirror:P3-lean-queue", mirror({ .leanQueue = true })));
-		cases.push_back(poolCase(pool, folders, "mirror:F1-lazy-team", mirror({ .leanQueue = true, .lazyTeam = true })));
-		cases.push_back(poolCase(pool, folders, "team:" + std::to_string(numThreads) + "-threads", [numThreads](const QString&) {
-			std::vector<std::thread> threads;
-			for (size_t i = 0; i < numThreads; ++i)
-				threads.emplace_back([] {});
-			for (auto& thread : threads)
-				thread.join();
-			return uint64_t{ 0 };
-		}));
-		measure(QStringLiteral("small: %1 folders on a %2-thread pool (mirror: %3 threads)").arg(folders->size()).arg(poolSize).arg(numThreads), cases,
-			warmupRounds, timedRounds);
+		std::vector<Case> cases{ smallFoldersCase(statisticsPool, folders, "real:statistics-pool", scanWith(std::nullopt)) };
+		for (const auto& [name, options] : MirrorVariants)
+		{
+			if (changesThreadingOnly(options))
+				cases.push_back(smallFoldersCase(statisticsPool, folders, name, scanWith(options)));
+		}
+		measure(QStringLiteral("small: %1 folders on a %2-thread statistics pool (%3)").arg(folders->size()).arg(statisticsPool.maxWorkersCount())
+			.arg(mirrorThreads), cases, warmupRounds, timedRounds);
 	}
 }
 
@@ -665,10 +649,10 @@ int main(int argc, char* argv[])
 
 	const QCommandLineOption generateOption{ "generate", "Create the benchmark folders under <root> instead of measuring." };
 	const QCommandLineOption filesOption{ "files-per-leaf", "With --generate, the files in each of the tree's 2000 deepest folders.", "count", "50" };
-	const QCommandLineOption threadsOption{ "threads", "The thread counts calculateStatsFor is timed with.", "counts", "1,2,4" };
+	const QCommandLineOption poolsOption{ "pools", "The worker counts of the pools calculateStatsFor is timed with on the trees.", "counts", "1,2,4" };
 	const QCommandLineOption warmupOption{ "warmup", "Untimed rounds before the timed ones.", "count", "2" };
 	const QCommandLineOption runsOption{ "runs", "Timed rounds.", "count", "9" };
-	parser.addOptions({ generateOption, filesOption, threadsOption, warmupOption, runsOption });
+	parser.addOptions({ generateOption, filesOption, poolsOption, warmupOption, runsOption });
 	parser.process(app);
 
 	const QStringList arguments = parser.positionalArguments();
@@ -682,17 +666,16 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
-	std::vector<size_t> threadCounts;
-	for (const QString& count : parser.value(threadsOption).split(',', Qt::SkipEmptyParts))
+	std::vector<uint32_t> poolSizes;
+	for (const QString& count : parser.value(poolsOption).split(',', Qt::SkipEmptyParts))
 	{
 		bool isNumber = false;
-		threadCounts.push_back(count.toULongLong(&isNumber));
-		if (!isNumber || threadCounts.back() == 0)
-			fail("--threads takes positive numbers separated by commas");
+		poolSizes.push_back(count.toUInt(&isNumber));
+		if (!isNumber || poolSizes.back() == 0)
+			fail("--pools takes positive numbers separated by commas");
 	}
 
-	printf("Logical processors: %u, pinned to: %d, calculateStatsFor's default threads: %zu\n", std::thread::hardware_concurrency(), pinnedProcessors,
-		defaultThreadCount());
-	measureWorkloads(root, threadCounts, countOption(parser, warmupOption, 0), countOption(parser, runsOption, 1));
+	printf("Logical processors: %u, pinned to: %d\n", std::thread::hardware_concurrency(), pinnedProcessors);
+	measureWorkloads(root, poolSizes, countOption(parser, warmupOption, 0), countOption(parser, runsOption, 1));
 	return EXIT_SUCCESS;
 }

@@ -34,14 +34,14 @@ enum {
 // grows with the rows. See core-engine.md, "File-list publication".
 static constexpr std::chrono::milliseconds watchedChangesUpdateInterval{ 250 };
 
-CPanel::CPanel(Panel position, CThreadPool& listingThreadPool, CThreadPool& workerThreadPool, qulonglong id, std::function<void()> wakeUiThread) :
+CPanel::CPanel(Panel position, CThreadPool& listingThreadPool, CThreadPool& statisticsThreadPool, qulonglong id, std::function<void()> wakeUiThread) :
 	_panelPosition(position),
 	_id(id),
 	// The panel's own address is a unique, non-zero pool tag. Reuse-safe: ~CPanel retires all of this tag's tasks
 	// before the address can be recycled by another CPanel, so a reused address never inherits stale tasks.
 	_taskTag(reinterpret_cast<uint64_t>(this)),
 	_listingThreadPool(listingThreadPool),
-	_workerThreadPool(workerThreadPool),
+	_statisticsThreadPool(statisticsThreadPool),
 	_wakeUiThread(std::move(wakeUiThread))
 {
 }
@@ -54,7 +54,7 @@ CPanel::~CPanel()
 	// Drop this panel's queued tasks from the shared pools and wait out any in-flight one,
 	// so no task touches this panel's members after it's destroyed.
 	_listingThreadPool.retire(_taskTag);
-	_workerThreadPool.retire(_taskTag);
+	_statisticsThreadPool.retire(_taskTag);
 }
 
 qulonglong CPanel::id() const noexcept
@@ -938,7 +938,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 		std::lock_guard locker{ _fileListAndCurrentDirMutex };
 		++_dirSizeCalculationsQueued;
 	}
-	_workerThreadPool.enqueue([this, dirHash, path = item.fullAbsolutePath()] {
+	_statisticsThreadPool.enqueue([this, dirHash, path = item.fullAbsolutePath()] {
 		std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
 		{
 			std::lock_guard locker{ _fileListAndCurrentDirMutex };
@@ -953,7 +953,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 				_dirSizesBeingCalculated.erase(registered);
 		});
 
-		const FileStatistics stats = calculateStatsFor({ path }, _abortBackgroundTasks, {}, &occupiedSpaceSoFar);
+		const FileStatistics stats = calculateStatsFor({ path }, _statisticsThreadPool, _abortBackgroundTasks, {}, &occupiedSpaceSoFar);
 
 		// Since this is a background thread, the item we were working on may be out of the _items list by now.
 		// So we find it again and see if it's still there.

@@ -896,7 +896,7 @@ void CTuiPanel::showOccupiedSpace()
 	if (paths.empty())
 		return;
 
-	CFileStatisticsScan scan{ paths };
+	CFileStatisticsScan scan{ paths, _controller.statisticsThreadPool() };
 	const bool finished = waitWithProgressDialog(QStringLiteral("Statistics"), [&scan] { return scan.finished(); }, [&scan](const int width) {
 		return QStringList{ QStringLiteral("Scanning:"), elidedInTheMiddle(toNativeSeparators(scan.currentFolder()), width) };
 	});

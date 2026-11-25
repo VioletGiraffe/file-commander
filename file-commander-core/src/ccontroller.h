@@ -176,7 +176,10 @@ public:
 
 	// Shared general-purpose pool. A caller whose lifetime is shorter than the controller's must tag its tasks
 	// and retire the tag before it dies.
+	// parallelFor() needs no tag: it returns only after its last call, and a helper task that starts later makes no call.
 	[[nodiscard]] CThreadPool& threadPool();
+	// For calculateStatsFor, under the same rules as threadPool()
+	[[nodiscard]] CThreadPool& statisticsThreadPool();
 
 // Getters
 	// A side always has at least one tab, so these are valid until shutdown() destroys them all.
@@ -259,7 +262,10 @@ private:
 	// All panel tabs' file list enumeration, and nothing else, so other work cannot delay a listing.
 	// A fixed thread count: listing threads mostly wait on disk or network I/O, so the CPU core count is irrelevant.
 	CThreadPool             _listingThreadPool;
-	// General-purpose pool: plugin tasks and panel folder size calculations.
+	// The Statistics command's scans and panel folder sizes, so a long scan cannot hold up the general-purpose pool's work.
+	// Destroyed after every panel and every Statistics window is gone.
+	CThreadPool             _statisticsThreadPool;
+	// General-purpose pool: plugin tasks and moving to the trash.
 	// Stopped in ~CController, not shutdown(), so its users can still run and retire tasks while they're alive.
 	CThreadPool             _workerPool;
 	const std::function<void()> _wakeUiThread;

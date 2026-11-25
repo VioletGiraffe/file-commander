@@ -33,7 +33,7 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent, std::vector<QString> paths, 
 	_iconProvider{ iconProvider },
 	_noPathExistsMessage{ paths.size() == 1 ? tr("The path %1 doesn't exist.").arg(toNativeSeparators(paths.front())) : tr("None of the selected items exist.") },
 	_listedFolder{ deepestFolderHolding(QStringList{ paths.cbegin(), paths.cend() }) },
-	_scan{ std::move(paths) }
+	_scan{ std::move(paths), controller.statisticsThreadPool() }
 {
 	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowTitle(tr("Statistics"));

@@ -29,7 +29,6 @@ class CIconProvider;
 class CLineEdit;
 class CPluginEngine;
 class CShellOperationRunner;
-class CViewerWindow;
 enum class TransferKind; // fileoperations/fileoperationtypes.h
 struct OperationSummary; // fileoperations/fileoperationtypes.h
 class QShortcut;
@@ -194,6 +193,8 @@ private:
 	void updateWindowTitleWithCurrentFolderNames();
 
 	void registerFileOperationDialog(CFileOperationDialog* dialog);
+	// Every parentless top-level window this window opens: see ~CMainWindow
+	void trackToolWindow(QMainWindow* window);
 	void onFileDialogFinished(QObject* object);
 
 private:
@@ -217,7 +218,7 @@ private:
 	enum { NormalWindow, MaximizedWindow } _windowStateBeforeFullscreen = NormalWindow;
 
 	std::vector<CFileOperationDialog*> _activeFileOperationDialogs;
-	std::vector<CViewerWindow*> _viewerWindows; // Each deletes itself on close; the rest die with this window
+	std::vector<QMainWindow*> _toolWindows; // Parentless top-level windows: each deletes itself on close, ~CMainWindow deletes the rest
 
 	std::vector<UserProgram> _userPrograms; // In Programs menu order
 

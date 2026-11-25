@@ -36,8 +36,8 @@ items of the committed listing, never `[..]` and never an item the filter hides:
 selected items it still has at the same path, and a filter change deselects what it hides. Commands take their
 targets from `selectedItems()` or `selectedItemsOrCurrentItem()`, in display order.
 
-Panels share the controller's two pools: file list updates run in the listing pool, which runs nothing else, so
-other work cannot delay them; folder size calculations run in the application pool. Every task that captures a
+Panels share two of the controller's pools: file list updates run in the listing pool, which runs nothing else, so
+other work cannot delay them; folder size calculations run in the statistics pool. Every task that captures a
 panel carries that panel's task tag; destruction retires the tag in both pools before panel storage disappears. The
 pools' declaration order makes them outlive all panels. Inactive tabs release their filesystem watcher and refresh
 when reactivated.

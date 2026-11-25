@@ -213,8 +213,10 @@ CMainWindow::~CMainWindow() noexcept
 	_uiThreadTimer->disconnect();
 	_historyAutosaveTimer->disconnect();
 
-	// Viewers are plugin code: they must not outlive the plugin engine, which main() destroys after this window
-	for (CViewerWindow* window : std::exchange(_viewerWindows, {}))
+	// main() destroys the plugin engine and the controller after this window:
+	// - viewers are plugin code;
+	// - a Statistics window's scan runs on the controller's statistics pool.
+	for (QMainWindow* window : std::exchange(_toolWindows, {}))
 		delete window;
 
 	_instance = nullptr;
@@ -494,10 +496,10 @@ void CMainWindow::closeViewedFilesWithin(const QStringList& paths)
 			controller->quickViewer()->closeFile();
 	}
 
-	for (CViewerWindow* window : _viewerWindows)
+	for (QMainWindow* window : _toolWindows)
 	{
-		if (affected(window->filePath()))
-			window->viewer().closeFile();
+		if (auto* viewerWindow = dynamic_cast<CViewerWindow*>(window); viewerWindow && affected(viewerWindow->filePath()))
+			viewerWindow->viewer().closeFile();
 	}
 }
 
@@ -1306,6 +1308,7 @@ void CMainWindow::findFiles()
 
 	// Deletes itself on close
 	auto* fileSearchUi = new CFilesSearchWindow(searchInFieldTextFor(_controller->panel(_currentFileList->panelPosition())), _iconProvider, nullptr);
+	trackToolWindow(fileSearchUi);
 	fileSearchUi->show();
 }
 
@@ -1345,6 +1348,7 @@ void CMainWindow::calculateStatistics()
 		return;
 
 	auto* statsWindow = new CFileStatsWindow(this, std::move(paths), *_controller, _iconProvider);
+	trackToolWindow(statsWindow);
 	WidgetUtils::centerWidgetOnScreen(statsWindow, 0.7);
 }
 
@@ -1390,6 +1394,7 @@ void CMainWindow::compareFolders()
 		return;
 
 	auto* comparisonWindow = new CFolderComparisonWindow(this, comparison, *_controller);
+	trackToolWindow(comparisonWindow);
 	WidgetUtils::centerWidgetOnScreen(comparisonWindow, 0.7);
 	comparisonWindow->show();
 }
@@ -1599,8 +1604,7 @@ void CMainWindow::openViewerWindow(const QString& requiredCategory)
 		return;
 
 	auto* window = new CViewerWindow(plugin->createViewer(), plugin->category());
-	_viewerWindows.push_back(window);
-	connect(window, &QObject::destroyed, this, [this, window] { std::erase(_viewerWindows, window); });
+	trackToolWindow(window);
 
 	window->loadFile(path);
 	window->showNormal();
@@ -1626,4 +1630,10 @@ void CMainWindow::onFileDialogFinished(QObject* object)
 {
 	const size_t count = std::erase(_activeFileOperationDialogs, object);
 	assert_and_return_r(count > 0, );
+}
+
+void CMainWindow::trackToolWindow(QMainWindow* window)
+{
+	_toolWindows.push_back(window);
+	connect(window, &QObject::destroyed, this, [this, window] { std::erase(_toolWindows, window); });
 }

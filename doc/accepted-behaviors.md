@@ -51,7 +51,7 @@ invalidates the reason given.
 
 - A superseded listing, a flattened recursive scan included, runs to completion: with 4 listing threads, it delays
   other listings only when 4 of them run at once.
-- A folder size calculation runs to completion after its panel leaves the folder: it runs in the application pool, so
+- A folder size calculation runs to completion after its panel leaves the folder: it runs in the statistics pool, so
   it cannot delay a listing.
 - A size calculation that finishes after a newer one for the same folder, or after the panel left the folder and came
   back, publishes its older size: a calculated size is a snapshot anyway, and recalculating corrects it.

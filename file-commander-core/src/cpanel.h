@@ -109,7 +109,7 @@ public:
 	void addCurrentPathChangedListener(CurrentPathChangedListener * listener);
 
 	// wakeUiThread: may be empty. Must be thread-safe: runs after a listing that replaces a withdrawn list is queued for the UI thread.
-	explicit CPanel(Panel position, CThreadPool& listingThreadPool, CThreadPool& workerThreadPool, qulonglong id, std::function<void()> wakeUiThread = {});
+	explicit CPanel(Panel position, CThreadPool& listingThreadPool, CThreadPool& statisticsThreadPool, qulonglong id, std::function<void()> wakeUiThread = {});
 	~CPanel();
 
 	[[nodiscard]] qulonglong id() const noexcept; // Stable per-tab identifier; never changes for this CPanel's lifetime
@@ -335,7 +335,7 @@ private:
 
 	// Both pools are owned by CController and shared by all panels; this panel's tasks in either carry _taskTag
 	CThreadPool&                               _listingThreadPool; // File list updates only, so other work cannot delay a listing
-	CThreadPool&                               _workerThreadPool; // Folder size calculations
+	CThreadPool&                               _statisticsThreadPool; // Folder size calculations
 	const std::function<void()>                _wakeUiThread;
 	mutable CExecutionQueue                    _uiThreadQueue;
 	mutable std::recursive_mutex               _fileListAndCurrentDirMutex;

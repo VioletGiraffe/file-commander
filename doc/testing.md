@@ -160,7 +160,7 @@ candidate's total at every size, against `FileListHashMap`, with and without `re
 ## File statistics benchmark
 
 `filestatistics_benchmark` times `calculateStatsFor` on three trees: a large one, a narrow chain, and many small
-folders sized at once on a pool the size of the application pool. It splits a one-thread scan into its parts, and times
+folders sized at once on a pool the size of the statistics pool. It splits a one-thread scan into its parts, and times
 a copy of the scan with each part replaced in turn; the source's header lists the cases. It is built like
 `listing_benchmark` and never run by the test scripts; `--help` lists the options. The results:
 [filestatistics-performance.md](filestatistics-performance.md).
@@ -169,7 +169,7 @@ a copy of the scan with each part replaced in turn; the source's header lists th
   the file records.
 - Every copy of the scan is checked against `calculateStatsFor` before timing, and the run stops on a difference. A
   change to the scan in `filestatistics.cpp` needs the same change in the copy.
-- The 4-thread cases vary by up to 15% from run to run on a 2-core machine: compare runs, not single samples.
+- The cases that scan on several threads vary by up to 15% from run to run on a 2-core machine: compare runs, not single samples.
 
 ## CI
 

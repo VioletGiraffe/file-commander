@@ -105,6 +105,7 @@ namespace {
 CController::CController(std::function<void()> wakeUiThread) :
 	_favoriteLocations{ KEY_FAVORITES, KEY_FAVORITES_LEGACY },
 	_listingThreadPool{ 4, "Panel file list pool" },
+	_statisticsThreadPool{ StatisticsThreadPoolWorkers, "File statistics pool" },
 	_workerPool{ optimalCpuCount(), "Application pool"},
 	_wakeUiThread{ std::move(wakeUiThread) }
 {
@@ -316,7 +317,7 @@ void CController::refreshPanelsOnRemovedDrive(const QChar driveLetter)
 CPanel& CController::createTab(Panel p, qulonglong id)
 {
 	auto& tabList = _panels[(size_t)p];
-	CPanel& tab = *tabList.tabs.emplace_back(std::make_unique<CPanel>(p, _listingThreadPool, _workerPool, id, _wakeUiThread));
+	CPanel& tab = *tabList.tabs.emplace_back(std::make_unique<CPanel>(p, _listingThreadPool, _statisticsThreadPool, id, _wakeUiThread));
 	attachListenersToTab(p, tab);
 	return tab;
 }
@@ -1025,6 +1026,11 @@ std::vector<QString> CController::recentFolders(const Panel p) const
 CThreadPool& CController::threadPool()
 {
 	return _workerPool;
+}
+
+CThreadPool& CController::statisticsThreadPool()
+{
+	return _statisticsThreadPool;
 }
 
 std::vector<qulonglong> CController::selectedItemsHashes(Panel p) const
