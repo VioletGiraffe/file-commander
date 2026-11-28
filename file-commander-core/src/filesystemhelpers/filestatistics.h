@@ -35,15 +35,18 @@ constexpr uint32_t StatisticsThreadPoolWorkers = 4;
 // the calling thread merges them at the end.
 // Holds pool's workers until the scan ends: work queued on pool behind it waits.
 // May be called from one of pool's tasks: the calling thread can complete the scan alone.
+// largestFiles holds up to largestFilesCount of the files found, the paths included, largest first.
 // onScanningFolder is called with each folder as its scan starts, from the scanning threads concurrently.
 // occupiedSpaceSoFar, if set, grows by each folder's files once that folder is listed, for a UI to show while the scan runs.
-[[nodiscard]] FileStatistics calculateStatsFor(const std::vector<QString>& paths, CThreadPool& pool, const std::atomic_bool& abort = false,
+[[nodiscard]] FileStatistics calculateStatsFor(const std::vector<QString>& paths, CThreadPool& pool, size_t largestFilesCount, const std::atomic_bool& abort = false,
 	const std::function<void(const QString& folder)>& onScanningFolder = {}, std::atomic<uint64_t>* occupiedSpaceSoFar = nullptr);
 
 // calculateStatsFor on a CBackgroundTask, which the constructor starts, for a UI that polls it
 class CFileStatisticsScan
 {
 public:
+	static constexpr size_t LargestFilesCount = 500;
+
 	struct Result
 	{
 		FileStatistics stats;

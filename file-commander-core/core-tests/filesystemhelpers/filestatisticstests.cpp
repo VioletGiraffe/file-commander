@@ -18,7 +18,9 @@ RESTORE_COMPILER_WARNINGS
 #include <atomic>
 #include <chrono>
 #include <future>
+#include <stdint.h>
 #include <thread>
+#include <vector>
 
 using namespace std::chrono_literals;
 
@@ -63,9 +65,53 @@ TEST_CASE("calculateStatsFor's running occupied space ends at the total", "[file
 
 	CThreadPool pool{ 2, "Statistics test pool" };
 	std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
-	const FileStatistics stats = calculateStatsFor({ dir.path() }, pool, false, {}, &occupiedSpaceSoFar);
+	const FileStatistics stats = calculateStatsFor({ dir.path() }, pool, 0, false, {}, &occupiedSpaceSoFar);
 	CHECK(stats.occupiedSpace == 410);
 	CHECK(occupiedSpaceSoFar == stats.occupiedSpace);
+}
+
+TEST_CASE("calculateStatsFor reports up to the requested number of largest files", "[filestatistics]")
+{
+	const QTemporaryDir dir;
+	REQUIRE(dir.isValid());
+	createTree(dir.path());
+
+	const auto largestFileSizes = [](const FileStatistics& stats) {
+		std::vector<uint64_t> sizes;
+		for (const CFileSystemObject& file : stats.largestFiles)
+			sizes.push_back(file.size());
+		return sizes;
+	};
+
+	struct Case
+	{
+		size_t count;
+		std::vector<uint64_t> sizes;
+	};
+
+	CThreadPool pool{ 2, "Statistics test pool" };
+	for (const auto& [count, sizes] : { Case{ 0, {} }, Case{ 2, { 300, 100 } }, Case{ 5, { 300, 100, 10 } } })
+	{
+		INFO(count);
+		const FileStatistics stats = calculateStatsFor({ dir.path() }, pool, count);
+		CHECK(stats.files == 3);
+		CHECK(stats.occupiedSpace == 410);
+		CHECK(largestFileSizes(stats) == sizes);
+	}
+}
+
+TEST_CASE("calculateStatsFor reports a file passed as a path among the largest files", "[filestatistics]")
+{
+	const QTemporaryDir dir;
+	REQUIRE(dir.isValid());
+	createTree(dir.path());
+
+	CThreadPool pool{ 2, "Statistics test pool" };
+	const FileStatistics stats = calculateStatsFor({ dir.filePath(QStringLiteral("a.bin")), dir.filePath(QStringLiteral("sub")) }, pool, 5);
+	CHECK(stats.files == 3);
+	CHECK(stats.occupiedSpace == 410);
+	REQUIRE(stats.largestFiles.size() == 3);
+	CHECK(stats.largestFiles[1].fullName() == "a.bin");
 }
 
 TEST_CASE("calculateStatsFor completes when called from a task of its own pool while every worker is busy", "[filestatistics]")
@@ -78,7 +124,7 @@ TEST_CASE("calculateStatsFor completes when called from a task of its own pool w
 	FileStatistics stats;
 	// The task occupies the pool's only worker, so the calling thread must scan alone
 	CThreadPool pool{ 1, "Statistics test pool" };
-	auto scanned = pool.enqueueWithFuture([&] { stats = calculateStatsFor({ dir.path() }, pool); });
+	auto scanned = pool.enqueueWithFuture([&] { stats = calculateStatsFor({ dir.path() }, pool, 0); });
 	REQUIRE(scanned.wait_for(10s) == std::future_status::ready);
 	CHECK(stats.files == 3);
 	CHECK(stats.occupiedSpace == 410);
@@ -99,7 +145,7 @@ TEST_CASE("CFileStatisticsScan finds what calculateStatsFor finds", "[filestatis
 	CHECK(stats.files == 3);
 	CHECK(stats.folders == 3); // The root counts
 	CHECK(stats.occupiedSpace == 410);
-	CHECK(stats == calculateStatsFor({ dir.path() }, pool));
+	CHECK(stats == calculateStatsFor({ dir.path() }, pool, CFileStatisticsScan::LargestFilesCount));
 }
 
 TEST_CASE("CFileStatisticsScan's current folder is one it scanned", "[filestatistics]")

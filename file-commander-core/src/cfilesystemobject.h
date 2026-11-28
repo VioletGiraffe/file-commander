@@ -56,6 +56,35 @@ struct CFileSystemObjectProperties {
 	time_t creationTime = 0;
 };
 
+// A listed child of a folder, read from its directory_entry without building a CFileSystemObject: names and paths are built on each call.
+// Must not outlive the parent path and the entry it references.
+class FileSystemEntryView
+{
+public:
+	// parentPath ends with a separator
+	FileSystemEntryView(const QString& parentPath, const thin_io::directory_entry& entry) noexcept;
+
+	// The same values as in CFileSystemObject: isDir() is also true for a bundle
+	[[nodiscard]] bool isFile() const noexcept { return _type == File; }
+	[[nodiscard]] bool isDir() const noexcept { return _type == Directory; }
+	[[nodiscard]] bool isLink() const noexcept { return _isLink; }
+	[[nodiscard]] uint64_t size() const noexcept { return _size; }
+	// macOS: reads the disk
+	[[nodiscard]] bool isBundle() const;
+
+	[[nodiscard]] QString fullName() const;
+	[[nodiscard]] QString fullAbsolutePath() const;
+
+private:
+	friend class CFileSystemObject;
+
+	const QString& _parentPath;
+	const thin_io::directory_entry& _entry;
+	FileSystemObjectType _type = UnknownType; // Never Bundle: see isBundle()
+	bool _isLink = false;
+	uint64_t _size = 0;
+};
+
 class CFileSystemObject
 {
 public:
@@ -67,6 +96,7 @@ public:
 	explicit CFileSystemObject(const QString& path);
 	// A listed child of parentPath, which ends with a separator
 	CFileSystemObject(const QString& parentPath, const thin_io::directory_entry& entry);
+	explicit CFileSystemObject(const FileSystemEntryView& entry);
 
 	// Builds the object in memory, deriving the hash and the name split from fullPath
 	explicit CFileSystemObject(CFileSystemObjectProperties properties);

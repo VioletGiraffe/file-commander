@@ -55,6 +55,71 @@ CFileSystemObject::CFileSystemObject(const QString& parentPath, const thin_io::d
 	loadProperties(parentPath % thin_io::to_qstring(entry.name), entry);
 }
 
+CFileSystemObject::CFileSystemObject(const FileSystemEntryView& entry) : CFileSystemObject{ entry._parentPath, entry._entry }
+{
+}
+
+// The target of a live link, otherwise the entry itself: a broken link keeps its own kind and times
+[[nodiscard]] static const thin_io::entry_status& describedStatus(const thin_io::directory_entry& entry) noexcept
+{
+	return entry.attributes.is_link && entry.link_target ? *entry.link_target : entry;
+}
+
+struct ListedTypeAndSize
+{
+	FileSystemObjectType type = UnknownType; // Never Bundle: only the path tells a bundle
+	uint64_t size = 0;
+};
+
+[[nodiscard]] static ListedTypeAndSize listedTypeAndSize(const thin_io::directory_entry& entry) noexcept
+{
+	const thin_io::entry_status& described = describedStatus(entry);
+	switch (described.attributes.kind)
+	{
+	case thin_io::entry_kind::directory:
+		return { .type = Directory };
+	case thin_io::entry_kind::regular_file:
+		return { .type = File, .size = described.logical_size.value_or(0) };
+	default:
+		// A link to anything else, or a broken POSIX link, is shown as a file so delete can unlink it
+		if (entry.attributes.is_link)
+			return { .type = File, .size = described.logical_size.value_or(0) };
+		return {};
+	}
+}
+
+FileSystemEntryView::FileSystemEntryView(const QString& parentPath, const thin_io::directory_entry& entry) noexcept :
+	_parentPath{ parentPath }, _entry{ entry }, _isLink{ entry.attributes.is_link }
+{
+	assert_debug_only(parentPath.endsWith('/'));
+
+	const auto [type, size] = listedTypeAndSize(entry);
+	_type = type;
+	_size = size;
+}
+
+bool FileSystemEntryView::isBundle() const
+{
+#ifdef __APPLE__
+	return _type == Directory && QFileInfo{ QString{ _parentPath % thin_io::to_qstring(_entry.name) } }.isBundle();
+#else
+	return false;
+#endif
+}
+
+QString FileSystemEntryView::fullName() const
+{
+	return thin_io::to_qstring(_entry.name);
+}
+
+QString FileSystemEntryView::fullAbsolutePath() const
+{
+	// A directory's path ends with a separator, as in CFileSystemObject
+	if (_type == Directory)
+		return _parentPath % thin_io::to_qstring(_entry.name) % u'/';
+	return _parentPath % thin_io::to_qstring(_entry.name);
+}
+
 uint64_t pathHash(const QString& fullAbsolutePath)
 {
 	return fullAbsolutePath.isEmpty() ? 0 : QStringHash{}(fullAbsolutePath);
@@ -168,14 +233,11 @@ void CFileSystemObject::loadProperties(QString fullPath, const thin_io::director
 	_properties.isLink = entry.attributes.is_link;
 	_properties.exists = true;
 
-	// The target of a live link, otherwise the entry itself: a broken link keeps its own kind and times
-	const thin_io::entry_status* const linkTarget = _properties.isLink && entry.link_target ? &*entry.link_target : nullptr;
-	const thin_io::entry_status& described = linkTarget ? *linkTarget : entry;
-
-	switch (described.attributes.kind)
+	const auto [type, size] = listedTypeAndSize(entry);
+	_properties.type = type;
+	_properties.size = size;
+	if (type == Directory)
 	{
-	case thin_io::entry_kind::directory:
-		_properties.type = Directory;
 #ifdef __APPLE__
 		if (QFileInfo{ fullPath }.isBundle())
 			_properties.type = Bundle;
@@ -183,21 +245,13 @@ void CFileSystemObject::loadProperties(QString fullPath, const thin_io::director
 		// "dir" and "dir/" must hash the same
 		if (!fullPath.endsWith('/'))
 			fullPath.append('/');
-		break;
-	case thin_io::entry_kind::regular_file:
-		_properties.type = File;
-		break;
-	default:
-		// A link to anything else, or a broken POSIX link, is shown as a file so delete can unlink it
-		_properties.type = _properties.isLink ? File : UnknownType;
-		break;
 	}
 
 	_properties.fullPath = std::move(fullPath);
 	_properties.hash = pathHash(_properties.fullPath);
 	locateNameAndExtension();
 
-	_properties.size = _properties.type == File ? described.logical_size.value_or(0) : 0;
+	const thin_io::entry_status& described = describedStatus(entry);
 	_properties.creationTime = static_cast<time_t>(described.times.creation.seconds);
 	_properties.modificationTime = static_cast<time_t>(described.times.last_write.seconds);
 
@@ -207,7 +261,7 @@ void CFileSystemObject::loadProperties(QString fullPath, const thin_io::director
 #else
 	_properties.isHidden = entry.attributes.hidden || fullName().startsWith('.');
 	// A broken link's own mode grants nothing
-	const bool isBrokenLink = _properties.isLink && !linkTarget;
+	const bool isBrokenLink = _properties.isLink && !entry.link_target;
 	_properties.isExecutable = !isBrokenLink && described.permissions && (described.permissions->mode & 0111) != 0;
 #endif
 }

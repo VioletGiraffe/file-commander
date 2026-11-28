@@ -15,28 +15,29 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 
 namespace {
 
-constexpr size_t MaxLargeFiles = 500;
-
-void mergeFileIntoStats(FileStatistics& stats, const CFileSystemObject& discoveredItem)
+// stats.largestFiles is sorted by size, largest first, and holds at most largestFilesCount files
+// File: a FileSystemEntryView, or a CFileSystemObject for a root path
+template <typename File>
+void mergeFileIntoStats(FileStatistics& stats, const File& file, const size_t largestFilesCount)
 {
-	const auto size = discoveredItem.size();
-	stats.occupiedSpace += size;
+	stats.occupiedSpace += file.size();
 	++stats.files;
 
 	auto& largestFiles = stats.largestFiles;
-	const auto nLargest = largestFiles.size();
-
-	const auto it = std::ranges::lower_bound(largestFiles, discoveredItem, [](const CFileSystemObject& l, const CFileSystemObject& r) {
-		return l.size() > r.size();
-	});
-	largestFiles.insert(it, discoveredItem);
-
-	if (nLargest >= MaxLargeFiles)
+	if (largestFiles.size() == largestFilesCount)
+	{
+		if (largestFilesCount == 0 || file.size() <= largestFiles.back().size())
+			return;
 		largestFiles.pop_back();
+	}
+
+	const auto it = std::ranges::lower_bound(largestFiles, file.size(), std::greater{}, &CFileSystemObject::size);
+	largestFiles.emplace(it, file);
 }
 
 // thin_io::entry_identity is a plain aggregate, so unordered_dense has no hash for it.
@@ -55,7 +56,7 @@ struct EntryIdentityHash
 // subdirectories back onto it, so the fan-out isn't limited to the root's immediate children. Each thread
 // accumulates into its own FileStatistics with no locking on the hot path - the caller merges the per-thread
 // results once every thread has finished (see calculateStatsFor).
-std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, CThreadPool& pool, const std::atomic_bool& abort,
+std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, CThreadPool& pool, const size_t largestFilesCount, const std::atomic_bool& abort,
 	const std::function<void(const QString& folder)>& onScanningFolder, std::atomic<uint64_t>* occupiedSpaceSoFar)
 {
 	std::vector<QString> dirsToScan;
@@ -77,10 +78,7 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 				dirsToScan.push_back(rootItem.fullAbsolutePath());
 		}
 		else if (rootItem.isFile())
-		{
-			++rootStats.files;
-			rootStats.occupiedSpace += rootItem.size();
-		}
+			mergeFileIntoStats(rootStats, rootItem, largestFilesCount);
 	}
 	if (occupiedSpaceSoFar)
 		occupiedSpaceSoFar->fetch_add(rootStats.occupiedSpace, std::memory_order_relaxed);
@@ -95,7 +93,7 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 	std::vector<FileStatistics> threadResults(threadCount);
 	pool.parallelFor(threadCount, [&](const size_t threadIndex) {
 		FileStatistics& stats = threadResults[threadIndex];
-		stats.largestFiles.reserve(MaxLargeFiles + 1);
+		stats.largestFiles.reserve(largestFilesCount);
 		for (;;)
 		{
 			QString dir;
@@ -119,20 +117,21 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 			{
 				for (const auto& entry : *entries)
 				{
-					const CFileSystemObject item{ dir, entry };
+					const FileSystemEntryView item{ dir, entry };
 					if (item.isFile())
-						mergeFileIntoStats(stats, item);
+						mergeFileIntoStats(stats, item, largestFilesCount);
 					else if (item.isDir())
 					{
 						++stats.folders;
+						QString path = item.fullAbsolutePath();
 						if (!item.isLink())
-							newDirs.push_back(item.fullAbsolutePath());
+							newDirs.push_back(std::move(path));
 						// An unresolvable id means a broken link - not traversable
-						else if (const auto targetId = resolvedObjectId(item.fullAbsolutePath()); targetId)
+						else if (const auto targetId = resolvedObjectId(path); targetId)
 						{
 							std::lock_guard locker(queueMutex);
 							if (queuedLinkTargets.insert(*targetId).second)
-								newDirs.push_back(item.fullAbsolutePath());
+								newDirs.push_back(std::move(path));
 						}
 					}
 				}
@@ -157,14 +156,13 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 
 }
 
-FileStatistics calculateStatsFor(const std::vector<QString>& paths, CThreadPool& pool, const std::atomic_bool& abort,
+FileStatistics calculateStatsFor(const std::vector<QString>& paths, CThreadPool& pool, const size_t largestFilesCount, const std::atomic_bool& abort,
 	const std::function<void(const QString& folder)>& onScanningFolder, std::atomic<uint64_t>* occupiedSpaceSoFar)
 {
-	const auto partials = scanParallel(paths, pool, abort, onScanningFolder, occupiedSpaceSoFar);
+	const auto partials = scanParallel(paths, pool, largestFilesCount, abort, onScanningFolder, occupiedSpaceSoFar);
 
 	// Final aggregation happens here, on the calling thread, only after every scanning thread above has finished.
 	FileStatistics merged;
-	merged.largestFiles.reserve(MaxLargeFiles + 1);
 	for (const auto& partial : partials)
 	{
 		merged.files += partial.files;
@@ -177,8 +175,8 @@ FileStatistics calculateStatsFor(const std::vector<QString>& paths, CThreadPool&
 		return l.size() > r.size();
 	});
 
-	if (merged.largestFiles.size() > MaxLargeFiles)
-		merged.largestFiles.resize(MaxLargeFiles);
+	if (merged.largestFiles.size() > largestFilesCount)
+		merged.largestFiles.resize(largestFilesCount);
 
 	return merged;
 }
@@ -187,7 +185,7 @@ CFileStatisticsScan::CFileStatisticsScan(std::vector<QString> paths, CThreadPool
 {
 	_task.start([this, paths{ std::move(paths) }, &pool](const std::atomic<bool>& cancelled) -> std::optional<Result> {
 		const CTimeElapsed timer{ true };
-		FileStatistics stats = calculateStatsFor(paths, pool, cancelled, [this](const QString& folder) {
+		FileStatistics stats = calculateStatsFor(paths, pool, LargestFilesCount, cancelled, [this](const QString& folder) {
 			std::lock_guard locker{ _currentFolderMutex };
 			_currentFolder = folder;
 		});

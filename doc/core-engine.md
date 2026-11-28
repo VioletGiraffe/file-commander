@@ -87,6 +87,10 @@ construction: from a path, or from a listing's `directory_entry`. The listings (
 normalized-path hash is the application key used by panels, UI models, selection, and plugins; it is not native
 filesystem identity.
 
+`FileSystemEntryView` reads the same type, size and names from a listed `directory_entry` without building the object.
+The statistics scan and the file search walk every entry with it and build a `CFileSystemObject` only for what they
+keep: a largest file, a match.
+
 Path text grammar (roots, lexical normalization) is `file-operations/paths/pathsyntax.h`; Qt's path functions are not
 used for it. A `CFileSystemObject` path must be absolute. Typed text (the address bar, search roots, favorites, the
 copy/move destination) goes through `resolveUserPath()` first, which expands environment variables and resolves against

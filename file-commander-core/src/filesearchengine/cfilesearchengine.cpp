@@ -345,7 +345,8 @@ void CFileSearchEngine::searchThread(const FileSearchQuery& query, FileSearchLis
 	ptrdiff_t contentTaskSlotCount = 0;
 	std::unique_ptr<CThreadPool> contentSearchPool;
 
-	const auto examineItem = [&](const CFileSystemObject& item, const bool reachedThroughLink) {
+	// item: a CFileSystemObject or a FileSystemEntryView
+	const auto examineItem = [&](const auto& item, const bool reachedThroughLink) {
 		if (cancellationRequested)
 			return;
 
@@ -360,9 +361,13 @@ void CFileSearchEngine::searchThread(const FileSearchQuery& query, FileSearchLis
 		if (searchByContents && !item.isFile())
 			return;
 
-		const bool isFolder = item.isDir() && !item.isBundle();
-		if ((query.itemType == FileSearchQuery::ItemType::Files && isFolder) || (query.itemType == FileSearchQuery::ItemType::Folders && !isFolder))
-			return;
+		// Only when the type matters: isBundle() reads the disk on macOS
+		if (query.itemType != FileSearchQuery::ItemType::Any)
+		{
+			const bool isFolder = item.isDir() && !item.isBundle();
+			if ((query.itemType == FileSearchQuery::ItemType::Files && isFolder) || (query.itemType == FileSearchQuery::ItemType::Folders && !isFolder))
+				return;
+		}
 
 		if (!nameFilter.matches(item.fullName()))
 			return;
@@ -385,24 +390,24 @@ void CFileSearchEngine::searchThread(const FileSearchQuery& query, FileSearchLis
 			if (!acquireContentTaskSlotUnlessCancelled(*contentSearchContext.availableTaskSlots, cancellationRequested))
 				return;
 
-			contentSearchPool->enqueue([item, reachedThroughLink, &contentSearchContext] {
+			contentSearchPool->enqueue([file = CFileSystemObject{ item }, reachedThroughLink, &contentSearchContext] {
 				EXEC_ON_SCOPE_EXIT([&contentSearchContext] { contentSearchContext.availableTaskSlots->release(); });
 				if (*contentSearchContext.cancellationRequested)
 					return;
 
-				const ContentMatch contentMatch = fileContentsMatches(item.fullAbsolutePath(), *contentSearchContext.regex,
+				const ContentMatch contentMatch = fileContentsMatches(file.fullAbsolutePath(), *contentSearchContext.regex,
 					*contentSearchContext.plainText, *contentSearchContext.cancellationRequested);
 				if (*contentSearchContext.cancellationRequested)
 					return;
 
 				if (contentMatch == ContentMatch::Yes)
-					contentSearchContext.listener->matchFound(item, reachedThroughLink);
+					contentSearchContext.listener->matchFound(file, reachedThroughLink);
 				else if (contentMatch == ContentMatch::Inconclusive)
 					contentSearchContext.inconclusiveItems.fetch_add(1, std::memory_order_relaxed);
 			});
 		}
 		else
-			listener->matchFound(item, reachedThroughLink);
+			listener->matchFound(CFileSystemObject{ item }, reachedThroughLink);
 	};
 
 	// Each distinct root is handled once: a folder by its own scan, anything else by examining it here. The other scans do not cover it again.
@@ -429,7 +434,7 @@ void CFileSearchEngine::searchThread(const FileSearchQuery& query, FileSearchLis
 	for (const QString& rootFolder : rootFolders)
 	{
 		scanDirectory(rootFolder, [&](const QString& parentPath, const thin_io::directory_entry& entry, const bool reachedThroughLink) {
-			const CFileSystemObject item{ parentPath, entry };
+			const FileSystemEntryView item{ parentPath, entry };
 			if (!anyRootIsNotFolder || item.isDir() || !roots.contains(item.fullAbsolutePath()))
 				examineItem(item, reachedThroughLink);
 		}, cancellationRequested, isFolderExcluded, true, isAnotherRoot);

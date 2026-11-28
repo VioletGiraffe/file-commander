@@ -7,9 +7,10 @@
 //   narrow - a chain of folders, each holding one subfolder: the scan threads mostly wait for work
 // Cases:
 //   part:*   - one thread lists every folder of the tree, adding each part of the per-entry work in turn
-//   real:*   - calculateStatsFor itself
+//   real:*   - calculateStatsFor itself; *-no-largest without the largest files, as a folder size asks for
 //   mirror:* - a copy of its scan with each suspected part replaceable, checked against calculateStatsFor before timing.
-//              mirror:own-threads is the scan as it was before it ran on the caller's pool: threads started by every call.
+//              mirror:own-threads starts its threads on every call, as the scan did before it ran on the caller's pool.
+//              mirror:object-per-entry is the scan as it was before FileSystemEntryView: a CFileSystemObject for every entry.
 
 #include "cfilesystemobject.h"
 #include "filesystemhelpers/filestatistics.h"
@@ -17,7 +18,6 @@
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 #include "directoryscan/thinioqstring.h"
-#include "qt_paths.hpp" // thin_io
 #include "threading/cthreadpool.h"
 #include "utility/performance_cores.hpp"
 #include "utility/power_throttling.hpp"
@@ -126,49 +126,28 @@ static void generate(const QString& root, const int filesPerLeaf)
 
 // ---------------------------------------------------------------- The scan's parts
 
-constexpr size_t MaxLargeFiles = 500; // As in filestatistics.cpp
-
 // The insertion mergeFileIntoStats in filestatistics.cpp does
-static void insertIntoLargestFiles(std::vector<CFileSystemObject>& largestFiles, const CFileSystemObject& discoveredItem)
+static void insertIntoLargestFiles(std::vector<CFileSystemObject>& largestFiles, const size_t largestFilesCount, const FileSystemEntryView& file)
 {
-	const auto nLargest = largestFiles.size();
-
-	const auto it = std::ranges::lower_bound(largestFiles, discoveredItem, [](const CFileSystemObject& l, const CFileSystemObject& r) {
-		return l.size() > r.size();
-	});
-	largestFiles.insert(it, discoveredItem);
-
-	if (nLargest >= MaxLargeFiles)
-		largestFiles.pop_back();
-}
-
-[[nodiscard]] static bool isLargestFileCandidate(const std::vector<CFileSystemObject>& largestFiles, const uint64_t size)
-{
-	return largestFiles.size() < MaxLargeFiles || size > largestFiles.back().size();
-}
-
-// The kind and size CFileSystemObject::loadProperties derives from an entry
-struct EntryClass
-{
-	bool isFile = false;
-	bool isDir = false;
-	bool isLink = false;
-	uint64_t size = 0;
-};
-
-[[nodiscard]] static EntryClass classify(const thin_io::directory_entry& entry)
-{
-	const bool isLink = entry.attributes.is_link;
-	const thin_io::entry_status& described = isLink && entry.link_target ? *entry.link_target : entry;
-	switch (described.attributes.kind)
+	if (largestFiles.size() == largestFilesCount)
 	{
-	case thin_io::entry_kind::directory:
-		return { .isDir = true, .isLink = isLink };
-	case thin_io::entry_kind::regular_file:
-		return { .isFile = true, .isLink = isLink, .size = described.logical_size.value_or(0) };
-	default:
-		return { .isFile = isLink, .isLink = isLink, .size = isLink ? described.logical_size.value_or(0) : 0 };
+		if (largestFilesCount == 0 || file.size() <= largestFiles.back().size())
+			return;
+		largestFiles.pop_back();
 	}
+
+	const auto it = std::ranges::lower_bound(largestFiles, file.size(), std::greater{}, &CFileSystemObject::size);
+	largestFiles.emplace(it, file);
+}
+
+// The insertion before FileSystemEntryView: every file is inserted, then the smallest one dropped
+static void insertIntoLargestFilesPerEntry(std::vector<CFileSystemObject>& largestFiles, const size_t largestFilesCount, const CFileSystemObject& file)
+{
+	const auto it = std::ranges::lower_bound(largestFiles, file.size(), std::greater{}, &CFileSystemObject::size);
+	largestFiles.insert(it, file);
+
+	if (largestFiles.size() > largestFilesCount)
+		largestFiles.pop_back();
 }
 
 struct EntryIdentityHash
@@ -191,18 +170,14 @@ struct MirrorOptions
 	bool ownThreads = false;
 	// P3: a thread keeps one subfolder and queues the rest under one lock, waking only as many waiting threads as it queued folders
 	bool leanQueue = false;
-	// F2: an entry becomes a CFileSystemObject only as a largest-file candidate
-	bool objectPerEntry = true;
-	// F3: a file no larger than the smallest of the largest files is not inserted
-	bool largestFilesEarlyOut = false;
-	// A folder size has no use for the largest files
-	bool largestFiles = true;
+	// A CFileSystemObject for every entry, every file inserted into the largest files
+	bool objectPerEntry = false;
 };
 
 // The narrow and small workloads, of few files, time these variants only
 [[nodiscard]] static bool changesThreadingOnly(const MirrorOptions& options)
 {
-	return options.objectPerEntry && !options.largestFilesEarlyOut && options.largestFiles;
+	return !options.objectPerEntry;
 }
 
 // mirror:current is scanParallel as it is
@@ -210,13 +185,10 @@ static const std::vector<std::pair<const char*, MirrorOptions>> MirrorVariants{
 	{ "mirror:own-threads", { .ownThreads = true } },
 	{ "mirror:current", {} },
 	{ "mirror:P3-lean-queue", { .leanQueue = true } },
-	{ "mirror:F3-early-out", { .largestFilesEarlyOut = true } },
-	{ "mirror:F2-entries", { .objectPerEntry = false, .largestFilesEarlyOut = true } },
-	{ "mirror:F2-no-largest", { .objectPerEntry = false, .largestFiles = false } },
-	{ "mirror:all", { .leanQueue = true, .objectPerEntry = false, .largestFilesEarlyOut = true } },
+	{ "mirror:object-per-entry", { .objectPerEntry = true } },
 };
 
-static void scanFolder(const QString& dir, FileStatistics& stats, std::vector<QString>& newDirs, const MirrorOptions& options,
+static void scanFolder(const QString& dir, FileStatistics& stats, const size_t largestFilesCount, std::vector<QString>& newDirs, const MirrorOptions& options,
 	std::mutex& queueMutex, IdentitySet& queuedLinkTargets)
 {
 	const auto queueFolderLink = [&](const QString& path) {
@@ -242,8 +214,7 @@ static void scanFolder(const QString& dir, FileStatistics& stats, std::vector<QS
 			{
 				stats.occupiedSpace += item.size();
 				++stats.files;
-				if (options.largestFiles && (!options.largestFilesEarlyOut || isLargestFileCandidate(stats.largestFiles, item.size())))
-					insertIntoLargestFiles(stats.largestFiles, item);
+				insertIntoLargestFilesPerEntry(stats.largestFiles, largestFilesCount, item);
 			}
 			else if (item.isDir())
 			{
@@ -256,19 +227,18 @@ static void scanFolder(const QString& dir, FileStatistics& stats, std::vector<QS
 			continue;
 		}
 
-		const EntryClass entryClass = classify(entry);
-		if (entryClass.isFile)
+		const FileSystemEntryView item{ dir, entry };
+		if (item.isFile())
 		{
-			stats.occupiedSpace += entryClass.size;
+			stats.occupiedSpace += item.size();
 			++stats.files;
-			if (options.largestFiles && isLargestFileCandidate(stats.largestFiles, entryClass.size))
-				insertIntoLargestFiles(stats.largestFiles, CFileSystemObject{ dir, entry });
+			insertIntoLargestFiles(stats.largestFiles, largestFilesCount, item);
 		}
-		else if (entryClass.isDir)
+		else if (item.isDir())
 		{
 			++stats.folders;
-			QString path = dir % thin_io::to_qstring(entry.name) % u'/';
-			if (!entryClass.isLink)
+			QString path = item.fullAbsolutePath();
+			if (!item.isLink())
 				newDirs.push_back(std::move(path));
 			else
 				queueFolderLink(path);
@@ -289,7 +259,8 @@ static void scanFolder(const QString& dir, FileStatistics& stats, std::vector<QS
 }
 
 // One root folder, which must exist: the root's own handling is not under study
-static FileStatistics mirrorScan(const QString& root, CThreadPool& pool, const MirrorOptions& options, std::atomic<uint64_t>& occupiedSpaceSoFar)
+static FileStatistics mirrorScan(const QString& root, CThreadPool& pool, const size_t largestFilesCount, const MirrorOptions& options,
+	std::atomic<uint64_t>& occupiedSpaceSoFar)
 {
 	FileStatistics rootStats;
 	rootStats.folders = 1;
@@ -307,7 +278,7 @@ static FileStatistics mirrorScan(const QString& root, CThreadPool& pool, const M
 
 	const auto work = [&](const size_t index) {
 		FileStatistics& stats = threadResults[index];
-		stats.largestFiles.reserve(MaxLargeFiles + 1);
+		stats.largestFiles.reserve(largestFilesCount + 1);
 		QString dir;
 		bool holdsDir = false;
 		for (;;)
@@ -329,7 +300,7 @@ static FileStatistics mirrorScan(const QString& root, CThreadPool& pool, const M
 
 			std::vector<QString> newDirs;
 			const uint64_t occupiedSpaceBeforeDir = stats.occupiedSpace;
-			scanFolder(dir, stats, newDirs, options, queueMutex, queuedLinkTargets);
+			scanFolder(dir, stats, largestFilesCount, newDirs, options, queueMutex, queuedLinkTargets);
 			occupiedSpaceSoFar.fetch_add(stats.occupiedSpace - occupiedSpaceBeforeDir, std::memory_order_relaxed);
 
 			if (!options.leanQueue)
@@ -395,8 +366,8 @@ static FileStatistics mirrorScan(const QString& root, CThreadPool& pool, const M
 		merged.largestFiles.insert(merged.largestFiles.end(), partial.largestFiles.begin(), partial.largestFiles.end());
 	}
 	std::ranges::sort(merged.largestFiles, [](const CFileSystemObject& l, const CFileSystemObject& r) { return l.size() > r.size(); });
-	if (merged.largestFiles.size() > MaxLargeFiles)
-		merged.largestFiles.resize(MaxLargeFiles);
+	if (merged.largestFiles.size() > largestFilesCount)
+		merged.largestFiles.resize(largestFilesCount);
 	return merged;
 }
 
@@ -459,14 +430,14 @@ static void measure(const QString& title, const std::vector<Case>& cases, const 
 }
 
 // Every mirror variant must find what calculateStatsFor finds; files of equal size can differ in the largest files
-static void checkMirrorAgainstReal(const QString& root, CThreadPool& pool)
+static void checkMirrorAgainstReal(const QString& root, CThreadPool& pool, const size_t largestFilesCount)
 {
 	std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
-	const FileStatistics real = calculateStatsFor({ root }, pool, false, {}, &occupiedSpaceSoFar);
+	const FileStatistics real = calculateStatsFor({ root }, pool, largestFilesCount, false, {}, &occupiedSpaceSoFar);
 	for (const auto& [name, options] : MirrorVariants)
 	{
-		const FileStatistics mirrored = mirrorScan(root, pool, options, occupiedSpaceSoFar);
-		const bool sameLargest = !options.largestFiles || largestFileSizes(mirrored) == largestFileSizes(real);
+		const FileStatistics mirrored = mirrorScan(root, pool, largestFilesCount, options, occupiedSpaceSoFar);
+		const bool sameLargest = largestFileSizes(mirrored) == largestFileSizes(real);
 		if (mirrored.files != real.files || mirrored.folders != real.folders || mirrored.occupiedSpace != real.occupiedSpace || !sameLargest)
 		{
 			fail(QStringLiteral("%1 differs from calculateStatsFor on %2: %3 files, %4 folders, %5 bytes vs %6, %7, %8%9").arg(name, root)
@@ -488,8 +459,8 @@ static void checkMirrorAgainstReal(const QString& root, CThreadPool& pool)
 
 		for (const auto& entry : *entries)
 		{
-			if (const EntryClass entryClass = classify(entry); entryClass.isDir && !entryClass.isLink)
-				folders.push_back(folders[i] % thin_io::to_qstring(entry.name) % u'/');
+			if (const FileSystemEntryView item{ folders[i], entry }; item.isDir() && !item.isLink())
+				folders.push_back(item.fullAbsolutePath());
 		}
 	}
 	return folders;
@@ -504,7 +475,7 @@ static std::vector<Case> partCases(const QString& root)
 			for (const QString& folder : *folders)
 			{
 				for (const auto& entry : listDirectoryWithDetails(folder).value())
-					files += classify(entry).isFile;
+					files += FileSystemEntryView{ folder, entry }.isFile();
 			}
 			return files;
 		} },
@@ -519,7 +490,7 @@ static std::vector<Case> partCases(const QString& root)
 		} },
 		{ "part:list+object+largest", [folders] {
 			FileStatistics stats;
-			stats.largestFiles.reserve(MaxLargeFiles + 1);
+			stats.largestFiles.reserve(CFileStatisticsScan::LargestFilesCount + 1);
 			for (const QString& folder : *folders)
 			{
 				for (const auto& entry : listDirectoryWithDetails(folder).value())
@@ -528,7 +499,7 @@ static std::vector<Case> partCases(const QString& root)
 					if (item.isFile())
 					{
 						++stats.files;
-						insertIntoLargestFiles(stats.largestFiles, item);
+						insertIntoLargestFilesPerEntry(stats.largestFiles, CFileStatisticsScan::LargestFilesCount, item);
 					}
 				}
 			}
@@ -537,11 +508,12 @@ static std::vector<Case> partCases(const QString& root)
 	};
 }
 
-static Case realCase(const QString& root, CThreadPool& pool)
+static Case realCase(const QString& root, CThreadPool& pool, const size_t largestFilesCount)
 {
-	return { "real:pool-" + std::to_string(pool.maxWorkersCount()), [root, &pool] {
+	std::string name = "real:pool-" + std::to_string(pool.maxWorkersCount()) + (largestFilesCount == 0 ? "-no-largest" : "");
+	return { std::move(name), [root, &pool, largestFilesCount] {
 		std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
-		return calculateStatsFor({ root }, pool, false, {}, &occupiedSpaceSoFar).files;
+		return calculateStatsFor({ root }, pool, largestFilesCount, false, {}, &occupiedSpaceSoFar).files;
 	} };
 }
 
@@ -549,7 +521,7 @@ static Case mirrorCase(const QString& root, CThreadPool& pool, std::string name,
 {
 	return { std::move(name), [root, &pool, options] {
 		std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
-		return mirrorScan(root, pool, options, occupiedSpaceSoFar).files;
+		return mirrorScan(root, pool, CFileStatisticsScan::LargestFilesCount, options, occupiedSpaceSoFar).files;
 	} };
 }
 
@@ -583,14 +555,15 @@ static void measureWorkloads(const QString& root, const std::vector<uint32_t>& p
 		pool->waitUntilStarted();
 
 	const QString mirrorThreads = QStringLiteral("mirror: %1 pool threads, %2 own threads").arg(poolThreadCount(statisticsPool)).arg(ownThreadCount());
-	checkMirrorAgainstReal(tree, statisticsPool);
-	checkMirrorAgainstReal(narrow, statisticsPool);
+	checkMirrorAgainstReal(tree, statisticsPool, CFileStatisticsScan::LargestFilesCount);
+	checkMirrorAgainstReal(narrow, statisticsPool, CFileStatisticsScan::LargestFilesCount);
 
 	for (const QString& workload : { tree, narrow })
 	{
 		std::vector<Case> cases = workload == tree ? partCases(tree) : std::vector<Case>{};
 		for (auto& pool : pools)
-			cases.push_back(realCase(workload, *pool));
+			cases.push_back(realCase(workload, *pool, CFileStatisticsScan::LargestFilesCount));
+		cases.push_back(realCase(workload, statisticsPool, 0));
 		for (const auto& [name, options] : MirrorVariants)
 		{
 			if (workload == tree || changesThreadingOnly(options))
@@ -603,14 +576,15 @@ static void measureWorkloads(const QString& root, const std::vector<uint32_t>& p
 		std::vector<QString> smallFolders = foldersOf(root + QStringLiteral("/small"));
 		smallFolders.erase(smallFolders.begin()); // The parent of the small folders
 		for (const QString& folder : smallFolders)
-			checkMirrorAgainstReal(folder, statisticsPool);
+			checkMirrorAgainstReal(folder, statisticsPool, 0);
 
+		// No largest files, as CPanel asks for
 		const auto folders = std::make_shared<const std::vector<QString>>(std::move(smallFolders));
 		const auto scanWith = [&statisticsPool](const std::optional<MirrorOptions> options) {
 			return [&statisticsPool, options](const QString& folder) {
 				std::atomic<uint64_t> occupiedSpaceSoFar{ 0 };
-				return options ? mirrorScan(folder, statisticsPool, *options, occupiedSpaceSoFar).files
-					: calculateStatsFor({ folder }, statisticsPool, false, {}, &occupiedSpaceSoFar).files;
+				return options ? mirrorScan(folder, statisticsPool, 0, *options, occupiedSpaceSoFar).files
+					: calculateStatsFor({ folder }, statisticsPool, 0, false, {}, &occupiedSpaceSoFar).files;
 			};
 		};
 

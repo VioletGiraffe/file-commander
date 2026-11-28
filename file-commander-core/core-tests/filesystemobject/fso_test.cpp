@@ -252,6 +252,50 @@ TEST_CASE("An entry that is neither a file nor a directory is of unknown type", 
 	CHECK_FALSE(socket.isDir());
 }
 
+TEST_CASE("A FileSystemEntryView reports what the CFileSystemObject of its entry reports", "[CFileSystemObject]")
+{
+	thin_io::directory_entry file = fileNamed("report.txt");
+	file.logical_size = 12345;
+
+	thin_io::entry_status targetFile = statusOf(thin_io::entry_kind::regular_file);
+	targetFile.logical_size = 5;
+	thin_io::directory_entry fileLink = linkNamed("file-link", false);
+	fileLink.link_target = targetFile;
+
+	thin_io::directory_entry directoryLink = linkNamed("folder-link", true);
+	directoryLink.link_target = statusOf(thin_io::entry_kind::directory);
+
+	thin_io::directory_entry otherLink = linkNamed("socket-link", false);
+	otherLink.link_target = statusOf(thin_io::entry_kind::other);
+
+	const thin_io::directory_entry entries[]{
+		file,
+		entryNamed("folder", statusOf(thin_io::entry_kind::directory)),
+		fileLink,
+		directoryLink,
+		otherLink,
+		linkNamed("broken-file-link", false),
+		linkNamed("broken-folder-link", true),
+		entryNamed("socket", statusOf(thin_io::entry_kind::other)),
+	};
+
+	const QString parent = parentPath();
+	for (const thin_io::directory_entry& entry : entries)
+	{
+		const FileSystemEntryView view{ parent, entry };
+		const CFileSystemObject object{ parent, entry };
+		INFO(object.fullAbsolutePath().toStdString());
+		CHECK(view.isFile() == object.isFile());
+		CHECK(view.isDir() == object.isDir());
+		CHECK(view.isLink() == object.isLink());
+		CHECK(view.isBundle() == object.isBundle());
+		CHECK(view.size() == object.size());
+		CHECK(view.fullName() == object.fullName());
+		CHECK(view.fullAbsolutePath() == object.fullAbsolutePath());
+		CHECK(CFileSystemObject{ view } == object);
+	}
+}
+
 TEST_CASE("The [..] entry is the parent folder, and a root has none", "[CFileSystemObject]")
 {
 	const QString folder = parentPath() + "folder/";

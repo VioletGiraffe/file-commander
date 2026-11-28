@@ -953,7 +953,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 				_dirSizesBeingCalculated.erase(registered);
 		});
 
-		const FileStatistics stats = calculateStatsFor({ path }, _statisticsThreadPool, _abortBackgroundTasks, {}, &occupiedSpaceSoFar);
+		const FileStatistics stats = calculateStatsFor({ path }, _statisticsThreadPool, 0, _abortBackgroundTasks, {}, &occupiedSpaceSoFar);
 
 		// Since this is a background thread, the item we were working on may be out of the _items list by now.
 		// So we find it again and see if it's still there.
