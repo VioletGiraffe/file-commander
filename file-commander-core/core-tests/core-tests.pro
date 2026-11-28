@@ -40,6 +40,9 @@ tui.depends = fcterm catch2-runner
 
 # Built with the suites so they cannot rot, but never run by the test scripts: see doc/testing.md, "Listing benchmark" and "File list map benchmark".
 SUBDIRS += listing-benchmark filelist-hashmap-benchmark filestatistics-benchmark
+# The same for file-operations/doc/testing.md, "Transfer benchmark"
+SUBDIRS += transfer-benchmark
+transfer-benchmark.subdir = ../../file-operations/tests/transfer-benchmark
 
 cpp-template-utils.subdir = ../../cpp-template-utils
 catch2-runner.subdir = ../../cpp-template-utils/3rdparty/catch2
@@ -70,3 +73,4 @@ xdgapplications.depends = core fileoperations-lib qtutils thin_io catch2-runner
 listing-benchmark.depends = core fileoperations-lib qtutils thin_io
 filelist-hashmap-benchmark.depends = core fileoperations-lib qtutils thin_io
 filestatistics-benchmark.depends = core fileoperations-lib qtutils thin_io
+transfer-benchmark.depends = fileoperations-lib cpputils thin_io

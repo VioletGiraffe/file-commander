@@ -7,7 +7,8 @@ The project files are authoritative for the current test set; this is the map. E
 `file-commander-core/core-tests/core-tests.pro` builds every suite, including the ones that live next to the code they
 test:
 
-- `file-operations/tests/`: the file-operation engine, its dialogs, and folder comparison.
+- `file-operations/tests/`: the file-operation engine, its dialogs, and folder comparison; also the transfer benchmark,
+  documented in `file-operations/doc/testing.md`.
 - `qt-app/gui-tests/fileoperations/`: launching file operations from the UI.
 - `qt-app/gui-tests/filelist/`: the file-list model.
 - `plugins/viewer/csvviewer/tests/`: the CSV viewer.
