@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795881869861,
+  "lastUpdate": 1795887674506,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -41463,6 +41463,95 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/2d4da1f338fdc0a1417ba642caca4b4ff573de79"
         },
         "date": 1795881867317,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 28479,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 38489,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1954.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1225.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2183.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1259.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 507.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 60.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "f6507487de441b41cd597bd26252a4a9353c0748",
+          "message": "The file-operations transfer benchmark builds with the test suites, so that it cannot rot",
+          "timestamp": "2026-11-28T19:33:27+02:00",
+          "tree_id": "dd2239ac509cfb8b9078d8cc91b2d85f77a80a2a",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/f6507487de441b41cd597bd26252a4a9353c0748"
+        },
+        "date": 1795887672217,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
