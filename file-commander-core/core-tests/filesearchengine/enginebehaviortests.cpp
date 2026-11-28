@@ -107,7 +107,7 @@ TEST_CASE("Search - overlapping roots report each item once, in either order", "
 
 	for (const QStringList& roots : { QStringList{ tree.path(), nested }, QStringList{ nested, tree.path() }, QStringList{ sub, nested, tree.path() } })
 	{
-		INFO(roots.join(u';').toStdString());
+		INFO(roots.join(u';'));
 		const SearchResult result = runSearch({ .roots = roots });
 		CHECK(result.matched(sub));
 		CHECK(result.matched(nested));
@@ -173,7 +173,7 @@ TEST_CASE("Search - a file root below a folder root is reported once, in either 
 
 	for (const QStringList& roots : { QStringList{ tree.path(), file }, QStringList{ file, tree.path() } })
 	{
-		INFO(roots.join(u';').toStdString());
+		INFO(roots.join(u';'));
 		const SearchResult byName = runSearch({ .roots = roots });
 		CHECK(std::ranges::count(byName.matches, file) == 1);
 		CHECK(byName.matched(sibling));

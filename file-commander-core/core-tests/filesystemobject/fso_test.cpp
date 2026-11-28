@@ -284,7 +284,7 @@ TEST_CASE("A FileSystemEntryView reports what the CFileSystemObject of its entry
 	{
 		const FileSystemEntryView view{ parent, entry };
 		const CFileSystemObject object{ parent, entry };
-		INFO(object.fullAbsolutePath().toStdString());
+		INFO(object.fullAbsolutePath());
 		CHECK(view.isFile() == object.isFile());
 		CHECK(view.isDir() == object.isDir());
 		CHECK(view.isLink() == object.isLink());

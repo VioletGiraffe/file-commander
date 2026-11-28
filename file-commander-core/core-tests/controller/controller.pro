@@ -16,7 +16,7 @@ MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
-LIBS += -L$${DESTDIR} -lqtutils -ltest_utils -lcpputils
+LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
 mac*|linux*|freebsd{
@@ -25,8 +25,7 @@ mac*|linux*|freebsd{
 
 INCLUDEPATH += \
 	../../src/ \
-	../common/ \
-	../../../file-operations/test-utils/src/
+	../common/
 
 include(../../core.pri)
 

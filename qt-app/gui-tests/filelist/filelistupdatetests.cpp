@@ -9,7 +9,6 @@
 #include "panellisting.h"
 
 #include "crandomdatagenerator.h"
-#include "qt_helpers.hpp"
 
 
 // Submodule includes
@@ -945,7 +944,7 @@ TEST_CASE("NaturalSort::compare orders the same by key as by string", "[filelist
 	if (byKeyIt != byKey.cend())
 	{
 		const uint32_t l = *byKeyIt, r = *byCompareIt;
-		INFO("First difference at " << byKeyIt - byKey.cbegin() << ": \"" << names[l].toStdString() << "\" by key, \"" << names[r].toStdString() << "\" by string");
+		INFO("First difference at " << byKeyIt - byKey.cbegin() << ": \"" << names[l] << "\" by key, \"" << names[r] << "\" by string");
 		INFO("Comparing the first to the second: " << NaturalSort::compare(names[l], names[r]) << " by string, " << NaturalSort::compare(keys[l], keys[r]) << " by key");
 		FAIL_CHECK("The two orders differ");
 	}

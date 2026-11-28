@@ -8,8 +8,6 @@
 
 #include "filelisttestitems.h"
 
-#include "qt_helpers.hpp" // operator<< for QString, so Catch2 can print a name in a failure report
-
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"

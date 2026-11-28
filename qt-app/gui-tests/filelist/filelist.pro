@@ -48,8 +48,7 @@ SOURCES += \
 	../../src/panel/filelistwidget/cfilelistview.cpp \
 	../../src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp \
 	../../src/panel/filelistwidget/model/cfilelistmodel.cpp \
-	../../../file-operations/test-utils/src/crandomdatagenerator.cpp \
-	../../../file-operations/test-utils/src/qt_helpers.cpp
+	../../../file-operations/test-utils/src/crandomdatagenerator.cpp
 
 HEADERS += \
 	filelisttesthelpers.h \

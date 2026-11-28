@@ -7,8 +7,6 @@
 #include "filesearchengine/cfilesearchengine.h"
 #include "filesearchengine/filesearchquery.h"
 
-#include "qt_helpers.hpp" // operator<< for QString, so Catch2 can print a path in a failure report
-
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"

@@ -171,8 +171,8 @@ void requireScreen(CTerminalSession& session, const std::function<bool(const CTe
 		return;
 
 	const std::optional<int> exitCode = session.waitForExit(0ms);
-	FAIL("Timed out waiting for " << expectation.toStdString() << (exitCode ? ", the program exited with code " + std::to_string(*exitCode) : std::string{})
-		<< "\n" << session.screen().text().toStdString());
+	FAIL("Timed out waiting for " << expectation << (exitCode ? ", the program exited with code " + std::to_string(*exitCode) : std::string{})
+		<< "\n" << session.screen().text());
 }
 
 void requireText(CTerminalSession& session, const QString& text)
@@ -1846,7 +1846,7 @@ TEST_CASE("An elided search result keeps emoji and accented letters whole", "[tu
 	findByName(*session, QStringLiteral("long-"), QStringLiteral("Search completed, 8 items found"));
 
 	const QString screenText = session->screen().text();
-	INFO(screenText.toStdString());
+	INFO(screenText);
 	CHECK(screenText.contains(emoji + QStringLiteral("...")));
 	CHECK(screenText.contains(QStringLiteral("...") + emoji));
 	CHECK(screenText.contains(accentedLetter + QStringLiteral("...")));

@@ -2,8 +2,6 @@
 
 #include "panel/filelistwidget/model/cfilelistmodel.h"
 
-#include "qt_helpers.hpp"
-
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"

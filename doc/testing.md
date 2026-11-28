@@ -49,7 +49,8 @@ To run on FAT32 or exFAT, point `TEMP` and `TMP` at the volume: every test works
 Tests that need what those filesystems lack skip themselves there: links everywhere, and on POSIX also FIFOs,
 sockets and permission bits (`filesystemHasNoLinks()`, `filesystemIsFatFamily()`).
 
-CI runs every suite but `tui_test` this way on an exFAT and a FAT32 volume, on each platform.
+CI runs every suite but `tui_test` this way on an exFAT and a FAT32 volume, on each platform. Linux skips exFAT, with a
+warning, while the runner's kernel has no `linux-modules-extra` package in the archive.
 
 `filelist_test`'s `[timing]` cases run only when named. They print:
 
