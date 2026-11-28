@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795644207643,
+  "lastUpdate": 1795881869861,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -41429,6 +41429,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 60,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2d4da1f338fdc0a1417ba642caca4b4ff573de79",
+          "message": "Test messages stream Qt strings directly through catch_qt.hpp, and the controller and batch-rename tests no longer link test_utils",
+          "timestamp": "2026-11-28T17:56:54+02:00",
+          "tree_id": "698414fb02912da75d7cd599fa50835adde5a655",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2d4da1f338fdc0a1417ba642caca4b4ff573de79"
+        },
+        "date": 1795881867317,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 28479,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 38489,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1954.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1225.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2183.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1259.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 507.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 60.5,
             "unit": "KB"
           },
           {
